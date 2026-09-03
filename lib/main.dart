@@ -25,6 +25,22 @@ class MelodiaApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
       themeMode: ThemeMode.dark,
+      // Uygulamanın her ekranında, boş bir alana dokunulduğunda
+      // klavyeyi otomatik olarak kapatır. Tek tek her ekrana
+      // GestureDetector eklemek yerine merkezi bir çözüm.
+      builder: (context, child) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            final currentFocus = FocusScope.of(context);
+            if (!currentFocus.hasPrimaryFocus &&
+                currentFocus.focusedChild != null) {
+              FocusManager.instance.primaryFocus?.unfocus();
+            }
+          },
+          child: child,
+        );
+      },
       home: sunoApiKey.isEmpty
           ? const _MissingApiKeyScreen()
           : HomeShell(service: SunoApiService(apiKey: sunoApiKey)),
