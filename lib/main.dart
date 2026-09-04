@@ -1,154 +1,109 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
+import 'services/auth_service.dart';
+import 'services/suno_api_service.dart';
+import 'screens/home_shell.dart';
+import 'screens/login_screen.dart';
+import 'theme/app_theme.dart';
 
-/// AWS Cognito ile kayıt/giriş işlemlerini yöneten servis.
-/// Ağır bir SDK (amplify_flutter) yerine doğrudan Cognito'nun
-/// HTTP API'sini kullanır - daha az bağımlılık, daha kolay bakım.
-class AuthService {
-  AuthService({
-    required this.userPoolClientId,
-    required this.region,
-    required this.backendUrl,
-  });
+const String apiUrl = String.fromEnvironment('API_URL');
+const String userPoolClientId = String.fromEnvironment('USER_POOL_CLIENT_ID');
+const String awsRegion = String.fromEnvironment('AWS_REGION', defaultValue: 'eu-north-1');
 
-  final String userPoolClientId;
-  final String region;
+void main() {
+  runApp(const MelodiaApp());
+}
 
-  /// Apple ile giriş, backend'deki /auth/apple endpoint'inden geçer.
-  final String backendUrl;
+class MelodiaApp extends StatelessWidget {
+  const MelodiaApp({super.key});
 
-  String get _endpoint =>
-      'https://cognito-idp.$region.amazonaws.com/';
-
-  String? _idToken;
-  String? _refreshToken;
-
-  String? get idToken => _idToken;
-  bool get isLoggedIn => _idToken != null;
-
-  /// Yeni kullanıcı kaydı oluşturur (email doğrulama kodu gönderilir).
-  Future<void> signUp(String email, String password) async {
-    final response = await http.post(
-      Uri.parse(_endpoint),
-      headers: {
-        'Content-Type': 'application/x-amz-json-1.1',
-        'X-Amz-Target': 'AWSCognitoIdentityProviderService.SignUp',
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Melodia Studio',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
+      builder: (context, child) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            final currentFocus = FocusScope.of(context);
+            if (!currentFocus.hasPrimaryFocus &&
+                currentFocus.focusedChild != null) {
+              FocusManager.instance.primaryFocus?.unfocus();
+            }
+          },
+          child: child,
+        );
       },
-      body: jsonEncode({
-        'ClientId': userPoolClientId,
-        'Username': email,
-        'Password': password,
-        'UserAttributes': [
-          {'Name': 'email', 'Value': email},
-        ],
-      }),
+      home: (apiUrl.isEmpty || userPoolClientId.isEmpty)
+          ? const _MissingConfigScreen()
+          : const _AppRoot(),
     );
-    _throwIfError(response);
-  }
-
-  /// Kullanıcının e-postasına gelen 6 haneli doğrulama kodunu onaylar.
-  Future<void> confirmSignUp(String email, String code) async {
-    final response = await http.post(
-      Uri.parse(_endpoint),
-      headers: {
-        'Content-Type': 'application/x-amz-json-1.1',
-        'X-Amz-Target':
-            'AWSCognitoIdentityProviderService.ConfirmSignUp',
-      },
-      body: jsonEncode({
-        'ClientId': userPoolClientId,
-        'Username': email,
-        'ConfirmationCode': code,
-      }),
-    );
-    _throwIfError(response);
-  }
-
-  /// Giriş yapar, başarılıysa idToken'ı hafızada tutar.
-  Future<void> signIn(String email, String password) async {
-    final response = await http.post(
-      Uri.parse(_endpoint),
-      headers: {
-        'Content-Type': 'application/x-amz-json-1.1',
-        'X-Amz-Target':
-            'AWSCognitoIdentityProviderService.InitiateAuth',
-      },
-      body: jsonEncode({
-        'AuthFlow': 'USER_PASSWORD_AUTH',
-        'ClientId': userPoolClientId,
-        'AuthParameters': {
-          'USERNAME': email,
-          'PASSWORD': password,
-        },
-      }),
-    );
-    _throwIfError(response);
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final result = body['AuthenticationResult'] as Map<String, dynamic>;
-    _idToken = result['IdToken'] as String;
-    _refreshToken = result['RefreshToken'] as String?;
-  }
-
-  void signOut() {
-    _idToken = null;
-    _refreshToken = null;
-  }
-
-  /// Apple'dan gelen native identityToken'ı backend'e gönderir,
-  /// backend Apple token'ını doğrulayıp Cognito oturumu döndürür.
-  Future<void> signInWithApple(String identityToken, String? email) async {
-    final response = await http.post(
-      Uri.parse('$backendUrl/auth/apple'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'identityToken': identityToken,
-        if (email != null) 'email': email,
-      }),
-    );
-
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      throw AuthException(
-        body['error']?.toString() ?? 'Apple ile giriş başarısız oldu.',
-      );
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _idToken = body['idToken'] as String;
-    _refreshToken = body['refreshToken'] as String?;
-  }
-
-  void _throwIfError(http.Response response) {
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      throw AuthException(
-        _friendlyMessage(body['__type']?.toString(), body['message']?.toString()),
-      );
-    }
-  }
-
-  String _friendlyMessage(String? type, String? raw) {
-    switch (type) {
-      case 'UsernameExistsException':
-        return 'Bu e-posta ile zaten bir hesap var.';
-      case 'NotAuthorizedException':
-        return 'E-posta veya şifre hatalı.';
-      case 'UserNotConfirmedException':
-        return 'Hesabınız henüz doğrulanmamış. E-postanıza gelen kodu girin.';
-      case 'CodeMismatchException':
-        return 'Doğrulama kodu hatalı.';
-      case 'InvalidPasswordException':
-        return 'Şifre en az 8 karakter olmalı.';
-      default:
-        return raw ?? 'Bilinmeyen bir hata oluştu.';
-    }
   }
 }
 
-class AuthException implements Exception {
-  AuthException(this.message);
-  final String message;
+class _AppRoot extends StatefulWidget {
+  const _AppRoot();
+
   @override
-  String toString() => message;
+  State<_AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<_AppRoot> {
+  late final AuthService _authService = AuthService(
+    userPoolClientId: userPoolClientId,
+    region: awsRegion,
+    backendUrl: apiUrl,
+  );
+  late final SunoApiService _apiService = SunoApiService(
+    baseUrl: apiUrl,
+    idTokenProvider: () => _authService.idToken,
+  );
+
+  bool _loggedIn = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loggedIn) {
+      return LoginScreen(
+        authService: _authService,
+        onLoggedIn: () => setState(() => _loggedIn = true),
+      );
+    }
+    return HomeShell(service: _apiService);
+  }
+}
+
+class _MissingConfigScreen extends StatelessWidget {
+  const _MissingConfigScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.key_off, size: 48, color: AppColors.pink),
+              SizedBox(height: 16),
+              Text(
+                'Backend ayarları bulunamadı.\n\n'
+                'Uygulamayı şu komutla çalıştırın:\n\n'
+                'flutter run '
+                '--dart-define=API_URL=... '
+                '--dart-define=USER_POOL_CLIENT_ID=... '
+                '--dart-define=AWS_REGION=eu-north-1',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
