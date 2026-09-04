@@ -5,17 +5,10 @@ import 'package:http/http.dart' as http;
 /// Ağır bir SDK (amplify_flutter) yerine doğrudan Cognito'nun
 /// HTTP API'sini kullanır - daha az bağımlılık, daha kolay bakım.
 class AuthService {
-  AuthService({
-    required this.userPoolClientId,
-    required this.region,
-    required this.backendUrl,
-  });
+  AuthService({required this.userPoolClientId, required this.region});
 
   final String userPoolClientId;
   final String region;
-
-  /// Apple ile giriş, backend'deki /auth/apple endpoint'inden geçer.
-  final String backendUrl;
 
   String get _endpoint =>
       'https://cognito-idp.$region.amazonaws.com/';
@@ -25,6 +18,8 @@ class AuthService {
 
   String? get idToken => _idToken;
   bool get isLoggedIn => _idToken != null;
+
+  Future<void> _request(String target, Map<String, dynamic> body) async {}
 
   /// Yeni kullanıcı kaydı oluşturur (email doğrulama kodu gönderilir).
   Future<void> signUp(String email, String password) async {
@@ -93,30 +88,6 @@ class AuthService {
   void signOut() {
     _idToken = null;
     _refreshToken = null;
-  }
-
-  /// Apple'dan gelen native identityToken'ı backend'e gönderir,
-  /// backend Apple token'ını doğrulayıp Cognito oturumu döndürür.
-  Future<void> signInWithApple(String identityToken, String? email) async {
-    final response = await http.post(
-      Uri.parse('$backendUrl/auth/apple'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'identityToken': identityToken,
-        if (email != null) 'email': email,
-      }),
-    );
-
-    if (response.statusCode != 200) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      throw AuthException(
-        body['error']?.toString() ?? 'Apple ile giriş başarısız oldu.',
-      );
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    _idToken = body['idToken'] as String;
-    _refreshToken = body['refreshToken'] as String?;
   }
 
   void _throwIfError(http.Response response) {

@@ -2,79 +2,87 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 
-/// sunoapi.org REST API'sine bağlanan servis.
+/// Kendi AWS backend'imize (Lambda + API Gateway) bağlanan servis.
 ///
-/// Resmi dokümantasyon: https://docs.sunoapi.org
-/// API key almak için: https://sunoapi.org/api-key
+/// ÖNEMLİ: Bu servis artık Suno API'ye DOĞRUDAN bağlanmıyor.
+/// Suno API key'i telefon uygulamasında hiç bulunmuyor — sadece
+/// AWS Secrets Manager'da, sunucu tarafında duruyor. Bu sayede:
+///   1) Key hiçbir zaman tersine mühendislikle çalınamaz
+///   2) Her kullanıcının aylık kotası backend'de takip edilir
+///   3) Kota dolunca istek Suno'ya hiç gitmez, kredi harcanmaz
 ///
-/// NOT: sunoapi.org, Suno Inc.'in resmi bir servisi değildir —
-/// bağımsız üçüncü bir taraftır (kredi bazlı ücretlendirir).
-///
-/// ÖNEMLİ TASARIM NOTU:
-/// Süre (duration) kontrolü API'de sadece customMode:true VE
-/// model:V5_5 iken çalışıyor. Ama customMode:true olduğunda,
-/// gönderdiğiniz "prompt" alanı otomatik söz üretmek yerine
-/// DOĞRUDAN şarkı sözü olarak kullanılıyor. Kullanıcının yazdığı
-/// "babasını kaybeden biri için hüzünlü şarkı" gibi bir AÇIKLAMAYI
-/// gerçek şarkı sözlerine çevirmek için, önce ayrı bir "lyrics"
-/// (söz üretme) isteği atıyoruz, sonra o sözlerle asıl şarkı
-/// üretim isteğini gönderiyoruz. Bu yüzden sözlü şarkılar iki
-/// API çağrısı (ve muhtemelen 2 kredi) gerektiriyor.
+/// Her istek, kullanıcının Cognito girişinden aldığı idToken'ı
+/// Authorization: Bearer <idToken> başlığıyla gönderir.
 class SunoApiService {
   SunoApiService({
-    required this.apiKey,
-    this.baseUrl = 'https://api.sunoapi.org',
+    required this.baseUrl,
+    required this.idTokenProvider,
     this.model = 'V5_5',
   });
 
-  /// API key'inizi doğrudan koda yazmayın; --dart-define ile verin:
-  /// flutter run --dart-define=SUNO_API_KEY=xxxx
-  final String apiKey;
+  /// Backend'in ApiUrl'i, örn:
+  /// https://xxxxxxxx.execute-api.eu-north-1.amazonaws.com/prod
   final String baseUrl;
 
-  /// Süre (duration) kontrolü SADECE V5_5 modelinde çalışıyor,
-  /// bu yüzden varsayılan model V5_5.
+  /// Her istekte güncel Cognito idToken'ını döndüren fonksiyon.
+  final String? Function() idTokenProvider;
+
   final String model;
 
-  Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
-      };
+  Map<String, String> get _headers {
+    final token = idTokenProvider();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<http.Response> _post(String path, Map<String, dynamic> body) {
+    return http
+        .post(Uri.parse('$baseUrl$path'), headers: _headers, body: jsonEncode(body))
+        .timeout(
+          const Duration(seconds: 35),
+          onTimeout: () => throw SunoApiException(
+            'Sunucuya bağlanılamadı (zaman aşımı). '
+            'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+          ),
+        );
+  }
+
+  Future<http.Response> _get(String path, Map<String, String> query) {
+    return http
+        .get(
+          Uri.parse('$baseUrl$path').replace(queryParameters: query),
+          headers: _headers,
+        )
+        .timeout(
+          const Duration(seconds: 35),
+          onTimeout: () => throw SunoApiException(
+            'Sunucuya bağlanılamadı (zaman aşımı). '
+            'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+          ),
+        );
+  }
 
   // ---------------------------------------------------------------------
   // 1) SÖZ ÜRETİMİ (yalnızca sözlü/instrumental olmayan şarkılar için)
   // ---------------------------------------------------------------------
 
-  Future<String> _requestLyrics(
-    String prompt, {
-    String callBackUrl = 'https://example.com/callback',
-  }) async {
-    final uri = Uri.parse('$baseUrl/api/v1/lyrics');
+  Future<String> _requestLyrics(String prompt) async {
     final trimmedPrompt =
         prompt.length > 200 ? prompt.substring(0, 200) : prompt;
 
-    final response = await http.post(
-      uri,
-      headers: _headers,
-      body: jsonEncode({
-        'prompt': trimmedPrompt,
-        'callBackUrl': callBackUrl,
-      }),
-    );
-
+    final response = await _post('/lyrics', {'prompt': trimmedPrompt});
     final body = jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode != 200 || body['code'] != 200) {
+
+    if (response.statusCode != 200) {
       throw SunoApiException(
-        _errorMessageFor(body['code']) ??
-            body['msg']?.toString() ??
-            'Söz üretimi başlatılamadı.',
+        body['error']?.toString() ?? 'Söz üretimi başlatılamadı.',
       );
     }
-
-    final taskId =
-        (body['data'] as Map<String, dynamic>?)?['taskId']?.toString();
+    final taskId = body['taskId']?.toString();
     if (taskId == null) {
-      throw SunoApiException('Sunucudan taskId alınamadı: ${response.body}');
+      throw SunoApiException('Sunucudan taskId alınamadı.');
     }
     return taskId;
   }
@@ -82,22 +90,15 @@ class SunoApiService {
   Future<({String title, String text})> _checkLyricsStatus(
     String taskId,
   ) async {
-    final uri = Uri.parse(
-      '$baseUrl/api/v1/lyrics/record-info',
-    ).replace(queryParameters: {'taskId': taskId});
+    final response = await _get('/lyrics-status', {'taskId': taskId});
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-    final response = await http.get(uri, headers: _headers);
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-
-    if (response.statusCode != 200 || body['code'] != 200) {
+    if (response.statusCode != 200) {
       throw SunoApiException(
-        _errorMessageFor(body['code']) ??
-            body['msg']?.toString() ??
-            'Söz durumu sorgulanamadı.',
+        data['error']?.toString() ?? 'Söz durumu sorgulanamadı.',
       );
     }
 
-    final data = body['data'] as Map<String, dynamic>? ?? {};
     final status = data['status']?.toString();
 
     if (status == 'SUCCESS') {
@@ -144,7 +145,7 @@ class SunoApiService {
   }
 
   // ---------------------------------------------------------------------
-  // 2) ŞARKI (MÜZİK) ÜRETİMİ
+  // 2) ŞARKI (MÜZİK) ÜRETİMİ — kota burada kontrol edilir
   // ---------------------------------------------------------------------
 
   Future<String> _requestMusic({
@@ -154,61 +155,63 @@ class SunoApiService {
     required bool instrumental,
     String? vocalGender,
     int? durationSeconds,
-    String callBackUrl = 'https://example.com/callback',
   }) async {
-    final uri = Uri.parse('$baseUrl/api/v1/generate');
-
-    final response = await http.post(
-      uri,
-      headers: _headers,
-      body: jsonEncode({
-        'customMode': true,
-        'instrumental': instrumental,
-        if (!instrumental) 'prompt': lyricsOrEmpty,
-        'style': style,
-        'title': title,
-        'model': model,
-        'callBackUrl': callBackUrl,
-        if (vocalGender != null) 'vocalGender': vocalGender,
-        if (durationSeconds != null) 'duration': durationSeconds,
-      }),
-    );
+    final response = await _post('/generate', {
+      'instrumental': instrumental,
+      if (!instrumental) 'lyrics': lyricsOrEmpty,
+      'style': style,
+      'title': title,
+      if (vocalGender != null) 'vocalGender': vocalGender,
+      if (durationSeconds != null) 'durationSeconds': durationSeconds,
+    });
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
 
-    if (response.statusCode != 200 || body['code'] != 200) {
+    if (response.statusCode == 429) {
       throw SunoApiException(
-        _errorMessageFor(body['code']) ??
-            body['msg']?.toString() ??
-            'Bilinmeyen hata',
+        body['message']?.toString() ??
+            'Bu ayki şarkı hakkınızı kullandınız.',
+      );
+    }
+    if (response.statusCode != 200) {
+      throw SunoApiException(
+        body['message']?.toString() ?? body['error']?.toString() ?? 'Bilinmeyen hata',
       );
     }
 
-    final taskId =
-        (body['data'] as Map<String, dynamic>?)?['taskId']?.toString();
+    final taskId = body['taskId']?.toString();
     if (taskId == null) {
-      throw SunoApiException('Sunucudan taskId alınamadı: ${response.body}');
+      throw SunoApiException('Sunucudan taskId alınamadı.');
     }
     return taskId;
   }
 
   Future<GenerationTask> checkStatus(String taskId) async {
-    final uri = Uri.parse(
-      '$baseUrl/api/v1/generate/record-info',
-    ).replace(queryParameters: {'taskId': taskId});
+    final response = await _get('/status', {'taskId': taskId});
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-    final response = await http.get(uri, headers: _headers);
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-
-    if (response.statusCode != 200 || body['code'] != 200) {
-      throw SunoApiException(
-        _errorMessageFor(body['code']) ??
-            body['msg']?.toString() ??
-            'Bilinmeyen hata',
-      );
+    if (response.statusCode != 200) {
+      throw SunoApiException(data['error']?.toString() ?? 'Bilinmeyen hata');
     }
 
-    return GenerationTask.fromJson(body);
+    // GenerationTask.fromJson {'data': ...} şeklinde bekliyor,
+    // backend'imiz doğrudan data objesini döndürüyor.
+    return GenerationTask.fromJson({'data': data});
+  }
+
+  /// Uygulama açılışında "kalan hakkınız: X/Y" göstermek için.
+  Future<({int used, int limit, int remaining, String plan})> getQuota() async {
+    final response = await _get('/quota', {});
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw SunoApiException(body['message']?.toString() ?? 'Kota bilgisi alınamadı.');
+    }
+    return (
+      used: (body['used'] as num?)?.toInt() ?? 0,
+      limit: (body['limit'] as num?)?.toInt() ?? 0,
+      remaining: (body['remaining'] as num?)?.toInt() ?? 0,
+      plan: body['plan']?.toString() ?? 'free',
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -280,31 +283,6 @@ class SunoApiService {
     if (trimmed.isEmpty) return 'Adsız Şarkı';
     final words = trimmed.split(RegExp(r'\s+')).take(6).join(' ');
     return words.length > 80 ? words.substring(0, 80) : words;
-  }
-
-  String? _errorMessageFor(dynamic code) {
-    switch (code) {
-      case 400:
-        return 'Geçersiz parametreler gönderildi.';
-      case 401:
-        return 'API key geçersiz veya eksik.';
-      case 404:
-        return 'İstek yapılan adres bulunamadı.';
-      case 405:
-        return 'İstek limiti aşıldı, biraz sonra tekrar deneyin.';
-      case 413:
-        return 'Prompt veya başlık çok uzun.';
-      case 429:
-        return 'Krediniz yetersiz. Hesabınıza kredi yüklemeniz gerekiyor.';
-      case 430:
-        return 'Çok sık istek gönderildi, lütfen biraz bekleyin.';
-      case 455:
-        return 'Sistem şu anda bakımda, daha sonra tekrar deneyin.';
-      case 500:
-        return 'Sunucu hatası oluştu.';
-      default:
-        return null;
-    }
   }
 }
 
