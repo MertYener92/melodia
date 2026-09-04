@@ -1,186 +1,263 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
+
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/chip_group.dart';
 import '../widgets/gradient_button.dart';
-import 'generating_screen.dart';
+import 'create_form_screen.dart';
 
+/// "Create" sekmesi: assets/videos/create_hero.mp4'ü tam ekran arka plan
+/// olarak oynatan premium bir video-hero ekranı. Gerçek şarkı üretim formu
+/// (prompt + genre/mood/vocal/length + Suno API çağrısı) [CreateFormScreen]
+/// içine taşındı; buradaki "Generate Song" CTA'sı o forma yönlendirir.
+///
+/// Bu ekran, HomeShell'deki IndexedStack tab yapısını bozmadan bir tab
+/// olarak kalır (mevcut bottom navigation mimarisi korunur). [isActive],
+/// tab aktif değilken videoyu duraklatmak / tekrar aktif olunca baştan
+/// başlatmak için HomeShell tarafından sağlanır. [onClose], sol üstteki X
+/// butonuna basıldığında Home sekmesine dönmek için kullanılır.
 class CreateScreen extends StatefulWidget {
   const CreateScreen({
     super.key,
     required this.service,
     required this.library,
+    required this.isActive,
+    required this.onClose,
   });
 
   final SunoApiService service;
   final SongLibrary library;
+  final bool isActive;
+  final VoidCallback onClose;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
 }
 
 class _CreateScreenState extends State<CreateScreen> {
-  final TextEditingController _promptController = TextEditingController();
+  static const _videoAsset = 'assets/videos/create_hero.mp4';
 
-  static const _genres = ['Pop', 'Rock', 'Hip-Hop', 'EDM', 'R&B', 'Acoustic'];
-  static const _moods = ['Happy', 'Chill', 'Energetic', 'Sad', 'Romantic'];
-  static const _vocals = ['Female', 'Male', 'Instrumental'];
-  static const _lengths = ['Short', 'Medium', 'Long'];
+  VideoPlayerController? _controller;
+  bool _videoReady = false;
+  bool _videoFailed = false;
 
-  String _genre = _genres.first;
-  String _mood = _moods.first;
-  String _vocal = _vocals.first;
-  String _length = _lengths[1];
+  @override
+  void initState() {
+    super.initState();
+    _initVideo();
+  }
 
-  static const Map<String, int> _lengthToSeconds = {
-    'Short': 30,
-    'Medium': 90,
-    'Long': 180,
-  };
+  Future<void> _initVideo() async {
+    final controller = VideoPlayerController.asset(_videoAsset);
+    _controller = controller;
+    try {
+      await controller.initialize();
+      await controller.setLooping(true);
+      await controller.setVolume(0);
+      if (!mounted) return;
+      setState(() => _videoReady = true);
+      if (widget.isActive) {
+        controller.play();
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _videoFailed = true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CreateScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive == oldWidget.isActive || !_videoReady) return;
+
+    final controller = _controller;
+    if (controller == null) return;
+
+    if (widget.isActive) {
+      // Create sekmesine her tekrar girildiğinde video baştan başlasın.
+      controller
+        ..seekTo(Duration.zero)
+        ..play();
+    } else {
+      controller.pause();
+    }
+  }
 
   @override
   void dispose() {
-    _promptController.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
-  Future<void> _generate() async {
-    final prompt = _promptController.text.trim();
-    if (prompt.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please describe your song first.')),
-      );
-      return;
-    }
-
-    final song = await Navigator.of(context).push(
+  void _openGenerateForm() {
+    Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => GeneratingScreen(
+        builder: (_) => CreateFormScreen(
           service: widget.service,
-          prompt: prompt,
-          genre: _genre,
-          mood: _mood,
-          vocal: _vocal,
-          durationSeconds: _lengthToSeconds[_length] ?? 90,
+          library: widget.library,
         ),
       ),
     );
-
-    if (song != null) {
-      widget.library.add(
-        LibrarySong(
-          song: song,
-          genre: _genre,
-          mood: _mood,
-          createdAt: DateTime.now(),
-        ),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Your song is ready! 🎶')),
-        );
-        _promptController.clear();
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Create your next song',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // 1. Tam ekran video arka plan.
+        _buildVideoBackground(),
+
+        // 3. Alt tarafta okunabilirlik için koyulaşan gradient.
+        const Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: [0.0, 0.55, 1.0],
+                colors: [
+                  Colors.transparent,
+                  Color(0x992A0A38),
+                  Color(0xF00A0A12),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Turn your ideas into music with AI',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
+        ),
+
+        // 2. Üst sol kapatma butonu.
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: _CloseButton(onTap: widget.onClose),
             ),
-            const SizedBox(height: 22),
-            _buildPromptCard(),
-            const SizedBox(height: 22),
-            ChipGroup(
-              label: 'GENRE',
-              options: _genres,
-              selected: _genre,
-              onSelected: (v) => setState(() => _genre = v),
+          ),
+        ),
+
+        // 4-7. Alt içerik: rozet, başlık, açıklama, CTA.
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildBadge(),
+                const SizedBox(height: 14),
+                const Text(
+                  'Generate Your Song',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Fikirlerinizi saniyeler içinde yapay zeka ile özgün '
+                  'şarkılara dönüştürün.',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 22),
+                GradientButton(
+                  label: 'Generate Song',
+                  icon: Icons.auto_awesome,
+                  onPressed: _openGenerateForm,
+                  height: 60,
+                ),
+              ],
             ),
-            const SizedBox(height: 18),
-            ChipGroup(
-              label: 'MOOD',
-              options: _moods,
-              selected: _mood,
-              onSelected: (v) => setState(() => _mood = v),
-            ),
-            const SizedBox(height: 18),
-            ChipGroup(
-              label: 'VOCAL',
-              options: _vocals,
-              selected: _vocal,
-              onSelected: (v) => setState(() => _vocal = v),
-            ),
-            const SizedBox(height: 18),
-            ChipGroup(
-              label: 'SONG LENGTH',
-              options: _lengths,
-              selected: _length,
-              onSelected: (v) => setState(() => _length = v),
-            ),
-            const SizedBox(height: 28),
-            GradientButton(
-              label: 'Generate Song',
-              icon: Icons.auto_awesome,
-              onPressed: _generate,
-              height: 58,
-            ),
-          ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoBackground() {
+    final controller = _controller;
+
+    if (_videoFailed || controller == null) {
+      // 10. Video yüklenemezse çökmeyen, temiz bir fallback.
+      return const DecoratedBox(
+        decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
+      );
+    }
+
+    if (!_videoReady) {
+      // 10. Video hazırlanırken kısa süreli temiz placeholder.
+      return const DecoratedBox(
+        decoration: BoxDecoration(color: AppColors.background),
+      );
+    }
+
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: controller.value.size.width,
+        height: controller.value.size.height,
+        child: IgnorePointer(
+          // Videoya dokununca herhangi bir play/pause kontrolü açılmasın.
+          child: VideoPlayer(controller),
         ),
       ),
     );
   }
 
-  Widget _buildPromptCard() {
+  Widget _buildBadge() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: AppColors.glassCard(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Describe your song',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Text(
+        'AI SONG GENERATOR',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+}
+
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.black.withValues(alpha: 0.35),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.18),
+            width: 1,
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _promptController,
-            maxLines: 4,
-            maxLength: 300,
-            style: const TextStyle(color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: 'A romantic pop song about summer nights...',
-              counterStyle: const TextStyle(color: AppColors.textMuted),
-              suffixIcon: const Padding(
-                padding: EdgeInsets.only(bottom: 40, right: 4),
-                child: Icon(Icons.auto_fix_high, color: AppColors.purple),
-              ),
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-        ],
+        ),
+        child: const Icon(Icons.close_rounded, color: Colors.white, size: 26),
       ),
     );
   }

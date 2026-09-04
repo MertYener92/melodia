@@ -4,6 +4,7 @@ import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
+import '../widgets/premium_bottom_nav.dart';
 import 'create_screen.dart';
 import 'discover_screen.dart';
 import 'home_screen.dart';
@@ -59,7 +60,12 @@ class _HomeShellState extends State<HomeShell> {
         player: _player,
         onGoToCreate: () => _goToTab(1),
       ),
-      CreateScreen(service: widget.service, library: _library),
+      CreateScreen(
+        service: widget.service,
+        library: _library,
+        isActive: _index == 1,
+        onClose: () => _goToTab(0),
+      ),
       MySongsScreen(library: _library, player: _player),
       const DiscoverScreen(),
       ProfileScreen(library: _library),
@@ -84,94 +90,22 @@ class _HomeShellState extends State<HomeShell> {
                   onTap: _openPlayer,
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: const Border(
-                    top: BorderSide(color: AppColors.border),
+              PremiumBottomNav(
+                currentIndex: _index,
+                onTap: _goToTab,
+                items: const [
+                  NavItemData(icon: Icons.home_rounded, label: 'Home'),
+                  NavItemData(icon: Icons.add_circle_rounded, label: 'Create'),
+                  NavItemData(
+                    icon: Icons.album_rounded,
+                    label: 'My Songs',
                   ),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _NavItem(
-                      icon: Icons.home_rounded,
-                      label: 'Home',
-                      isSelected: _index == 0,
-                      onTap: () => _goToTab(0),
-                    ),
-                    _NavItem(
-                      icon: Icons.add_circle_rounded,
-                      label: 'Create',
-                      isSelected: _index == 1,
-                      onTap: () => _goToTab(1),
-                    ),
-                    _NavItem(
-                      icon: Icons.library_music_rounded,
-                      label: 'My Songs',
-                      isSelected: _index == 2,
-                      onTap: () => _goToTab(2),
-                    ),
-                    _NavItem(
-                      icon: Icons.explore_rounded,
-                      label: 'Discover',
-                      isSelected: _index == 3,
-                      onTap: () => _goToTab(3),
-                    ),
-                    _NavItem(
-                      icon: Icons.person_rounded,
-                      label: 'Profile',
-                      isSelected: _index == 4,
-                      onTap: () => _goToTab(4),
-                    ),
-                  ],
-                ),
+                  NavItemData(icon: Icons.public_rounded, label: 'Discover'),
+                  NavItemData(icon: Icons.person_rounded, label: 'Profile'),
+                ],
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isSelected ? AppColors.purple : AppColors.textMuted;
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -1,4 +1,5 @@
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -212,7 +213,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (_mode != _Mode.confirm && Platform.isIOS) ...[
+                  if (_mode != _Mode.confirm &&
+                      !kIsWeb &&
+                      defaultTargetPlatform == TargetPlatform.iOS) ...[
                     Row(
                       children: [
                         const Expanded(
