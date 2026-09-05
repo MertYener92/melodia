@@ -12,6 +12,9 @@ class GeneratingScreen extends StatefulWidget {
     required this.mood,
     required this.vocal,
     required this.durationSeconds,
+    this.styleOverride,
+    this.titleOverride,
+    this.providedLyrics,
   });
 
   final SunoApiService service;
@@ -20,6 +23,12 @@ class GeneratingScreen extends StatefulWidget {
   final String mood;
   final String vocal; // 'Female' | 'Male' | 'Instrumental'
   final int durationSeconds;
+
+  /// AI Müzik sihirbazından (Gelişmiş mod) gelen zengin stil/başlık/söz
+  /// verilmişse bunlar kullanılır; verilmezse davranış eskisiyle aynıdır.
+  final String? styleOverride;
+  final String? titleOverride;
+  final String? providedLyrics;
 
   @override
   State<GeneratingScreen> createState() => _GeneratingScreenState();
@@ -63,6 +72,9 @@ class _GeneratingScreenState extends State<GeneratingScreen>
         vocalGender: vocalGender,
         instrumental: instrumental,
         durationSeconds: widget.durationSeconds,
+        styleOverride: widget.styleOverride,
+        titleOverride: widget.titleOverride,
+        providedLyrics: widget.providedLyrics,
         onLyricsStart: () {
           if (!mounted) return;
           setState(() => _stage = _Stage.lyrics);

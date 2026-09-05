@@ -1,0 +1,227 @@
+import 'package:flutter/material.dart';
+import '../services/music_spec_service.dart';
+import '../services/song_library.dart';
+import '../services/suno_api_service.dart';
+import '../theme/app_theme.dart';
+import 'create_form_screen.dart';
+import 'music_wizard_screen.dart';
+import 'quick_create_screen.dart';
+
+/// "AI Müzik" sekmesi (eski Home sekmesinin yerini alır). Kullanıcıya 3
+/// farklı üretim modu sunar; her biri kendi ayrı sayfasına yönlendirir:
+///
+/// - Hızlı: tek cümlelik fikir + Oluştur (en az soru)
+/// - Standart: mevcut prompt + genre/mood/vocal/length formu
+/// - Gelişmiş: çok adımlı "sihirbaz" — kullanıcı müziği insan gibi tarif
+///   eder, backend (Bedrock) bunu profesyonel bir Music Specification'a
+///   çevirir.
+class AiMusicScreen extends StatelessWidget {
+  const AiMusicScreen({
+    super.key,
+    required this.service,
+    required this.musicSpecService,
+    required this.library,
+  });
+
+  final SunoApiService service;
+  final MusicSpecService musicSpecService;
+  final SongLibrary library;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'AI Müzik',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                _ProBadge(),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Aklındaki şarkıyı tarif et, gerisini biz halledelim.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            _ModeCard(
+              title: 'Gelişmiş',
+              subtitle:
+                  'Müziği insan gibi tarif et — dünyasını, hissini, hikayesini '
+                  'anlat. Yapay zeka profesyonel bir prodüksiyona çevirsin.',
+              icon: Icons.auto_awesome_rounded,
+              gradient: AppColors.primaryGradient,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => MusicWizardScreen(
+                    service: service,
+                    musicSpecService: musicSpecService,
+                    library: library,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _ModeCard(
+              title: 'Standart',
+              subtitle:
+                  'Tarz, ruh hali, vokal ve süreyi kendin seç — hızlı ve net '
+                  'bir form.',
+              icon: Icons.tune_rounded,
+              gradient: const LinearGradient(
+                colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
+              ),
+              iconColor: AppColors.purple,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CreateFormScreen(
+                    service: service,
+                    library: library,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            _ModeCard(
+              title: 'Hızlı',
+              subtitle:
+                  'Tek cümlede anlat, gerisini yapay zeka tamamlasın. En hızlı '
+                  'yol.',
+              icon: Icons.bolt_rounded,
+              gradient: const LinearGradient(
+                colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
+              ),
+              iconColor: AppColors.pink,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => QuickCreateScreen(
+                    service: service,
+                    musicSpecService: musicSpecService,
+                    library: library,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.star_rounded, color: Colors.white, size: 14),
+          SizedBox(width: 4),
+          Text(
+            'Pro',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeCard extends StatelessWidget {
+  const _ModeCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+    this.iconColor,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Gradient gradient;
+  final Color? iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: AppColors.glassCard(),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                icon,
+                color: iconColor ?? Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12.5,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

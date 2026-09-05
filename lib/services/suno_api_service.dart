@@ -229,20 +229,37 @@ class SunoApiService {
     Duration timeout = const Duration(minutes: 8),
     void Function(TaskStatus status, int attempt)? onTick,
     void Function()? onLyricsStart,
+    // AI Müzik sihirbazı (Gelişmiş mod) için: Bedrock'un ürettiği zengin
+    // stil metnini ve başlığı doğrudan kullanmak, ya da kullanıcının kendi
+    // sözlerini/nakaratını AI söz üretimini atlayıp doğrudan kullanmak için.
+    // Verilmezse davranış eskisiyle birebir aynı kalır.
+    String? styleOverride,
+    String? titleOverride,
+    String? providedLyrics,
   }) async {
-    final style = [
-      if (genre != null && genre.isNotEmpty) genre,
-      if (mood != null && mood.isNotEmpty) mood,
-    ].join(', ');
+    final style = (styleOverride != null && styleOverride.isNotEmpty)
+        ? styleOverride
+        : [
+            if (genre != null && genre.isNotEmpty) genre,
+            if (mood != null && mood.isNotEmpty) mood,
+          ].join(', ');
 
     String lyrics = '';
-    String title = _titleFrom(descriptionPrompt);
+    String title = titleOverride ?? _titleFrom(descriptionPrompt);
 
     if (!instrumental) {
-      onLyricsStart?.call();
-      final result = await _generateLyricsAndWait(descriptionPrompt);
-      lyrics = result.text;
-      if (result.title.isNotEmpty) title = result.title;
+      if (providedLyrics != null && providedLyrics.trim().isNotEmpty) {
+        // Kullanıcı kendi sözlerini/nakaratını verdi: AI söz üretimini
+        // atla, verdiği metni oldğu gibi kullan.
+        lyrics = providedLyrics.trim();
+      } else {
+        onLyricsStart?.call();
+        final result = await _generateLyricsAndWait(descriptionPrompt);
+        lyrics = result.text;
+        if (result.title.isNotEmpty && titleOverride == null) {
+          title = result.title;
+        }
+      }
     }
 
     final taskId = await _requestMusic(

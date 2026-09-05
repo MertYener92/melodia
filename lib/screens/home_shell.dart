@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
+import '../services/music_spec_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
 import '../widgets/premium_bottom_nav.dart';
+import 'ai_music_screen.dart';
 import 'create_screen.dart';
 import 'discover_screen.dart';
-import 'home_screen.dart';
 import 'my_songs_screen.dart';
 import 'player_screen.dart';
 import 'profile_screen.dart';
 
-/// Bottom navigation bar ile Home / Create / My Songs / Discover /
+/// Bottom navigation bar ile AI Müzik / Create / My Songs / Discover /
 /// Profile sekmelerini bir arada tutan ana kabuk widget'ı.
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.service});
+  const HomeShell({
+    super.key,
+    required this.service,
+    required this.musicSpecService,
+  });
 
   final SunoApiService service;
+  final MusicSpecService musicSpecService;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -55,10 +61,10 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      HomeScreen(
+      AiMusicScreen(
+        service: widget.service,
+        musicSpecService: widget.musicSpecService,
         library: _library,
-        player: _player,
-        onGoToCreate: () => _goToTab(1),
       ),
       CreateScreen(
         service: widget.service,
@@ -94,7 +100,7 @@ class _HomeShellState extends State<HomeShell> {
                 currentIndex: _index,
                 onTap: _goToTab,
                 items: const [
-                  NavItemData(icon: Icons.home_rounded, label: 'Home'),
+                  NavItemData(icon: Icons.home_rounded, label: 'AI Müzik'),
                   NavItemData(icon: Icons.add_circle_rounded, label: 'Create'),
                   NavItemData(
                     icon: Icons.album_rounded,
