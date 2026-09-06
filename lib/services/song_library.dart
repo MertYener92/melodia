@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/song.dart';
+import 'suno_api_service.dart';
 
 /// Kullanıcının bu oturumda ürettiği bir şarkıyı, seçtiği
 /// genre/mood metadata'sıyla birlikte saklar.
@@ -17,30 +18,95 @@ class LibrarySong {
   final String mood;
   final DateTime createdAt;
   bool isFavorite;
+
+  /// Backend'den (`GET /songs`) gelen bir DynamoDB kaydını çözümler.
+  factory LibrarySong.fromBackendJson(Map<String, dynamic> json) {
+    return LibrarySong(
+      song: Song(
+        id: json['songId']?.toString() ?? '',
+        title: json['title']?.toString() ?? 'Adsız Şarkı',
+        prompt: json['prompt']?.toString() ?? '',
+        audioUrl: json['audioUrl']?.toString() ?? '',
+        streamAudioUrl: json['streamAudioUrl']?.toString() ?? '',
+        imageUrl: json['imageUrl']?.toString() ?? '',
+        duration: (json['duration'] as num?)?.toDouble(),
+      ),
+      genre: json['genre']?.toString() ?? '',
+      mood: json['mood']?.toString() ?? '',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      isFavorite: json['isFavorite'] == true,
+    );
+  }
 }
 
-/// Uygulama genelinde üretilen şarkıları tutan basit, hafif
-/// state yöneticisi (dış paket eklemeden ChangeNotifier ile).
+/// Uygulama genelinde üretilen şarkıları tutan, backend'deki (DynamoDB)
+/// kalıcı kütüphaneyle senkronize çalışan state yöneticisi.
 ///
-/// NOT: Bu veri sadece uygulama açıkken bellekte tutulur — kalıcı
-/// depolama (veritabanı) değildir. Uygulama kapatılıp açıldığında
-/// liste sıfırlanır. Kalıcılık için ileride bir yerel veritabanı
-/// (örn. sqflite, hive) veya bir backend eklenmesi gerekir.
+/// - Uygulama açılışında [loadFromBackend] çağrılarak kullanıcının daha
+///   önce ürettiği tüm şarkılar geri yüklenir.
+/// - [add] çağrıldığında hem yerel listeye eklenir (anlık UI güncellemesi
+///   için) hem de arka planda backend'e kaydedilir (kalıcılık için).
 class SongLibrary extends ChangeNotifier {
+  SongLibrary({required this.service});
+
+  final SunoApiService service;
+
   final List<LibrarySong> _songs = [];
+  bool _loading = false;
+  String? _loadError;
 
   List<LibrarySong> get songs => List.unmodifiable(_songs.reversed);
-
   LibrarySong? get lastSong => _songs.isEmpty ? null : _songs.last;
+  bool get isLoading => _loading;
+  String? get loadError => _loadError;
+
+  /// Uygulama açılışında bir kez çağrılır: kullanıcının backend'deki
+  /// kalıcı kütüphanesini çeker.
+  Future<void> loadFromBackend() async {
+    _loading = true;
+    _loadError = null;
+    notifyListeners();
+    try {
+      final rawSongs = await service.fetchSavedSongs();
+      _songs
+        ..clear()
+        ..addAll(
+          rawSongs.map(LibrarySong.fromBackendJson).toList()
+            // En eski en başta olacak şekilde sırala (UI zaten .reversed
+            // ile en yeniyi üstte gösteriyor).
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+        );
+    } catch (e) {
+      _loadError = 'Şarkılarınız yüklenemedi. Çekmek için aşağı çekin.';
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
 
   void add(LibrarySong song) {
     _songs.add(song);
     notifyListeners();
+
+    // Kalıcı kütüphaneye arka planda kaydet; başarısız olsa bile
+    // kullanıcı şarkısını zaten dinleyebiliyor, akışı bloklamıyoruz.
+    service
+        .saveSongToLibrary(
+          song: song.song,
+          genre: song.genre,
+          mood: song.mood,
+          createdAt: song.createdAt,
+          isFavorite: song.isFavorite,
+        )
+        .catchError((_) {});
   }
 
   void toggleFavorite(LibrarySong song) {
     song.isFavorite = !song.isFavorite;
     notifyListeners();
+    // NOT: Favori durumu şu an backend'e senkronize edilmiyor
+    // (gelecek bir iyileştirme olarak eklenebilir).
   }
 
   void remove(LibrarySong song) {

@@ -182,6 +182,10 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
             decoration: InputDecoration(
               hintText: 'A romantic pop song about summer nights...',
               counterStyle: const TextStyle(color: AppColors.textMuted),
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               suffixIcon: const Padding(
                 padding: EdgeInsets.only(bottom: 40, right: 4),
                 child: Icon(Icons.auto_fix_high, color: AppColors.purple),

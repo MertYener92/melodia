@@ -1,9 +1,15 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 /// AWS Cognito ile kayıt/giriş işlemlerini yöneten servis.
 /// Ağır bir SDK (amplify_flutter) yerine doğrudan Cognito'nun
 /// HTTP API'sini kullanır - daha az bağımlılık, daha kolay bakım.
+///
+/// Oturum kalıcılığı: refresh token, cihazın güvenli depolamasında
+/// (iOS Keychain / Android Keystore) saklanır. Uygulama her açıldığında
+/// [tryRestoreSession] çağrılarak, kullanıcıya tekrar e-posta/şifre
+/// sormadan sessizce yeni bir idToken alınmaya çalışılır.
 class AuthService {
   AuthService({
     required this.userPoolClientId,
@@ -17,8 +23,10 @@ class AuthService {
   /// Apple ile giriş, backend'deki /auth/apple endpoint'inden geçer.
   final String backendUrl;
 
-  String get _endpoint =>
-      'https://cognito-idp.$region.amazonaws.com/';
+  static const _storage = FlutterSecureStorage();
+  static const _refreshTokenKey = 'melodia_refresh_token';
+
+  String get _endpoint => 'https://cognito-idp.$region.amazonaws.com/';
 
   String? _idToken;
   String? _refreshToken;
@@ -64,7 +72,8 @@ class AuthService {
     _throwIfError(response);
   }
 
-  /// Giriş yapar, başarılıysa idToken'ı hafızada tutar.
+  /// Giriş yapar, başarılıysa idToken'ı hafızada, refreshToken'ı
+  /// cihazın güvenli depolamasında (kalıcı) tutar.
   Future<void> signIn(String email, String password) async {
     final response = await http.post(
       Uri.parse(_endpoint),
@@ -88,11 +97,53 @@ class AuthService {
     final result = body['AuthenticationResult'] as Map<String, dynamic>;
     _idToken = result['IdToken'] as String;
     _refreshToken = result['RefreshToken'] as String?;
+    await _persistRefreshToken(_refreshToken);
   }
 
-  void signOut() {
+  /// Uygulama her açıldığında çağrılır. Cihazda kayıtlı bir refresh
+  /// token varsa onunla sessizce yeni bir idToken almayı dener.
+  /// Başarılıysa true döner (kullanıcıya login ekranı gösterilmez).
+  Future<bool> tryRestoreSession() async {
+    final refreshToken = await _storage.read(key: _refreshTokenKey);
+    if (refreshToken == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse(_endpoint),
+        headers: {
+          'Content-Type': 'application/x-amz-json-1.1',
+          'X-Amz-Target':
+              'AWSCognitoIdentityProviderService.InitiateAuth',
+        },
+        body: jsonEncode({
+          'AuthFlow': 'REFRESH_TOKEN_AUTH',
+          'ClientId': userPoolClientId,
+          'AuthParameters': {'REFRESH_TOKEN': refreshToken},
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        // Refresh token süresi dolmuş/geçersiz olabilir, temizle.
+        await _storage.delete(key: _refreshTokenKey);
+        return false;
+      }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final result = body['AuthenticationResult'] as Map<String, dynamic>;
+      _idToken = result['IdToken'] as String;
+      // Cognito, REFRESH_TOKEN_AUTH akışında genelde yeni bir refresh
+      // token döndürmez; mevcut olanı kullanmaya devam ediyoruz.
+      _refreshToken = refreshToken;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> signOut() async {
     _idToken = null;
     _refreshToken = null;
+    await _storage.delete(key: _refreshTokenKey);
   }
 
   /// Apple'dan gelen native identityToken'ı backend'e gönderir,
@@ -117,6 +168,12 @@ class AuthService {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     _idToken = body['idToken'] as String;
     _refreshToken = body['refreshToken'] as String?;
+    await _persistRefreshToken(_refreshToken);
+  }
+
+  Future<void> _persistRefreshToken(String? token) async {
+    if (token == null) return;
+    await _storage.write(key: _refreshTokenKey, value: token);
   }
 
   void _throwIfError(http.Response response) {

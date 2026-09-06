@@ -77,9 +77,28 @@ class _AppRootState extends State<_AppRoot> {
   );
 
   bool _loggedIn = false;
+  bool _checkingSession = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final restored = await _authService.tryRestoreSession();
+    if (!mounted) return;
+    setState(() {
+      _loggedIn = restored;
+      _checkingSession = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingSession) {
+      return const _SessionCheckScreen();
+    }
     if (!_loggedIn) {
       return LoginScreen(
         authService: _authService,
@@ -87,6 +106,24 @@ class _AppRootState extends State<_AppRoot> {
       );
     }
     return HomeShell(service: _apiService, musicSpecService: _musicSpecService);
+  }
+}
+
+/// Uygulama açılışında, kayıtlı bir oturum olup olmadığı kontrol
+/// edilirken gösterilen kısa süreli yükleme ekranı.
+class _SessionCheckScreen extends StatelessWidget {
+  const _SessionCheckScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.pink),
+        ),
+      ),
+    );
   }
 }
 

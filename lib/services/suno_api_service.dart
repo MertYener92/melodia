@@ -214,6 +214,49 @@ class SunoApiService {
     );
   }
 
+  /// Üretilen bir şarkıyı kullanıcının kalıcı kütüphanesine kaydeder
+  /// (backend'deki DynamoDB'ye). Kota harcamaz.
+  Future<void> saveSongToLibrary({
+    required Song song,
+    required String genre,
+    required String mood,
+    required DateTime createdAt,
+    bool isFavorite = false,
+  }) async {
+    final response = await _post('/songs', {
+      'songId': song.id,
+      'title': song.title,
+      'prompt': song.prompt,
+      'audioUrl': song.audioUrl,
+      'streamAudioUrl': song.streamAudioUrl,
+      'imageUrl': song.imageUrl,
+      'duration': song.duration,
+      'genre': genre,
+      'mood': mood,
+      'isFavorite': isFavorite,
+      'createdAt': createdAt.toIso8601String(),
+    });
+
+    if (response.statusCode != 200) {
+      // Kütüphaneye kaydetme başarısız olsa bile kullanıcı şarkısını
+      // zaten aldı; bu hatayı sessizce logluyoruz, üretim akışını bozmuyoruz.
+      // ignore: avoid_print
+      print('Şarkı kütüphaneye kaydedilemedi: ${response.body}');
+    }
+  }
+
+  /// Kullanıcının kalıcı kütüphanesindeki tüm şarkıları getirir
+  /// (uygulama açılışında My Songs'u doldurmak için).
+  Future<List<Map<String, dynamic>>> fetchSavedSongs() async {
+    final response = await _get('/songs', {});
+    if (response.statusCode != 200) {
+      throw SunoApiException('Kütüphane yüklenemedi.');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final songs = body['songs'] as List<dynamic>? ?? [];
+    return songs.cast<Map<String, dynamic>>();
+  }
+
   // ---------------------------------------------------------------------
   // 3) DIŞARIYA AÇILAN ANA FONKSİYON
   // ---------------------------------------------------------------------

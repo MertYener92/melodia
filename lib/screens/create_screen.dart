@@ -175,7 +175,7 @@ class _CreateScreenState extends State<CreateScreen> {
                   label: 'Generate Song',
                   icon: Icons.auto_awesome,
                   onPressed: _openGenerateForm,
-                  height: 60,
+                  height: 52,
                 ),
               ],
             ),

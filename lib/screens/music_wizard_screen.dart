@@ -857,7 +857,10 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+          filled: false,
           border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
           contentPadding: const EdgeInsets.all(14),
         ),
       ),

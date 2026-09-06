@@ -157,7 +157,10 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
                           'Örn: Gece arabayla İstanbul\'da dolaşırken '
                           'dinlenecek, havalı ama biraz karanlık bir şarkı',
                       hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+                      filled: false,
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       contentPadding: EdgeInsets.all(14),
                       counterStyle: TextStyle(color: AppColors.textMuted),
                     ),

@@ -37,7 +37,8 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
-    _library = SongLibrary();
+    _library = SongLibrary(service: widget.service);
+    _library.loadFromBackend();
     _player = PlayerController();
   }
 
