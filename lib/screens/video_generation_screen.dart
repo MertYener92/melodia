@@ -26,6 +26,7 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   Timer? _pollTimer;
   bool _starting = false;
   bool _assembling = false;
+  bool _assemblyFailed = false;
   String? _error;
   VideoPlayerController? _resultController;
 
@@ -65,6 +66,7 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
 
       if (updated.allScenesDone) {
         _pollTimer?.cancel();
+        _pollTimer = null;
         if (updated.completedSceneCount > 0) {
           _assemble();
         } else {
@@ -77,7 +79,11 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   }
 
   Future<void> _assemble() async {
-    setState(() => _assembling = true);
+    setState(() {
+      _assembling = true;
+      _assemblyFailed = false;
+      _error = null;
+    });
     try {
       final finalUrl = await widget.videoService.assemble(_project.projectId);
       final controller = VideoPlayerController.networkUrl(Uri.parse(finalUrl));
@@ -91,11 +97,13 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
       setState(() {
         _error = e.message;
         _assembling = false;
+        _assemblyFailed = true;
       });
     } catch (e) {
       setState(() {
         _error = 'Klip birleştirilirken bir hata oluştu.';
         _assembling = false;
+        _assemblyFailed = true;
       });
     }
   }
@@ -119,8 +127,35 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
 
   Widget _buildBody() {
     if (_resultController != null) return _buildResult();
+    if (_assemblyFailed) return _buildAssemblyFailed();
     if (_pollTimer != null || _assembling) return _buildProgress();
     return _buildStoryboardConfirm();
+  }
+
+  Widget _buildAssemblyFailed() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Icon(Icons.error_outline, color: AppColors.pink, size: 36),
+        const SizedBox(height: 14),
+        const Text(
+          'Klip birleştirilemedi',
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _error ?? 'Beklenmeyen bir hata oluştu.',
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+        const SizedBox(height: 20),
+        GradientButton(
+          label: 'Birleştirmeyi Tekrar Dene',
+          icon: Icons.refresh_rounded,
+          onPressed: _assemble,
+        ),
+      ],
+    );
   }
 
   Widget _buildStoryboardConfirm() {
