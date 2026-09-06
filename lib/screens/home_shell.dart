@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/music_spec_service.dart';
+import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
@@ -13,17 +14,19 @@ import 'player_screen.dart';
 import 'profile_screen.dart';
 import 'video_clip_screen.dart';
 
-/// Bottom navigation bar ile AI Müzik / Create / My Songs / Discover /
+/// Bottom navigation bar ile AI Müzik / AI Video / My Songs / Discover /
 /// Profile sekmelerini bir arada tutan ana kabuk widget'ı.
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
     required this.service,
     required this.musicSpecService,
+    required this.musicVideoService,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
+  final MusicVideoService musicVideoService;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -54,7 +57,11 @@ class _HomeShellState extends State<HomeShell> {
   void _openPlayer() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PlayerScreen(controller: _player, service: widget.service),
+        builder: (_) => PlayerScreen(
+          controller: _player,
+          service: widget.service,
+          musicVideoService: widget.musicVideoService,
+        ),
       ),
     );
   }

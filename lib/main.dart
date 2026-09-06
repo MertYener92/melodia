@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/auth_service.dart';
 import 'services/music_spec_service.dart';
+import 'services/music_video_service.dart';
 import 'services/suno_api_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
@@ -11,13 +12,19 @@ const String userPoolClientId = String.fromEnvironment('USER_POOL_CLIENT_ID');
 const String awsRegion = String.fromEnvironment('AWS_REGION', defaultValue: 'eu-north-1');
 
 // AI Müzik sihirbazının bağlandığı, Suno backend'inden TAMAMEN AYRI,
-// Bedrock destekli yeni backend. Varsayılan değer zaten deploy edilen
-// endpoint'i işaret eder; farklı bir ortamda değiştirmek istenirse
-// --dart-define=MUSIC_SPEC_API_URL=... ile ezilebilir.
+// Anthropic destekli backend.
 const String musicSpecApiUrl = String.fromEnvironment(
   'MUSIC_SPEC_API_URL',
   defaultValue:
       'https://zrwhwl946e.execute-api.eu-north-1.amazonaws.com/music-spec',
+);
+
+// AI Video (Faz 1) sisteminin bağlandığı, tamamen izole yeni backend.
+// Deploy ettikten sonra çıkan gerçek "VideoApiUrl" ile burayı güncelle
+// (ya da --dart-define=MUSIC_VIDEO_API_URL=... ile ver).
+const String musicVideoApiUrl = String.fromEnvironment(
+  'MUSIC_VIDEO_API_URL',
+  defaultValue: 'https://69e04hkaag.execute-api.eu-north-1.amazonaws.com',
 );
 
 void main() {
@@ -75,6 +82,10 @@ class _AppRootState extends State<_AppRoot> {
     apiUrl: musicSpecApiUrl,
     idTokenProvider: () => _authService.idToken,
   );
+  late final MusicVideoService _musicVideoService = MusicVideoService(
+    apiUrl: musicVideoApiUrl,
+    idTokenProvider: () => _authService.idToken,
+  );
 
   bool _loggedIn = false;
   bool _checkingSession = true;
@@ -105,7 +116,11 @@ class _AppRootState extends State<_AppRoot> {
         onLoggedIn: () => setState(() => _loggedIn = true),
       );
     }
-    return HomeShell(service: _apiService, musicSpecService: _musicSpecService);
+    return HomeShell(
+      service: _apiService,
+      musicSpecService: _musicSpecService,
+      musicVideoService: _musicVideoService,
+    );
   }
 }
 

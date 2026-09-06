@@ -4,21 +4,25 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/aligned_word.dart';
+import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/karaoke_lyrics_view.dart';
+import 'create_music_video_screen.dart';
 
 class PlayerScreen extends StatelessWidget {
   const PlayerScreen({
     super.key,
     required this.controller,
     required this.service,
+    required this.musicVideoService,
   });
 
   final PlayerController controller;
   final SunoApiService service;
+  final MusicVideoService musicVideoService;
 
   String _formatDuration(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
@@ -204,6 +208,9 @@ class PlayerScreen extends StatelessWidget {
                     _PlayerActionsRow(
                       song: song,
                       isFavorite: controller.current!.isFavorite,
+                      genre: controller.current!.genre,
+                      mood: controller.current!.mood,
+                      musicVideoService: musicVideoService,
                     ),
                   ],
                 ),
@@ -246,10 +253,19 @@ class PlayerScreen extends StatelessWidget {
 /// menüsünü açar (share_plus) — ekstra depolama izni istemeden çalışan,
 /// iOS ve Android'de standart olan yöntem.
 class _PlayerActionsRow extends StatefulWidget {
-  const _PlayerActionsRow({required this.song, required this.isFavorite});
+  const _PlayerActionsRow({
+    required this.song,
+    required this.isFavorite,
+    required this.genre,
+    required this.mood,
+    required this.musicVideoService,
+  });
 
   final dynamic song; // Song
   final bool isFavorite;
+  final String genre;
+  final String mood;
+  final MusicVideoService musicVideoService;
 
   @override
   State<_PlayerActionsRow> createState() => _PlayerActionsRowState();
@@ -363,9 +379,20 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
           onTap: _busy ? () {} : _onShareTap,
         ),
         _ActionIcon(
-          icon: Icons.playlist_add,
+          icon: Icons.movie_creation_rounded,
           color: AppColors.textSecondary,
-          onTap: () {},
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => CreateMusicVideoScreen(
+                  videoService: widget.musicVideoService,
+                  song: widget.song,
+                  genre: widget.genre,
+                  mood: widget.mood,
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
