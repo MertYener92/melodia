@@ -1,35 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../services/music_spec_service.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
-import 'create_form_screen.dart';
+import 'ai_music_screen.dart';
 
-/// "Create" sekmesi: assets/videos/create_hero.mp4'ü tam ekran arka plan
-/// olarak oynatan premium bir video-hero ekranı. Gerçek şarkı üretim formu
-/// (prompt + genre/mood/vocal/length + Suno API çağrısı) [CreateFormScreen]
-/// içine taşındı; buradaki "Generate Song" CTA'sı o forma yönlendirir.
+/// "AI Müzik" sekmesinin ilk açılış ekranı: assets/videos/create_hero.mp4'ü
+/// tam ekran arka plan olarak oynatan premium bir video-hero ekranı.
+/// "Generate Song" CTA'sına basınca, kullanıcının Gelişmiş / Standart /
+/// Hızlı modlardan birini seçtiği [AiMusicScreen]'e yönlendirir.
 ///
-/// Bu ekran, HomeShell'deki IndexedStack tab yapısını bozmadan bir tab
-/// olarak kalır (mevcut bottom navigation mimarisi korunur). [isActive],
-/// tab aktif değilken videoyu duraklatmak / tekrar aktif olunca baştan
-/// başlatmak için HomeShell tarafından sağlanır. [onClose], sol üstteki X
-/// butonuna basıldığında Home sekmesine dönmek için kullanılır.
+/// Bu ekran artık HomeShell'in tab kökü (bağımsız bir alt sayfa değil,
+/// "AI Müzik" sekmesinin kendisi) olduğu için kapatma (X) butonu yok —
+/// dönülecek "önceki" bir tab yok, bu zaten ana giriş noktası.
 class CreateScreen extends StatefulWidget {
   const CreateScreen({
     super.key,
     required this.service,
+    required this.musicSpecService,
     required this.library,
     required this.isActive,
-    required this.onClose,
   });
 
   final SunoApiService service;
+  final MusicSpecService musicSpecService;
   final SongLibrary library;
   final bool isActive;
-  final VoidCallback onClose;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -90,11 +89,12 @@ class _CreateScreenState extends State<CreateScreen> {
     super.dispose();
   }
 
-  void _openGenerateForm() {
+  void _openModeSelector() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => CreateFormScreen(
+        builder: (_) => AiMusicScreen(
           service: widget.service,
+          musicSpecService: widget.musicSpecService,
           library: widget.library,
         ),
       ),
@@ -116,29 +116,18 @@ class _CreateScreenState extends State<CreateScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: [0.0, 0.55, 1.0],
+                stops: [0.0, 0.72, 1.0],
                 colors: [
                   Colors.transparent,
-                  Color(0x992A0A38),
-                  Color(0xF00A0A12),
+                  Color(0x662A0A38),
+                  Color(0xE00A0A12),
                 ],
               ),
             ),
           ),
         ),
 
-        // 2. Üst sol kapatma butonu.
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: _CloseButton(onTap: widget.onClose),
-            ),
-          ),
-        ),
-
-        // 4-7. Alt içerik: rozet, başlık, açıklama, CTA.
+        // 2. Alt içerik: rozet, başlık, açıklama, CTA.
         SafeArea(
           top: false,
           child: Padding(
@@ -174,7 +163,7 @@ class _CreateScreenState extends State<CreateScreen> {
                 GradientButton(
                   label: 'Generate Song',
                   icon: Icons.auto_awesome,
-                  onPressed: _openGenerateForm,
+                  onPressed: _openModeSelector,
                   height: 52,
                 ),
               ],
@@ -231,33 +220,6 @@ class _CreateScreenState extends State<CreateScreen> {
           fontWeight: FontWeight.w700,
           letterSpacing: 0.6,
         ),
-      ),
-    );
-  }
-}
-
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.black.withValues(alpha: 0.35),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.18),
-            width: 1,
-          ),
-        ),
-        child: const Icon(Icons.close_rounded, color: Colors.white, size: 26),
       ),
     );
   }

@@ -6,12 +6,12 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
 import '../widgets/premium_bottom_nav.dart';
-import 'ai_music_screen.dart';
 import 'create_screen.dart';
 import 'discover_screen.dart';
 import 'my_songs_screen.dart';
 import 'player_screen.dart';
 import 'profile_screen.dart';
+import 'video_clip_screen.dart';
 
 /// Bottom navigation bar ile AI Müzik / Create / My Songs / Discover /
 /// Profile sekmelerini bir arada tutan ana kabuk widget'ı.
@@ -54,7 +54,7 @@ class _HomeShellState extends State<HomeShell> {
   void _openPlayer() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PlayerScreen(controller: _player),
+        builder: (_) => PlayerScreen(controller: _player, service: widget.service),
       ),
     );
   }
@@ -62,17 +62,13 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      AiMusicScreen(
+      CreateScreen(
         service: widget.service,
         musicSpecService: widget.musicSpecService,
         library: _library,
+        isActive: _index == 0,
       ),
-      CreateScreen(
-        service: widget.service,
-        library: _library,
-        isActive: _index == 1,
-        onClose: () => _goToTab(0),
-      ),
+      const VideoClipScreen(),
       MySongsScreen(library: _library, player: _player),
       const DiscoverScreen(),
       ProfileScreen(library: _library),
@@ -102,7 +98,7 @@ class _HomeShellState extends State<HomeShell> {
                 onTap: _goToTab,
                 items: const [
                   NavItemData(icon: Icons.home_rounded, label: 'AI Müzik'),
-                  NavItemData(icon: Icons.add_circle_rounded, label: 'Create'),
+                  NavItemData(icon: Icons.movie_creation_rounded, label: 'AI Video'),
                   NavItemData(
                     icon: Icons.album_rounded,
                     label: 'My Songs',

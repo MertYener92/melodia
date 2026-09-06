@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../models/aligned_word.dart';
 import '../models/song.dart';
 
 /// Kendi AWS backend'imize (Lambda + API Gateway) bağlanan servis.
@@ -234,6 +235,7 @@ class SunoApiService {
       'genre': genre,
       'mood': mood,
       'isFavorite': isFavorite,
+      'taskId': song.taskId,
       'createdAt': createdAt.toIso8601String(),
     });
 
@@ -255,6 +257,29 @@ class SunoApiService {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final songs = body['songs'] as List<dynamic>? ?? [];
     return songs.cast<Map<String, dynamic>>();
+  }
+
+  /// Karaoke gösterimi için kelime bazlı zaman damgalı sözleri getirir.
+  /// Enstrümantal şarkılarda veya zamanlama henüz hazır değilse boş
+  /// liste döner (hata fırlatmaz — arayüz sessizce "sözler yok" desin).
+  Future<List<AlignedWord>> fetchTimestampedLyrics({
+    required String taskId,
+    required String audioId,
+  }) async {
+    if (taskId.isEmpty || audioId.isEmpty) return [];
+
+    final response = await _post('/lyrics-timestamps', {
+      'taskId': taskId,
+      'audioId': audioId,
+    });
+
+    if (response.statusCode != 200) return [];
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final words = body['alignedWords'] as List<dynamic>? ?? [];
+    return words
+        .map((e) => AlignedWord.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ---------------------------------------------------------------------
@@ -325,7 +350,7 @@ class SunoApiService {
       onTick?.call(task.status, attempt);
 
       if (task.status.isComplete && task.songs.isNotEmpty) {
-        return task.songs.first;
+        return task.songs.first.copyWith(taskId: taskId);
       }
       if (task.status.isFailed) {
         throw SunoApiException(

@@ -29,92 +29,112 @@ class AiMusicScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        child: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'AI Müzik',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.chevron_left_rounded,
+                        color: AppColors.textPrimary,
+                        size: 28,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 4),
+                    const Expanded(
+                      child: Text(
+                        'AI Müzik',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    _ProBadge(),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Padding(
+                  padding: EdgeInsets.only(left: 32),
+                  child: Text(
+                    'Aklındaki şarkıyı tarif et, gerisini biz halledelim.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                 ),
-                _ProBadge(),
+                const SizedBox(height: 24),
+                _ModeCard(
+                  title: 'Gelişmiş',
+                  subtitle:
+                      'Müziği insan gibi tarif et — dünyasını, hissini, hikayesini '
+                      'anlat. Yapay zeka profesyonel bir prodüksiyona çevirsin.',
+                  icon: Icons.auto_awesome_rounded,
+                  gradient: AppColors.primaryGradient,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MusicWizardScreen(
+                        service: service,
+                        musicSpecService: musicSpecService,
+                        library: library,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _ModeCard(
+                  title: 'Standart',
+                  subtitle:
+                      'Tarz, ruh hali, vokal ve süreyi kendin seç — hızlı ve net '
+                      'bir form.',
+                  icon: Icons.tune_rounded,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
+                  ),
+                  iconColor: AppColors.purple,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CreateFormScreen(
+                        service: service,
+                        library: library,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _ModeCard(
+                  title: 'Hızlı',
+                  subtitle:
+                      'Tek cümlede anlat, gerisini yapay zeka tamamlasın. En hızlı '
+                      'yol.',
+                  icon: Icons.bolt_rounded,
+                  gradient: const LinearGradient(
+                    colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
+                  ),
+                  iconColor: AppColors.pink,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => QuickCreateScreen(
+                        service: service,
+                        musicSpecService: musicSpecService,
+                        library: library,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'Aklındaki şarkıyı tarif et, gerisini biz halledelim.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            _ModeCard(
-              title: 'Gelişmiş',
-              subtitle:
-                  'Müziği insan gibi tarif et — dünyasını, hissini, hikayesini '
-                  'anlat. Yapay zeka profesyonel bir prodüksiyona çevirsin.',
-              icon: Icons.auto_awesome_rounded,
-              gradient: AppColors.primaryGradient,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => MusicWizardScreen(
-                    service: service,
-                    musicSpecService: musicSpecService,
-                    library: library,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _ModeCard(
-              title: 'Standart',
-              subtitle:
-                  'Tarz, ruh hali, vokal ve süreyi kendin seç — hızlı ve net '
-                  'bir form.',
-              icon: Icons.tune_rounded,
-              gradient: const LinearGradient(
-                colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
-              ),
-              iconColor: AppColors.purple,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => CreateFormScreen(
-                    service: service,
-                    library: library,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-            _ModeCard(
-              title: 'Hızlı',
-              subtitle:
-                  'Tek cümlede anlat, gerisini yapay zeka tamamlasın. En hızlı '
-                  'yol.',
-              icon: Icons.bolt_rounded,
-              gradient: const LinearGradient(
-                colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
-              ),
-              iconColor: AppColors.pink,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => QuickCreateScreen(
-                    service: service,
-                    musicSpecService: musicSpecService,
-                    library: library,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -9,6 +9,12 @@ class Song {
   final String imageUrl;
   final double? duration;
 
+  /// Şarkının üretildiği görev (job) ID'si. Karaoke/zaman damgalı söz
+  /// verisini çekmek için gereklidir (taskId + audioId=id birlikte).
+  /// Suno'nun /status yanıtında yer almaz, generateAndWait tarafından
+  /// üretim sırasında bilinen değerden sonradan eklenir.
+  final String taskId;
+
   Song({
     required this.id,
     required this.title,
@@ -17,7 +23,21 @@ class Song {
     required this.streamAudioUrl,
     required this.imageUrl,
     this.duration,
+    this.taskId = '',
   });
+
+  Song copyWith({String? taskId}) {
+    return Song(
+      id: id,
+      title: title,
+      prompt: prompt,
+      audioUrl: audioUrl,
+      streamAudioUrl: streamAudioUrl,
+      imageUrl: imageUrl,
+      duration: duration,
+      taskId: taskId ?? this.taskId,
+    );
+  }
 
   factory Song.fromJson(Map<String, dynamic> json) {
     return Song(
@@ -28,6 +48,7 @@ class Song {
       streamAudioUrl: json['streamAudioUrl']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
       duration: (json['duration'] as num?)?.toDouble(),
+      taskId: json['taskId']?.toString() ?? '',
     );
   }
 }
