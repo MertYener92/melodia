@@ -24,7 +24,7 @@ const String musicSpecApiUrl = String.fromEnvironment(
 // (ya da --dart-define=MUSIC_VIDEO_API_URL=... ile ver).
 const String musicVideoApiUrl = String.fromEnvironment(
   'MUSIC_VIDEO_API_URL',
-  defaultValue: 'https://REPLACE-ME.execute-api.eu-north-1.amazonaws.com',
+  defaultValue: 'https://69e04hkaag.execute-api.eu-north-1.amazonaws.com',
 );
 
 void main() {
