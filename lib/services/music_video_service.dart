@@ -38,6 +38,18 @@ class MusicVideoService {
     return projects.cast<Map<String, dynamic>>();
   }
 
+  /// Bir klip projesini kalıcı olarak siler (DynamoDB + S3'teki
+  /// fotoğraflar ve final video).
+  Future<void> deleteProject(String projectId) async {
+    final response = await http.delete(
+      Uri.parse('$apiUrl/video/projects/$projectId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw MusicVideoException('Klip silinemedi.');
+    }
+  }
+
   Future<String> uploadPhoto({
     required String slot, // 'front' | 'left' | 'right'
     required Uint8List bytes,

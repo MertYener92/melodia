@@ -1,267 +1,233 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import '../services/music_video_service.dart';
+import '../services/player_controller.dart';
+import '../services/song_library.dart';
 import '../theme/app_theme.dart';
+import 'my_songs_screen.dart';
+import 'video_library_screen.dart';
 
-/// "Kütüphane" sekmesi: kullanıcının ürettiği tüm AI müzik klipleri
-/// (video projeleri) burada listelenir. Eski "Discover" (sahte/örnek
-/// topluluk verisi gösteren) ekranının yerine geçti.
-class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key, required this.videoService});
+/// "Kütüphane" sekmesi: kullanıcının tüm yaratımlarına (şarkılar +
+/// video klipler) tek bir giriş noktasından ulaştığı hub ekranı.
+class LibraryScreen extends StatelessWidget {
+  const LibraryScreen({
+    super.key,
+    required this.songLibrary,
+    required this.player,
+    required this.videoService,
+  });
 
+  final SongLibrary songLibrary;
+  final PlayerController player;
   final MusicVideoService videoService;
-
-  @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
-}
-
-class _LibraryScreenState extends State<LibraryScreen> {
-  late Future<List<Map<String, dynamic>>> _future = widget.videoService.fetchProjects();
-
-  Future<void> _refresh() async {
-    setState(() => _future = widget.videoService.fetchProjects());
-    await _future;
-  }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: RefreshIndicator(
-        color: AppColors.pink,
-        onRefresh: _refresh,
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppColors.pink),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Icon(Icons.error_outline, color: AppColors.pink, size: 32),
-                  SizedBox(height: 12),
-                  Text(
-                    'Klipler yüklenemedi. Aşağı çekip tekrar dene.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kütüphane',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Tüm yaratımların burada.',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceElevated,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _LibraryHubCard(
+                      title: 'Şarkılarım',
+                      subtitle: 'Oluşturduğun tüm şarkıları keşfet.',
+                      icon: Icons.music_note_rounded,
+                      colors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
+                      accentColor: AppColors.pink,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => Scaffold(
+                            appBar: AppBar(title: const Text('Şarkılarım')),
+                            body: Container(
+                              decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+                              child: MySongsScreen(library: songLibrary, player: player),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _LibraryHubCard(
+                      title: 'Videolarım',
+                      subtitle: 'Oluşturduğun tüm videoları izle.',
+                      icon: Icons.play_arrow_rounded,
+                      colors: const [Color(0xFF0A2340), Color(0xFF071018)],
+                      accentColor: const Color(0xFF3B82F6),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => VideoLibraryScreen(videoService: videoService),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
-              );
-            }
-
-            final projects = snapshot.data ?? [];
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              children: [
-                const Text(
-                  'Kütüphane',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Oluşturduğun AI müzik klipleri',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
-                const SizedBox(height: 20),
-                if (projects.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 60),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: const BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          alignment: Alignment.center,
-                          child: const Icon(
-                            Icons.video_library_rounded,
-                            color: Colors.white,
-                            size: 32,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Henüz klip oluşturmadın',
-                          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Bir şarkı aç, oynatıcıdaki klip ikonuna bas.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
-                        ),
-                      ],
-                    ),
-                  )
-                else
-                  ...projects.map((p) => _LibraryTile(project: p)),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _LibraryTile extends StatelessWidget {
-  const _LibraryTile({required this.project});
-
-  final Map<String, dynamic> project;
-
-  @override
-  Widget build(BuildContext context) {
-    final status = project['status']?.toString() ?? '';
-    final finalVideoUrl = project['finalVideoUrl']?.toString();
-    final isReady = finalVideoUrl != null && finalVideoUrl.isNotEmpty;
-    final title = project['songTitle']?.toString() ?? 'Adsız Şarkı';
-    final cost = (project['estimatedCostUsd'] as num?)?.toDouble() ?? 0;
-
-    String statusLabel;
-    Color statusColor;
-    switch (status) {
-      case 'completed':
-        statusLabel = 'Hazır';
-        statusColor = Colors.greenAccent;
-      case 'assembling':
-        statusLabel = 'Birleştiriliyor...';
-        statusColor = AppColors.textMuted;
-      case 'generating':
-        statusLabel = 'Sahneler üretiliyor...';
-        statusColor = AppColors.textMuted;
-      case 'assembly_failed':
-      case 'scenes_failed':
-        statusLabel = 'Başarısız oldu';
-        statusColor = AppColors.pink;
-      default:
-        statusLabel = status;
-        statusColor = AppColors.textMuted;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onTap: isReady
-            ? () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => _ClipPlayerScreen(title: title, videoUrl: finalVideoUrl),
-                  ),
-                )
-            : null,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: AppColors.glassCard(),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: isReady ? AppColors.primaryGradient : null,
-                  color: isReady ? null : AppColors.surfaceElevated,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  isReady ? Icons.play_arrow_rounded : Icons.hourglass_top_rounded,
-                  color: isReady ? Colors.white : AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      statusLabel,
-                      style: TextStyle(color: statusColor, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '\$${cost.toStringAsFixed(2)}',
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ClipPlayerScreen extends StatefulWidget {
-  const _ClipPlayerScreen({required this.title, required this.videoUrl});
+class _LibraryHubCard extends StatelessWidget {
+  const _LibraryHubCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.colors,
+    required this.accentColor,
+    required this.onTap,
+  });
 
   final String title;
-  final String videoUrl;
-
-  @override
-  State<_ClipPlayerScreen> createState() => _ClipPlayerScreenState();
-}
-
-class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
-  VideoPlayerController? _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-    await controller.initialize();
-    await controller.play();
-    if (mounted) setState(() => _controller = controller);
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
+  final String subtitle;
+  final IconData icon;
+  final List<Color> colors;
+  final Color accentColor;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-        child: Center(
-          child: _controller == null
-              ? const CircularProgressIndicator(color: AppColors.pink)
-              : GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
-                    });
-                  },
-                  child: AspectRatio(
-                    aspectRatio: _controller!.value.aspectRatio,
-                    child: VideoPlayer(_controller!),
-                  ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: accentColor.withValues(alpha: 0.35)),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              bottom: -40,
+              left: -30,
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor.withValues(alpha: 0.18),
                 ),
+              ),
+            ),
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentColor.withValues(alpha: 0.12),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(icon, color: accentColor, size: 26),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 19,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface.withValues(alpha: 0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: AppColors.textPrimary,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

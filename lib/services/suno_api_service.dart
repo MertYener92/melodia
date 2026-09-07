@@ -200,6 +200,21 @@ class SunoApiService {
     return GenerationTask.fromJson({'data': data});
   }
 
+  /// "Hesabımı Sil" — backend'de kullanıcının TÜM verisini (şarkılar,
+  /// video klipleri, kota kaydı) ve Cognito hesabının kendisini siler.
+  /// Bu çağrı başarılı olduktan sonra kullanıcı bir daha giriş yapamaz;
+  /// çağıran taraf hemen ardından yerel oturumu (secure storage) da
+  /// temizlemelidir.
+  Future<void> deleteAccount() async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/account'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw SunoApiException('Hesap silinemedi. Lütfen tekrar deneyin.');
+    }
+  }
+
   /// Uygulama açılışında "kalan hakkınız: X/Y" göstermek için.
   Future<({int used, int limit, int remaining, String plan})> getQuota() async {
     final response = await _get('/quota', {});

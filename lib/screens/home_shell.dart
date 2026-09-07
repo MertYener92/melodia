@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../services/music_spec_service.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
@@ -21,11 +22,18 @@ class HomeShell extends StatefulWidget {
     required this.service,
     required this.musicSpecService,
     required this.musicVideoService,
+    required this.authService,
+    required this.onLoggedOut,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final MusicVideoService musicVideoService;
+  final AuthService authService;
+
+  /// Çıkış yapıldığında ya da hesap silindiğinde çağrılır (login
+  /// ekranına dönmek için).
+  final VoidCallback onLoggedOut;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -75,8 +83,17 @@ class _HomeShellState extends State<HomeShell> {
         isActive: _index == 0,
       ),
       MySongsScreen(library: _library, player: _player),
-      LibraryScreen(videoService: widget.musicVideoService),
-      ProfileScreen(library: _library),
+      LibraryScreen(
+        songLibrary: _library,
+        player: _player,
+        videoService: widget.musicVideoService,
+      ),
+      ProfileScreen(
+        library: _library,
+        service: widget.service,
+        authService: widget.authService,
+        onLoggedOut: widget.onLoggedOut,
+      ),
     ];
 
     return Scaffold(

@@ -24,7 +24,7 @@ const String musicSpecApiUrl = String.fromEnvironment(
 // (ya da --dart-define=MUSIC_VIDEO_API_URL=... ile ver).
 const String musicVideoApiUrl = String.fromEnvironment(
   'MUSIC_VIDEO_API_URL',
-  defaultValue: 'https://69e04hkaag.execute-api.eu-north-1.amazonaws.com',
+  defaultValue: 'https://REPLACE-ME.execute-api.eu-north-1.amazonaws.com',
 );
 
 void main() {
@@ -120,6 +120,8 @@ class _AppRootState extends State<_AppRoot> {
       service: _apiService,
       musicSpecService: _musicSpecService,
       musicVideoService: _musicVideoService,
+      authService: _authService,
+      onLoggedOut: () => setState(() => _loggedIn = false),
     );
   }
 }
