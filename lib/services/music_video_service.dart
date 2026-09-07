@@ -24,6 +24,20 @@ class MusicVideoService {
 
   /// Fotoğrafı önce presigned URL alıp, sonra doğrudan S3'e yükler.
   /// Döndürdüğü "key" değeri createProject'e gönderilir.
+  /// Kullanıcının tüm klip projelerini getirir (Kütüphane sekmesi için).
+  Future<List<Map<String, dynamic>>> fetchProjects() async {
+    final response = await http.get(
+      Uri.parse('$apiUrl/video/projects'),
+      headers: _headers,
+    );
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw MusicVideoException(body['error']?.toString() ?? 'Klipler yüklenemedi.');
+    }
+    final projects = body['projects'] as List<dynamic>? ?? [];
+    return projects.cast<Map<String, dynamic>>();
+  }
+
   Future<String> uploadPhoto({
     required String slot, // 'front' | 'left' | 'right'
     required Uint8List bytes,

@@ -8,14 +8,13 @@ import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
 import '../widgets/premium_bottom_nav.dart';
 import 'create_screen.dart';
-import 'discover_screen.dart';
+import 'library_screen.dart';
 import 'my_songs_screen.dart';
 import 'player_screen.dart';
 import 'profile_screen.dart';
-import 'video_clip_screen.dart';
 
-/// Bottom navigation bar ile AI Müzik / AI Video / My Songs / Discover /
-/// Profile sekmelerini bir arada tutan ana kabuk widget'ı.
+/// Bottom navigation bar ile AI Müzik / My Songs / Kütüphane / Profile
+/// sekmelerini bir arada tutan ana kabuk widget'ı.
 class HomeShell extends StatefulWidget {
   const HomeShell({
     super.key,
@@ -75,9 +74,8 @@ class _HomeShellState extends State<HomeShell> {
         library: _library,
         isActive: _index == 0,
       ),
-      const VideoClipScreen(),
       MySongsScreen(library: _library, player: _player),
-      const DiscoverScreen(),
+      LibraryScreen(videoService: widget.musicVideoService),
       ProfileScreen(library: _library),
     ];
 
@@ -105,12 +103,11 @@ class _HomeShellState extends State<HomeShell> {
                 onTap: _goToTab,
                 items: const [
                   NavItemData(icon: Icons.home_rounded, label: 'AI Müzik'),
-                  NavItemData(icon: Icons.movie_creation_rounded, label: 'AI Video'),
                   NavItemData(
                     icon: Icons.album_rounded,
                     label: 'My Songs',
                   ),
-                  NavItemData(icon: Icons.public_rounded, label: 'Discover'),
+                  NavItemData(icon: Icons.video_library_rounded, label: 'Kütüphane'),
                   NavItemData(icon: Icons.person_rounded, label: 'Profile'),
                 ],
               ),
