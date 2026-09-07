@@ -109,16 +109,18 @@ class MusicVideoService {
     return MusicVideoProject.fromJson(body);
   }
 
-  Future<String> assemble(String projectId) async {
+  /// Video birleştirmeyi ARKA PLANDA başlatır (API Gateway'in ~30 saniyelik
+  /// sabit yanıt süresi sınırını aşan bu işlem, senkron beklenmiyor).
+  /// Sonuç (finalVideoUrl), [getStatus] ile polling yapılarak alınmalı.
+  Future<void> startAssembly(String projectId) async {
     final response = await http.post(
       Uri.parse('$apiUrl/video/projects/$projectId/assemble'),
       headers: _headers,
     );
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    if (response.statusCode != 200) {
-      throw MusicVideoException(body['error']?.toString() ?? 'Klip birleştirilemedi.');
+    if (response.statusCode != 202 && response.statusCode != 200) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw MusicVideoException(body['error']?.toString() ?? 'Klip birleştirme başlatılamadı.');
     }
-    return body['finalVideoUrl'] as String;
   }
 }
 

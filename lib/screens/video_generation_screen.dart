@@ -25,8 +25,8 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   late MusicVideoProject _project;
   Timer? _pollTimer;
   bool _starting = false;
-  bool _assembling = false;
   bool _assemblyFailed = false;
+  bool _assemblyTriggered = false;
   String? _error;
   VideoPlayerController? _resultController;
 
@@ -64,12 +64,33 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
       if (!mounted) return;
       setState(() => _project = updated);
 
-      if (updated.allScenesDone) {
+      // 1) Birleştirme tamamlandı mı?
+      if (updated.status == 'completed' && updated.finalVideoUrl != null) {
         _pollTimer?.cancel();
         _pollTimer = null;
+        await _loadResultVideo(updated.finalVideoUrl!);
+        return;
+      }
+
+      // 2) Birleştirme arka planda hata mı verdi?
+      if (updated.status == 'assembly_failed') {
+        _pollTimer?.cancel();
+        _pollTimer = null;
+        setState(() {
+          _error = 'Klip birleştirilemedi. Sahnelerin tamamı hazır, tekrar deneyebilirsin.';
+          _assemblyFailed = true;
+        });
+        return;
+      }
+
+      // 3) Tüm sahneler bitti ve birleştirme henüz tetiklenmediyse başlat.
+      if (updated.status != 'assembling' && !_assemblyTriggered && updated.allScenesDone) {
         if (updated.completedSceneCount > 0) {
-          _assemble();
+          _assemblyTriggered = true;
+          _triggerAssembly();
         } else {
+          _pollTimer?.cancel();
+          _pollTimer = null;
           setState(() => _error = 'Hiçbir sahne üretilemedi. Lütfen tekrar deneyin.');
         }
       }
@@ -78,34 +99,42 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
     }
   }
 
-  Future<void> _assemble() async {
-    setState(() {
-      _assembling = true;
-      _assemblyFailed = false;
-      _error = null;
-    });
+  Future<void> _triggerAssembly() async {
     try {
-      final finalUrl = await widget.videoService.assemble(_project.projectId);
-      final controller = VideoPlayerController.networkUrl(Uri.parse(finalUrl));
-      await controller.initialize();
-      if (!mounted) return;
-      setState(() {
-        _resultController = controller;
-        _assembling = false;
-      });
+      await widget.videoService.startAssembly(_project.projectId);
+      // Sonuç, mevcut polling döngüsü (_poll) tarafından yakalanacak.
     } on MusicVideoException catch (e) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
       setState(() {
         _error = e.message;
-        _assembling = false;
-        _assemblyFailed = true;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Klip birleştirilirken bir hata oluştu.';
-        _assembling = false;
         _assemblyFailed = true;
       });
     }
+  }
+
+  Future<void> _retryAssembly() async {
+    setState(() {
+      _assemblyFailed = false;
+      _error = null;
+    });
+    _assemblyTriggered = true;
+    try {
+      await widget.videoService.startAssembly(_project.projectId);
+      _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) => _poll());
+    } on MusicVideoException catch (e) {
+      setState(() {
+        _error = e.message;
+        _assemblyFailed = true;
+      });
+    }
+  }
+
+  Future<void> _loadResultVideo(String url) async {
+    final controller = VideoPlayerController.networkUrl(Uri.parse(url));
+    await controller.initialize();
+    if (!mounted) return;
+    setState(() => _resultController = controller);
   }
 
   @override
@@ -128,7 +157,7 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   Widget _buildBody() {
     if (_resultController != null) return _buildResult();
     if (_assemblyFailed) return _buildAssemblyFailed();
-    if (_pollTimer != null || _assembling) return _buildProgress();
+    if (_pollTimer != null) return _buildProgress();
     return _buildStoryboardConfirm();
   }
 
@@ -152,7 +181,7 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
         GradientButton(
           label: 'Birleştirmeyi Tekrar Dene',
           icon: Icons.refresh_rounded,
-          onPressed: _assemble,
+          onPressed: _retryAssembly,
         ),
       ],
     );
@@ -260,6 +289,7 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   Widget _buildProgress() {
     final total = _project.scenes.length;
     final done = _project.completedSceneCount + _project.failedSceneCount;
+    final isAssembling = _project.status == 'assembling' || (done == total && total > 0);
 
     return Column(
       children: [
@@ -267,9 +297,8 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
         const CircularProgressIndicator(color: AppColors.pink),
         const SizedBox(height: 20),
         Text(
-          _assembling
-              ? 'Klip birleştiriliyor...'
-              : 'Sahne $done / $total oluşturuluyor...',
+          isAssembling ? 'Klip birleştiriliyor... (birkaç dakika sürebilir)' : 'Sahne $done / $total oluşturuluyor...',
+          textAlign: TextAlign.center,
           style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 20),
