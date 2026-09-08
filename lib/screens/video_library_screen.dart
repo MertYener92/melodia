@@ -148,6 +148,7 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
                 else
                   ...projects.map((p) => _LibraryTile(
                         project: p,
+                        videoService: widget.videoService,
                         onDelete: () => _confirmDelete(context, p),
                       )),
               ],
@@ -159,17 +160,25 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
 }
 
 class _LibraryTile extends StatelessWidget {
-  const _LibraryTile({required this.project, required this.onDelete});
+  const _LibraryTile({
+    required this.project,
+    required this.videoService,
+    required this.onDelete,
+  });
 
   final Map<String, dynamic> project;
+  final MusicVideoService videoService;
   final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
     final status = project['status']?.toString() ?? '';
-    final finalVideoUrl = project['finalVideoUrl']?.toString();
-    final isReady = finalVideoUrl != null && finalVideoUrl.isNotEmpty;
-    final title = project['songTitle']?.toString() ?? 'Adsız Şarkı';
+    // DEĞİŞTİ: backend artık "finalVideoUrl" değil, "hasFinalVideo"
+    // (bool) döndürüyor -- gerçek oynatma linki artık burada değil,
+    // oynatma anında ayrıca çekiliyor (bkz. _ClipPlayerScreen).
+    final isReady = project['hasFinalVideo'] == true;
+    final projectId = project['projectId']?.toString() ?? '';
+    final title = project['songTitle']?.toString() ?? 'Adsız klip';
     final cost = (project['estimatedCostUsd'] as num?)?.toDouble() ?? 0;
 
     String statusLabel;
@@ -199,7 +208,11 @@ class _LibraryTile extends StatelessWidget {
         onTap: isReady
             ? () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => _ClipPlayerScreen(title: title, videoUrl: finalVideoUrl),
+                    builder: (_) => _ClipPlayerScreen(
+                      title: title,
+                      projectId: projectId,
+                      videoService: videoService,
+                    ),
                   ),
                 )
             : null,
@@ -262,10 +275,15 @@ class _LibraryTile extends StatelessWidget {
 }
 
 class _ClipPlayerScreen extends StatefulWidget {
-  const _ClipPlayerScreen({required this.title, required this.videoUrl});
+  const _ClipPlayerScreen({
+    required this.title,
+    required this.projectId,
+    required this.videoService,
+  });
 
   final String title;
-  final String videoUrl;
+  final String projectId;
+  final MusicVideoService videoService;
 
   @override
   State<_ClipPlayerScreen> createState() => _ClipPlayerScreenState();
@@ -273,6 +291,7 @@ class _ClipPlayerScreen extends StatefulWidget {
 
 class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
   VideoPlayerController? _controller;
+  String? _error;
 
   @override
   void initState() {
@@ -281,10 +300,21 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
   }
 
   Future<void> _load() async {
-    final controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
-    await controller.initialize();
-    await controller.play();
-    if (mounted) setState(() => _controller = controller);
+    try {
+      // DEĞİŞTİ: URL artık widget'a doğrudan geçirilmiyor. Ekran her
+      // açıldığında taze bir CloudFront signed URL isteniyor -- bu,
+      // eski sistemdeki "linkin süresi dolmuş" sorununu ortadan
+      // kaldırıyor, çünkü link hep bu anda, yeni üretiliyor.
+      final playUrl = await widget.videoService.getVideoPlayUrl(widget.projectId);
+      final controller = VideoPlayerController.networkUrl(Uri.parse(playUrl));
+      await controller.initialize();
+      await controller.play();
+      if (mounted) setState(() => _controller = controller);
+    } on MusicVideoException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Video açılamadı.');
+    }
   }
 
   @override
@@ -300,19 +330,28 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: Center(
-          child: _controller == null
-              ? const CircularProgressIndicator(color: AppColors.pink)
-              : GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
-                    });
-                  },
-                  child: AspectRatio(
-                    aspectRatio: _controller!.value.aspectRatio,
-                    child: VideoPlayer(_controller!),
+          child: _error != null
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
-                ),
+                )
+              : _controller == null
+                  ? const CircularProgressIndicator(color: AppColors.pink)
+                  : GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
+                        });
+                      },
+                      child: AspectRatio(
+                        aspectRatio: _controller!.value.aspectRatio,
+                        child: VideoPlayer(_controller!),
+                      ),
+                    ),
         ),
       ),
     );

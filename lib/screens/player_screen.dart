@@ -6,7 +6,6 @@ import 'package:share_plus/share_plus.dart';
 import '../models/aligned_word.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
-import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/karaoke_lyrics_view.dart';
@@ -112,10 +111,10 @@ class PlayerScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'AI Generated',
+                    Text(
+                      controller.error ?? 'AI Generated',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: controller.error != null ? AppColors.pink : AppColors.textMuted,
                         fontSize: 13,
                       ),
                     ),
@@ -183,16 +182,24 @@ class PlayerScreen extends StatelessWidget {
                             gradient: AppColors.primaryGradient,
                             shape: BoxShape.circle,
                           ),
-                          child: IconButton(
-                            onPressed: controller.togglePlayPause,
-                            icon: Icon(
-                              controller.isPlaying
-                                  ? Icons.pause_rounded
-                                  : Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 34,
-                            ),
-                          ),
+                          child: controller.isLoading
+                              ? const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2.5,
+                                  ),
+                                )
+                              : IconButton(
+                                  onPressed: controller.togglePlayPause,
+                                  icon: Icon(
+                                    controller.isPlaying
+                                        ? Icons.pause_rounded
+                                        : Icons.play_arrow_rounded,
+                                    color: Colors.white,
+                                    size: 34,
+                                  ),
+                                ),
                         ),
                         IconButton(
                           onPressed: () {},
@@ -211,6 +218,7 @@ class PlayerScreen extends StatelessWidget {
                       genre: controller.current!.genre,
                       mood: controller.current!.mood,
                       musicVideoService: musicVideoService,
+                      sunoApiService: service,
                     ),
                   ],
                 ),
@@ -259,6 +267,7 @@ class _PlayerActionsRow extends StatefulWidget {
     required this.genre,
     required this.mood,
     required this.musicVideoService,
+    required this.sunoApiService,
   });
 
   final dynamic song; // Song
@@ -266,6 +275,7 @@ class _PlayerActionsRow extends StatefulWidget {
   final String genre;
   final String mood;
   final MusicVideoService musicVideoService;
+  final SunoApiService sunoApiService;
 
   @override
   State<_PlayerActionsRow> createState() => _PlayerActionsRowState();
@@ -282,15 +292,16 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
 
   /// Ses dosyasını indirip geçici bir klasöre kaydeder, yerel dosya
   /// yolunu döner. İndirme ve paylaşma aynı temel işlemi kullanır.
+  ///
+  /// DEĞİŞTİ: Artık widget.song.audioUrl (backend'in kalıcı olarak
+  /// saklamadığı, eskiden boş kalan bir alan) yerine, taze bir
+  /// CloudFront signed URL isteniyor.
   Future<File?> _downloadAudioFile() async {
-    final audioUrl = widget.song.audioUrl as String;
-    if (audioUrl.isEmpty) {
-      _showMessage('Bu şarkı için ses dosyası bulunamadı.');
-      return null;
-    }
-
     setState(() => _busy = true);
     try {
+      final songId = widget.song.id as String;
+      final audioUrl = await widget.sunoApiService.getSongPlayUrl(songId);
+
       final response = await http
           .get(Uri.parse(audioUrl))
           .timeout(const Duration(seconds: 45));
@@ -304,6 +315,9 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
       final file = File('${dir.path}/$_safeFileName.mp3');
       await file.writeAsBytes(response.bodyBytes);
       return file;
+    } on SunoApiException catch (e) {
+      _showMessage(e.message);
+      return null;
     } catch (e) {
       _showMessage('İndirme sırasında bir hata oluştu.');
       return null;

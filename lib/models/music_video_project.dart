@@ -7,7 +7,7 @@ class MusicVideoProject {
     required this.scenes,
     required this.estimatedCostUsd,
     required this.status,
-    this.finalVideoUrl,
+    this.finalVideoKey,
   });
 
   final String projectId;
@@ -15,9 +15,18 @@ class MusicVideoProject {
   final List<MusicVideoScene> scenes;
   final double estimatedCostUsd;
 
-  /// storyboard_ready | generating | scenes_ready | scenes_failed | completed
+  /// storyboard_ready | generating | scenes_ready | scenes_failed | completed | assembly_failed
   final String status;
-  final String? finalVideoUrl;
+
+  /// DİKKAT: Bu artık oynatılabilir bir URL DEĞİL, S3 object key'i
+  /// (örn. "final-videos/{projectId}.mp4"). Videoyu oynatmadan hemen
+  /// önce MusicVideoService.getVideoPlayUrl(projectId) çağrılıp taze
+  /// bir CloudFront signed URL alınmalı -- eski sistemde burada sabit
+  /// bir "finalVideoUrl" saklanıyordu ve birkaç saat içinde
+  /// "ExpiredToken" hatasıyla ölüyordu.
+  final String? finalVideoKey;
+
+  bool get hasFinalVideo => finalVideoKey != null;
 
   int get completedSceneCount => scenes.where((s) => s.status == 'completed').length;
   int get failedSceneCount => scenes.where((s) => s.status == 'failed').length;
@@ -33,7 +42,7 @@ class MusicVideoProject {
           .toList(),
       estimatedCostUsd: (json['estimatedCostUsd'] as num?)?.toDouble() ?? 0,
       status: json['status']?.toString() ?? 'storyboard_ready',
-      finalVideoUrl: json['finalVideoUrl']?.toString(),
+      finalVideoKey: json['finalVideoKey']?.toString(),
     );
   }
 }

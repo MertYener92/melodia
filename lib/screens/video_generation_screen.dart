@@ -65,10 +65,12 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
       setState(() => _project = updated);
 
       // 1) Birleştirme tamamlandı mı?
-      if (updated.status == 'completed' && updated.finalVideoUrl != null) {
+      // DEĞİŞTİ: "finalVideoUrl != null" yerine "hasFinalVideo" kontrol
+      // ediliyor -- backend artık URL değil, S3 key döndürüyor.
+      if (updated.status == 'completed' && updated.hasFinalVideo) {
         _pollTimer?.cancel();
         _pollTimer = null;
-        await _loadResultVideo(updated.finalVideoUrl!);
+        await _loadResultVideo(updated.projectId);
         return;
       }
 
@@ -130,11 +132,22 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
     }
   }
 
-  Future<void> _loadResultVideo(String url) async {
-    final controller = VideoPlayerController.networkUrl(Uri.parse(url));
-    await controller.initialize();
-    if (!mounted) return;
-    setState(() => _resultController = controller);
+  // DEĞİŞTİ: artık URL değil, projectId alıyor. İçeride taze bir
+  // CloudFront signed URL isteniyor (bkz. MusicVideoService.getVideoPlayUrl)
+  // -- eski sistemde burada sabit bir URL doğrudan kullanılıyordu ve
+  // birkaç saat içinde ExpiredToken hatasıyla ölüyordu.
+  Future<void> _loadResultVideo(String projectId) async {
+    try {
+      final playUrl = await widget.videoService.getVideoPlayUrl(projectId);
+      final controller = VideoPlayerController.networkUrl(Uri.parse(playUrl));
+      await controller.initialize();
+      if (!mounted) return;
+      setState(() => _resultController = controller);
+    } on MusicVideoException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Video yüklenemedi.');
+    }
   }
 
   @override

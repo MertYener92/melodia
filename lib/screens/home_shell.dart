@@ -49,7 +49,7 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     _library = SongLibrary(service: widget.service);
     _library.loadFromBackend();
-    _player = PlayerController();
+    _player = PlayerController(service: widget.service);
   }
 
   @override

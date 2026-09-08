@@ -22,8 +22,6 @@ class MusicVideoService {
     };
   }
 
-  /// Fotoğrafı önce presigned URL alıp, sonra doğrudan S3'e yükler.
-  /// Döndürdüğü "key" değeri createProject'e gönderilir.
   /// Kullanıcının tüm klip projelerini getirir (Kütüphane sekmesi için).
   Future<List<Map<String, dynamic>>> fetchProjects() async {
     final response = await http.get(
@@ -50,6 +48,8 @@ class MusicVideoService {
     }
   }
 
+  /// Fotoğrafı önce presigned URL alıp, sonra doğrudan S3'e yükler.
+  /// Döndürdüğü "key" değeri createProject'e gönderilir.
   Future<String> uploadPhoto({
     required String slot, // 'front' | 'left' | 'right'
     required Uint8List bytes,
@@ -137,7 +137,8 @@ class MusicVideoService {
 
   /// Video birleştirmeyi ARKA PLANDA başlatır (API Gateway'in ~30 saniyelik
   /// sabit yanıt süresi sınırını aşan bu işlem, senkron beklenmiyor).
-  /// Sonuç (finalVideoUrl), [getStatus] ile polling yapılarak alınmalı.
+  /// Sonuç durumu [getStatus] ile polling yapılarak alınmalı; video hazır
+  /// olduğunda oynatma linki için [getVideoPlayUrl] çağrılmalı.
   Future<void> startAssembly(String projectId) async {
     final response = await http.post(
       Uri.parse('$apiUrl/video/projects/$projectId/assemble'),
@@ -147,6 +148,26 @@ class MusicVideoService {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       throw MusicVideoException(body['error']?.toString() ?? 'Klip birleştirme başlatılamadı.');
     }
+  }
+
+  /// YENİ: Video oynatılmak istendiğinde çağrılır. DB'de sabit bir URL
+  /// saklanmadığı için (eski sistemde "ExpiredToken" hatasına sebep
+  /// oluyordu), her oynatma denemesinden hemen önce burası çağrılıp
+  /// taze, ~1 saat geçerli bir CloudFront signed URL alınmalı. Bu URL'i
+  /// önbelleğe alıp saatler sonra tekrar kullanma -- süresi dolmuş olabilir.
+  Future<String> getVideoPlayUrl(String projectId) async {
+    final response = await http.get(
+      Uri.parse('$apiUrl/video/projects/$projectId/play-url'),
+      headers: _headers,
+    );
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode == 409) {
+      throw MusicVideoException('Video henüz hazır değil (durum: ${body['status']}).');
+    }
+    if (response.statusCode != 200) {
+      throw MusicVideoException(body['error']?.toString() ?? 'Video linki alınamadı.');
+    }
+    return body['playUrl'] as String;
   }
 }
 

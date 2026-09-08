@@ -5,7 +5,7 @@ import '../models/song.dart';
 
 /// Kendi AWS backend'imize (Lambda + API Gateway) bağlanan servis.
 ///
-/// ÖNEMLİ: Bu servis artık Suno API'ye DOĞRUDAN bağlanmıyor.
+/// ÖNEMLİ: Bu servis artık Suno API'ye doğrudan bağlanmıyor.
 /// Suno API key'i telefon uygulamasında hiç bulunmuyor — sadece
 /// AWS Secrets Manager'da, sunucu tarafında duruyor. Bu sayede:
 ///   1) Key hiçbir zaman tersine mühendislikle çalınamaz
@@ -146,7 +146,7 @@ class SunoApiService {
   }
 
   // ---------------------------------------------------------------------
-  // 2) ŞARKI (MÜZİK) ÜRETİMİ — kota burada kontrol edilir
+  // 2) MÜZİK ÜRETİMİ — kota burada kontrol edilir
   // ---------------------------------------------------------------------
 
   Future<String> _requestMusic({
@@ -232,6 +232,12 @@ class SunoApiService {
 
   /// Üretilen bir şarkıyı kullanıcının kalıcı kütüphanesine kaydeder
   /// (backend'deki DynamoDB'ye). Kota harcamaz.
+  ///
+  /// NOT: Backend artık gönderdiğimiz "audioUrl"i (Suno'nun geçici
+  /// linki) kaydetmiyor -- kayıt anında kendi S3 bucket'ına indirip
+  /// kopyalıyor ve DB'ye sadece bir S3 key yazıyor. Buradan
+  /// "audioUrl"i göndermemiz hâlâ gerekli (backend'in indirebilmesi
+  /// için kaynak URL), ama artık kalıcı olarak saklanmıyor.
   Future<void> saveSongToLibrary({
     required Song song,
     required String genre,
@@ -272,6 +278,21 @@ class SunoApiService {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final songs = body['songs'] as List<dynamic>? ?? [];
     return songs.cast<Map<String, dynamic>>();
+  }
+
+  /// YENİ: Bir şarkı çalınmak/indirilmek/paylaşılmak istendiğinde
+  /// çağrılır. Backend'de DB'ye sabit bir URL yazılmıyor (eski
+  /// sistemde bu, birkaç saat içinde ExpiredToken hatasına sebep
+  /// oluyordu) -- her çağrıda taze, ~1 saat geçerli bir CloudFront
+  /// signed URL üretilip döndürülür. Sonucu önbelleğe alıp saatler
+  /// sonra tekrar kullanma.
+  Future<String> getSongPlayUrl(String songId) async {
+    final response = await _get('/songs/$songId/play-url', {});
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw SunoApiException(body['error']?.toString() ?? 'Şarkı linki alınamadı.');
+    }
+    return body['playUrl'] as String;
   }
 
   /// Karaoke gösterimi için kelime bazlı zaman damgalı sözleri getirir.
@@ -333,7 +354,7 @@ class SunoApiService {
     if (!instrumental) {
       if (providedLyrics != null && providedLyrics.trim().isNotEmpty) {
         // Kullanıcı kendi sözlerini/nakaratını verdi: AI söz üretimini
-        // atla, verdiği metni oldğu gibi kullan.
+        // atla, verdiği metni olduğu gibi kullan.
         lyrics = providedLyrics.trim();
       } else {
         onLyricsStart?.call();
@@ -380,7 +401,7 @@ class SunoApiService {
 
   String _titleFrom(String prompt) {
     final trimmed = prompt.trim();
-    if (trimmed.isEmpty) return 'Adsız Şarkı';
+    if (trimmed.isEmpty) return 'Adsız şarkı';
     final words = trimmed.split(RegExp(r'\s+')).take(6).join(' ');
     return words.length > 80 ? words.substring(0, 80) : words;
   }

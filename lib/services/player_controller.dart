@@ -1,11 +1,12 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'song_library.dart';
+import 'suno_api_service.dart';
 
 /// Mini-player ve tam ekran player arasında paylaşılan, tek bir
 /// AudioPlayer örneğini yöneten controller.
 class PlayerController extends ChangeNotifier {
-  PlayerController() {
+  PlayerController({required this.service}) {
     _player.onPlayerStateChanged.listen((state) {
       _isPlaying = state == PlayerState.playing;
       notifyListeners();
@@ -20,32 +21,53 @@ class PlayerController extends ChangeNotifier {
     });
   }
 
+  /// Şarkı oynatılmak istendiğinde taze bir CloudFront signed URL
+  /// almak için kullanılır (bkz. [SunoApiService.getSongPlayUrl]).
+  final SunoApiService service;
+
   final AudioPlayer _player = AudioPlayer();
 
   LibrarySong? _current;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  String? _error;
+  bool _loading = false;
 
   LibrarySong? get current => _current;
   bool get isPlaying => _isPlaying;
   Duration get position => _position;
   Duration get duration => _duration;
   bool get hasSong => _current != null;
+  String? get error => _error;
+  bool get isLoading => _loading;
 
+  /// DEĞİŞTİ: Artık şarkının kendi üzerindeki (audioUrl/streamAudioUrl)
+  /// sabit linki KULLANILMIYOR -- backend artık bu alanları kalıcı
+  /// saklamıyor. Her çalma denemesinde [service.getSongPlayUrl] ile
+  /// taze bir link isteniyor.
   Future<void> playSong(LibrarySong librarySong) async {
-    final url = librarySong.song.audioUrl.isNotEmpty
-        ? librarySong.song.audioUrl
-        : librarySong.song.streamAudioUrl;
-    if (url.isEmpty) return;
-
-    if (_current?.song.id != librarySong.song.id) {
-      _current = librarySong;
-      _position = Duration.zero;
-      notifyListeners();
-      await _player.play(UrlSource(url));
-    } else {
+    if (_current?.song.id == librarySong.song.id) {
       await togglePlayPause();
+      return;
+    }
+
+    _current = librarySong;
+    _position = Duration.zero;
+    _error = null;
+    _loading = true;
+    notifyListeners();
+
+    try {
+      final url = await service.getSongPlayUrl(librarySong.song.id);
+      await _player.play(UrlSource(url));
+    } on SunoApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      _error = 'Şarkı oynatılamadı.';
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 
