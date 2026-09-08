@@ -169,6 +169,26 @@ class MusicVideoService {
     }
     return body['playUrl'] as String;
   }
+
+  /// YENİ: Bir klibin favori durumunu ve/veya notunu günceller.
+  /// Sadece verilen alanlar güncellenir (diğeri null geçilebilir).
+  Future<void> updateProject({
+    required String projectId,
+    bool? isFavorite,
+    String? note,
+  }) async {
+    final response = await http.patch(
+      Uri.parse('$apiUrl/video/projects/$projectId'),
+      headers: _headers,
+      body: jsonEncode({
+        if (isFavorite != null) 'isFavorite': isFavorite,
+        if (note != null) 'note': note,
+      }),
+    );
+    if (response.statusCode != 200) {
+      throw MusicVideoException('Klip güncellenemedi.');
+    }
+  }
 }
 
 class MusicVideoException implements Exception {

@@ -8,6 +8,9 @@ class MusicVideoProject {
     required this.estimatedCostUsd,
     required this.status,
     this.finalVideoKey,
+    this.concept,
+    this.isFavorite = false,
+    this.note,
   });
 
   final String projectId;
@@ -26,6 +29,16 @@ class MusicVideoProject {
   /// "ExpiredToken" hatasıyla ölüyordu.
   final String? finalVideoKey;
 
+  /// Kullanıcının klip oluştururken girdiği serbest konsept metni --
+  /// oynatma ekranında video hakkında bilgi olarak gösterilir.
+  final String? concept;
+
+  /// YENİ: kullanıcı bu klibi favorilerine eklediyse true.
+  final bool isFavorite;
+
+  /// YENİ: kullanıcının klip için eklediği serbest not.
+  final String? note;
+
   bool get hasFinalVideo => finalVideoKey != null;
 
   int get completedSceneCount => scenes.where((s) => s.status == 'completed').length;
@@ -43,6 +56,9 @@ class MusicVideoProject {
       estimatedCostUsd: (json['estimatedCostUsd'] as num?)?.toDouble() ?? 0,
       status: json['status']?.toString() ?? 'storyboard_ready',
       finalVideoKey: json['finalVideoKey']?.toString(),
+      concept: json['concept']?.toString(),
+      isFavorite: json['isFavorite'] == true,
+      note: json['note']?.toString(),
     );
   }
 }

@@ -17,17 +17,16 @@ class SongTile extends StatelessWidget {
   final VoidCallback? onMore;
   final bool isPlaying;
 
-  String _durationLabel(double? seconds) {
-    if (seconds == null) return '--:--';
-    final d = Duration(seconds: seconds.round());
-    final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     final song = librarySong.song;
+    // DEĞİŞTİ: "Genre · Süre" yerine "Genre | Mood" -- referans
+    // tasarımdaki gibi ("Elektronik | Yükseltici" formatı).
+    final subtitleParts = [
+      if (librarySong.genre.isNotEmpty) librarySong.genre,
+      if (librarySong.mood.isNotEmpty) librarySong.mood,
+    ];
+    final subtitle = subtitleParts.isEmpty ? '—' : subtitleParts.join(' | ');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -42,18 +41,18 @@ class SongTile extends StatelessWidget {
             child: Row(
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: song.imageUrl.isNotEmpty
                       ? Image.network(
                           song.imageUrl,
-                          width: 52,
-                          height: 52,
+                          width: 58,
+                          height: 58,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => _placeholderArt(),
                         )
                       : _placeholderArt(),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,36 +63,31 @@ class SongTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
                         ),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
-                        '${librarySong.genre} · ${_durationLabel(song.duration)}',
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textMuted,
-                          fontSize: 12.5,
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  onPressed: onTap,
-                  icon: Icon(
-                    isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_fill,
-                    color: AppColors.purple,
-                    size: 34,
-                  ),
-                ),
+                // DEĞİŞTİ: Ayrı play/pause ikonu kaldırıldı -- satırın
+                // kendisine basmak zaten çalıyor (onTap). Sadece "..."
+                // kaldı, referans tasarımdaki gibi.
                 if (onMore != null)
                   IconButton(
                     onPressed: onMore,
                     icon: const Icon(
-                      Icons.more_vert,
+                      Icons.more_horiz_rounded,
                       color: AppColors.textMuted,
                     ),
                   ),
@@ -107,13 +101,13 @@ class SongTile extends StatelessWidget {
 
   Widget _placeholderArt() {
     return Container(
-      width: 52,
-      height: 52,
+      width: 58,
+      height: 58,
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: const Icon(Icons.music_note, color: Colors.white, size: 22),
+      child: const Icon(Icons.music_note, color: Colors.white, size: 24),
     );
   }
 }

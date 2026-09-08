@@ -16,13 +16,22 @@ class MiniPlayerBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final song = controller.current?.song;
+    final librarySong = controller.current;
+    final song = librarySong?.song;
     if (song == null) return const SizedBox.shrink();
 
     final progress = controller.duration.inMilliseconds == 0
         ? 0.0
         : controller.position.inMilliseconds /
             controller.duration.inMilliseconds;
+
+    // DEĞİŞTİ: "Genre | Mood" alt yazısı eklendi -- referans
+    // tasarımdaki gibi ("Pop | Enerjik" formatı).
+    final subtitleParts = [
+      if (librarySong!.genre.isNotEmpty) librarySong.genre,
+      if (librarySong.mood.isNotEmpty) librarySong.mood,
+    ];
+    final subtitle = subtitleParts.isEmpty ? '—' : subtitleParts.join(' | ');
 
     return GestureDetector(
       onTap: onTap,
@@ -55,44 +64,60 @@ class MiniPlayerBar extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    // DEĞİŞTİ: görsel büyütüldü (40 -> 52).
+                    borderRadius: BorderRadius.circular(12),
                     child: song.imageUrl.isNotEmpty
                         ? Image.network(
                             song.imageUrl,
-                            width: 40,
-                            height: 40,
+                            width: 52,
+                            height: 52,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
-                              width: 40,
-                              height: 40,
+                              width: 52,
+                              height: 52,
                               decoration: const BoxDecoration(
                                 gradient: AppColors.primaryGradient,
                               ),
                             ),
                           )
                         : Container(
-                            width: 40,
-                            height: 40,
+                            width: 52,
+                            height: 52,
                             decoration: const BoxDecoration(
                               gradient: AppColors.primaryGradient,
                             ),
                           ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      song.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(
@@ -103,6 +128,15 @@ class MiniPlayerBar extends StatelessWidget {
                           : Icons.play_arrow_rounded,
                       color: Colors.white,
                       size: 28,
+                    ),
+                  ),
+                  // YENİ: kapatma butonu -- referans tasarımdaki "X".
+                  IconButton(
+                    onPressed: controller.close,
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textMuted,
+                      size: 24,
                     ),
                   ),
                 ],

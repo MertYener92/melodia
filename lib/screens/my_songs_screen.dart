@@ -10,10 +10,15 @@ class MySongsScreen extends StatefulWidget {
     super.key,
     required this.library,
     required this.player,
+    this.initialFavoritesOnly = false,
   });
 
   final SongLibrary library;
   final PlayerController player;
+
+  /// "Favorilerim" kartından açıldığında true geçirilir; ekran doğrudan
+  /// favori filtresi açık şekilde başlar.
+  final bool initialFavoritesOnly;
 
   @override
   State<MySongsScreen> createState() => _MySongsScreenState();
@@ -22,7 +27,7 @@ class MySongsScreen extends StatefulWidget {
 class _MySongsScreenState extends State<MySongsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-  bool _favoritesOnly = false;
+  late bool _favoritesOnly = widget.initialFavoritesOnly;
 
   @override
   void dispose() {
