@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
+import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/song_tile.dart';
 
@@ -217,9 +218,20 @@ class _MySongsScreenState extends State<MySongsScreen> {
                   'Delete',
                   style: TextStyle(color: Colors.red),
                 ),
-                onTap: () {
-                  widget.library.remove(song);
+                onTap: () async {
+                  // DEĞİŞTİ: remove() artık backend'e gerçekten silme
+                  // isteği gönderiyor (Future<void>) -- başarısız olursa
+                  // kullanıcıya bir mesaj gösteriyoruz, şarkı listeye
+                  // otomatik geri eklenir (bkz. SongLibrary.remove).
                   Navigator.pop(context);
+                  try {
+                    await widget.library.remove(song);
+                  } on SunoApiException catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(e.message)));
+                    }
+                  }
                 },
               ),
               const SizedBox(height: 8),

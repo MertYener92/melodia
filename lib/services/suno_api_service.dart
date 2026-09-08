@@ -295,6 +295,18 @@ class SunoApiService {
     return body['playUrl'] as String;
   }
 
+  /// YENİ: Kullanıcının kütüphanesinden bir şarkıyı kalıcı olarak siler
+  /// (DynamoDB kaydı + varsa S3'teki ses dosyası).
+  Future<void> deleteSong(String songId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/songs/$songId'),
+      headers: _headers,
+    );
+    if (response.statusCode != 200) {
+      throw SunoApiException('Şarkı silinemedi.');
+    }
+  }
+
   /// Karaoke gösterimi için kelime bazlı zaman damgalı sözleri getirir.
   /// Enstrümantal şarkılarda veya zamanlama henüz hazır değilse boş
   /// liste döner (hata fırlatmaz — arayüz sessizce "sözler yok" desin).

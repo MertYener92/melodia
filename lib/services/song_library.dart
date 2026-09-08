@@ -24,8 +24,11 @@ class LibrarySong {
     return LibrarySong(
       song: Song(
         id: json['songId']?.toString() ?? '',
-        title: json['title']?.toString() ?? 'Adsız Şarkı',
+        title: json['title']?.toString() ?? 'Adsız şarkı',
         prompt: json['prompt']?.toString() ?? '',
+        // NOT: backend artık "audioUrl" döndürmüyor (kalıcı olarak
+        // saklamıyor) -- bu alanlar boş kalır, oynatma/indirme artık
+        // SunoApiService.getSongPlayUrl(songId) ile yapılıyor.
         audioUrl: json['audioUrl']?.toString() ?? '',
         streamAudioUrl: json['streamAudioUrl']?.toString() ?? '',
         imageUrl: json['imageUrl']?.toString() ?? '',
@@ -110,9 +113,22 @@ class SongLibrary extends ChangeNotifier {
     // (gelecek bir iyileştirme olarak eklenebilir).
   }
 
-  void remove(LibrarySong song) {
+  /// DEĞİŞTİ: Önceden sadece yerel listeden çıkarıyordu -- uygulama
+  /// kapanıp açıldığında backend'den tekrar çekildiği için şarkı geri
+  /// geliyordu. Artık backend'e de gerçek bir silme isteği gönderiyor.
+  Future<void> remove(LibrarySong song) async {
     _songs.remove(song);
     notifyListeners();
+
+    try {
+      await service.deleteSong(song.song.id);
+    } catch (e) {
+      // Backend silme başarısız olduysa, şarkıyı listeye geri koy ki
+      // kullanıcı hâlâ silindiğini sanıp yanılmasın.
+      _songs.add(song);
+      notifyListeners();
+      rethrow;
+    }
   }
 
   void rename(LibrarySong target, String newTitle) {
