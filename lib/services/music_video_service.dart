@@ -108,7 +108,11 @@ class MusicVideoService {
     );
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
-      throw MusicVideoException(body['error']?.toString() ?? 'Klip planı oluşturulamadı.');
+      throw MusicVideoException(
+        body['message']?.toString() ??
+            body['error']?.toString() ??
+            'Klip planı oluşturulamadı.',
+      );
     }
     return MusicVideoProject.fromJson(body);
   }

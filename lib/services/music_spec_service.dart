@@ -42,7 +42,9 @@ class MusicSpecService {
 
     if (response.statusCode != 200) {
       throw MusicSpecException(
-        body['error']?.toString() ?? 'Müzik fikri yorumlanamadı.',
+        body['message']?.toString() ??
+            body['error']?.toString() ??
+            'Müzik fikri yorumlanamadı.',
       );
     }
 
