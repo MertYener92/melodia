@@ -248,6 +248,28 @@ class SunoApiService {
     );
   }
 
+  /// Apple'dan alınan imzalı satın alma makbuzunu (StoreKit 2'nin
+  /// serverVerificationData'sı) backend'e (verifySubscription.js)
+  /// göndererek doğrulatır. Başarılı olursa kullanıcının planı ve yeni
+  /// bitiş tarihi döner.
+  Future<({String plan, String planExpiresAt})> verifySubscription(
+    String signedTransactionInfo,
+  ) async {
+    final response = await _post('/subscription/verify', {
+      'signedTransactionInfo': signedTransactionInfo,
+    });
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw SunoApiException(
+        body['message']?.toString() ?? body['error']?.toString() ?? 'Abonelik doğrulanamadı.',
+      );
+    }
+    return (
+      plan: body['plan']?.toString() ?? 'free',
+      planExpiresAt: body['planExpiresAt']?.toString() ?? '',
+    );
+  }
+
   /// Üretilen bir şarkıyı kullanıcının kalıcı kütüphanesine kaydeder
   /// (backend'deki DynamoDB'ye). Kota harcamaz.
   ///

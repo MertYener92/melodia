@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import 'paywall_screen.dart';
 import 'settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -86,7 +87,18 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const _MenuTile(icon: Icons.workspace_premium_outlined, label: 'Upgrade Plan'),
+              _MenuTile(
+                icon: Icons.workspace_premium_outlined,
+                label: 'Upgrade Plan',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PaywallScreen(
+                      authService: authService,
+                      apiService: service,
+                    ),
+                  ),
+                ),
+              ),
               const _MenuTile(icon: Icons.help_outline, label: 'Help & Support'),
               const _MenuTile(icon: Icons.info_outline, label: 'About Melodia Studio'),
             ],

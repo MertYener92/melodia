@@ -34,6 +34,25 @@ class AuthService {
   String? get idToken => _idToken;
   bool get isLoggedIn => _idToken != null;
 
+  /// idToken içindeki 'sub' (Cognito kullanıcı ID'si — sabit bir UUID)
+  /// claim'ini çözer. Apple satın alma isteklerinde appAccountToken
+  /// olarak gönderilir; backend (verifySubscription.js) gelen makbuzun
+  /// bu ID ile eşleştiğini doğrular.
+  String? get userId {
+    final token = _idToken;
+    if (token == null) return null;
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    try {
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      return map['sub']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Yeni kullanıcı kaydı oluşturur (email doğrulama kodu gönderilir).
   Future<void> signUp(String email, String password) async {
     final response = await http.post(
