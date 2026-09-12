@@ -155,18 +155,36 @@ class LibraryScreen extends StatelessWidget {
 }
 
 /// Video sayısı `fetchProjects()` ile asenkron geldiği için ayrı bir
-/// FutureBuilder sarmalayıcı — diğer kartlarla aynı görünümü kullanıyor,
-/// sadece sayı yüklenene kadar "Videolarım" alt başlığını gösteriyor.
-class _VideoLibraryHubCard extends StatelessWidget {
+/// sarmalayıcı. DÜZELTME: Bu artık StatefulWidget -- Future SADECE bir
+/// kez (initState'te) oluşturuluyor ve saklanıyor. Önceki (Stateless +
+/// build() içinde `future:` oluşturma) yaklaşımı, LibraryScreen'in
+/// üstündeki ListenableBuilder her rebuild olduğunda (ör. bir şarkı
+/// favorilenince) bu widget'ı da yeniden build ediyor, bu da HER
+/// SEFERİNDE ağa yeni bir istek atıp video sayısını kısa süreliğine
+/// kaybolup tekrar belirmesine (titreşim/gecikme hissi) sebep oluyordu.
+class _VideoLibraryHubCard extends StatefulWidget {
   const _VideoLibraryHubCard({required this.videoService, required this.onTap});
 
   final MusicVideoService videoService;
   final VoidCallback onTap;
 
   @override
+  State<_VideoLibraryHubCard> createState() => _VideoLibraryHubCardState();
+}
+
+class _VideoLibraryHubCardState extends State<_VideoLibraryHubCard> {
+  late final Future<List<Map<String, dynamic>>> _projectsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _projectsFuture = widget.videoService.fetchProjects();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: videoService.fetchProjects(),
+      future: _projectsFuture,
       builder: (context, snapshot) {
         final count = snapshot.data?.length;
         return _LibraryHubCard(
@@ -177,7 +195,7 @@ class _VideoLibraryHubCard extends StatelessWidget {
           imagePath: 'assets/images/library_videos.png',
           fallbackColors: const [Color(0xFF0A2340), Color(0xFF071018)],
           accentColor: const Color(0xFF3B82F6),
-          onTap: onTap,
+          onTap: widget.onTap,
         );
       },
     );

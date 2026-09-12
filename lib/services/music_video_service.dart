@@ -89,6 +89,7 @@ class MusicVideoService {
     required String style,
     required String concept,
     required Map<String, String> photoKeys, // front/left/right
+    required String packageType, // 'premium' | 'economy'
   }) async {
     final response = await http.post(
       Uri.parse('$apiUrl/video/projects'),
@@ -104,6 +105,7 @@ class MusicVideoService {
         'style': style,
         'concept': concept,
         'photoKeys': photoKeys,
+        'packageType': packageType,
       }),
     );
     final body = jsonDecode(response.body) as Map<String, dynamic>;

@@ -2,7 +2,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/song.dart';
+import '../models/video_package.dart';
 import '../services/music_video_service.dart';
+import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
 import 'video_generation_screen.dart';
@@ -29,15 +31,23 @@ class CreateMusicVideoScreen extends StatefulWidget {
   const CreateMusicVideoScreen({
     super.key,
     required this.videoService,
+    required this.service,
     required this.song,
     required this.genre,
     required this.mood,
+    required this.packageType,
   });
 
   final MusicVideoService videoService;
+  final SunoApiService service;
   final Song song;
   final String genre;
   final String mood;
+
+  /// SelectVideoPackageScreen'de seçilen paket — storyboard'un sahne
+  /// sayısını ve karakter oranını belirliyor (bkz. backend'deki
+  /// videoPackages.js).
+  final VideoPackageType packageType;
 
   @override
   State<CreateMusicVideoScreen> createState() => _CreateMusicVideoScreenState();
@@ -89,10 +99,21 @@ class _CreateMusicVideoScreenState extends State<CreateMusicVideoScreen> {
         contentType: 'image/jpeg',
       );
 
+      // DÜZELTME: Kütüphaneden (kaydedilmiş bir şarkıdan) gelindiğinde
+      // widget.song.audioUrl BİLİNÇLİ olarak boş bırakılıyor (bkz.
+      // song_library.dart — backend artık kalıcı audioUrl döndürmüyor,
+      // her zaman taze bir CloudFront linki gerekiyor). Bu ekran daha
+      // önce bunu hesaba katmıyor, boş URL'i doğrudan backend'e
+      // gönderiyordu — "songAudioUrl zorunludur" hatasının sebebi buydu.
+      // Şimdi boşsa /songs/{id}/play-url ile taze bir link alıyoruz.
+      final songAudioUrl = widget.song.audioUrl.isNotEmpty
+          ? widget.song.audioUrl
+          : await widget.service.getSongPlayUrl(widget.song.id);
+
       final project = await widget.videoService.createProject(
         songId: widget.song.id,
         songTitle: widget.song.title,
-        songAudioUrl: widget.song.audioUrl,
+        songAudioUrl: songAudioUrl,
         songDurationSeconds: widget.song.duration ?? 60,
         genre: widget.genre,
         mood: widget.mood,
@@ -100,6 +121,7 @@ class _CreateMusicVideoScreenState extends State<CreateMusicVideoScreen> {
         style: _style ?? 'Cinematic',
         concept: _conceptController.text.trim(),
         photoKeys: {'front': frontKey, 'left': leftKey, 'right': rightKey},
+        packageType: widget.packageType == VideoPackageType.premium ? 'premium' : 'economy',
       );
 
       if (!mounted) return;
@@ -112,6 +134,8 @@ class _CreateMusicVideoScreenState extends State<CreateMusicVideoScreen> {
         ),
       );
     } on MusicVideoException catch (e) {
+      setState(() => _error = e.message);
+    } on SunoApiException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
       setState(() => _error = 'Beklenmeyen bir hata oluştu.');

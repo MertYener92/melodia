@@ -9,7 +9,7 @@ import '../services/player_controller.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/karaoke_lyrics_view.dart';
-import 'create_music_video_screen.dart';
+import 'select_video_package_screen.dart';
 
 class PlayerScreen extends StatelessWidget {
   const PlayerScreen({
@@ -398,8 +398,9 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => CreateMusicVideoScreen(
+                builder: (_) => SelectVideoPackageScreen(
                   videoService: widget.musicVideoService,
+                  service: widget.sunoApiService,
                   song: widget.song,
                   genre: widget.genre,
                   mood: widget.mood,

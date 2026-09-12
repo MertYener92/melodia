@@ -43,6 +43,7 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   late final SongLibrary _library;
   late final PlayerController _player;
+  bool _imagesPrecached = false;
 
   @override
   void initState() {
@@ -50,6 +51,30 @@ class _HomeShellState extends State<HomeShell> {
     _library = SongLibrary(service: widget.service);
     _library.loadFromBackend();
     _player = PlayerController(service: widget.service);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // DÜZELTME ("premium hissi" sorunu): Kütüphane sekmesindeki arka
+    // plan görselleri (AssetImage) daha önce SADECE o sekmeye ilk kez
+    // gidildiğinde decode ediliyordu -- bu da görsellerin ~1 saniye
+    // gecikmeyle "pat" diye belirmesine (pop-in) sebep oluyordu. Burada
+    // uygulama İLK AÇILDIĞI ANDA (hangi sekmede olursa olsun), bu dört
+    // görseli arka planda önceden decode ediyoruz. Kullanıcı Kütüphane'ye
+    // geçtiğinde görseller zaten Flutter'ın global image cache'inde
+    // hazır bulunuyor, anında ve pürüzsüz görünüyor.
+    if (!_imagesPrecached) {
+      _imagesPrecached = true;
+      for (final path in const [
+        'assets/images/library_songs.png',
+        'assets/images/library_videos.png',
+        'assets/images/library_favorites.png',
+        'assets/images/library_downloads.png',
+      ]) {
+        precacheImage(AssetImage(path), context);
+      }
+    }
   }
 
   @override
