@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 
@@ -40,6 +40,12 @@ class SubscriptionService {
   /// yearly olacak şekilde sabitliyoruz (Apple'ın döndürdüğü sıra garanti
   /// değil).
   Future<List<ProductDetails>> loadProducts() async {
+    if (kIsWeb) {
+      throw Exception(
+        'Satın alma sadece iOS uygulamasında kullanılabilir, web\'de değil.',
+      );
+    }
+
     final available = await _iap.isAvailable();
     if (!available) {
       throw Exception('Mağaza şu anda kullanılamıyor.');
@@ -89,7 +95,7 @@ class SubscriptionService {
     }
 
     final PurchaseParam purchaseParam;
-    if (Platform.isIOS) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
       // Sk2PurchaseParam -> StoreKit 2 (varsayılan, iOS 15+). Buradaki
       // 'applicationUserName' alanı, plugin tarafından StoreKit 2'nin
       // appAccountToken'ına eşleniyor (bkz. in_app_purchase_storekit
