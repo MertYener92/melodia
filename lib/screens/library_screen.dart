@@ -10,7 +10,11 @@ import 'video_library_screen.dart';
 
 /// "Kütüphane" sekmesi: kullanıcının tüm yaratımlarına (şarkılar +
 /// video klipler + favoriler + indirdikleri) tek bir giriş noktasından
-/// ulaştığı hub ekranı. 2x2 görsel kart grid'i.
+/// ulaştığı hub ekranı.
+///
+/// DEĞİŞTİ: Kartlar artık 2x2 dikey grid yerine YATAY kaydırmalı tek
+/// bir sırada. Her kart neredeyse tam ekran genişliğinde, bir sonraki
+/// kartın kenarı hafifçe görünerek kaydırılabilir olduğunu ima ediyor.
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({
     super.key,
@@ -68,78 +72,79 @@ class LibraryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                // DÜZELTME: 0.85 çok "kısa" kart üretiyordu, içerik
-                // taşıyordu (BOTTOM OVERFLOWED). 0.72 kartı belirgin
-                // şekilde uzatıp içeriğe daha fazla dikey alan veriyor.
-                childAspectRatio: 0.72,
-                children: [
-                  _LibraryHubCard(
-                    title: 'Şarkılarım',
-                    subtitle: 'Ürettiğin tüm şarkılar.',
-                    icon: Icons.music_note_rounded,
-                    imagePath: 'assets/images/library_songs.png',
-                    fallbackColors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
-                    accentColor: AppColors.pink,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => Scaffold(
-                          appBar: AppBar(title: const Text('Şarkılarım')),
-                          body: Container(
-                            decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-                            child: MySongsScreen(library: songLibrary, player: player),
+              child: ListenableBuilder(
+                listenable: songLibrary,
+                builder: (context, _) {
+                  final songCount = songLibrary.songs.length;
+                  final favoriteCount = songLibrary.songs.where((s) => s.isFavorite).length;
+
+                  return ListView(
+                    children: [
+                      _LibraryHubCard(
+                        title: 'Şarkılarım',
+                        subtitle: 'Ürettiğin tüm şarkılar.',
+                        countLabel: '$songCount şarkı',
+                        icon: Icons.music_note_rounded,
+                        imagePath: 'assets/images/library_songs.png',
+                        fallbackColors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
+                        accentColor: AppColors.pink,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => Scaffold(
+                              appBar: AppBar(title: const Text('Şarkılarım')),
+                              body: Container(
+                                decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+                                child: MySongsScreen(library: songLibrary, player: player),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  _LibraryHubCard(
-                    title: 'Videolarım',
-                    subtitle: 'Ürettiğin tüm videolar.',
-                    icon: Icons.play_arrow_rounded,
-                    imagePath: 'assets/images/library_videos.png',
-                    fallbackColors: const [Color(0xFF0A2340), Color(0xFF071018)],
-                    accentColor: const Color(0xFF3B82F6),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => VideoLibraryScreen(videoService: videoService),
-                      ),
-                    ),
-                  ),
-                  _LibraryHubCard(
-                    title: 'Favorilerim',
-                    subtitle: 'Beğendiğin içerikler.',
-                    icon: Icons.star_rounded,
-                    imagePath: 'assets/images/library_favorites.png',
-                    fallbackColors: const [Color(0xFF3A2A0A), Color(0xFF141007)],
-                    accentColor: const Color(0xFFF5A623),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => FavoritesScreen(
-                          songLibrary: songLibrary,
-                          player: player,
-                          videoService: videoService,
+                      _VideoLibraryHubCard(
+                        videoService: videoService,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => VideoLibraryScreen(videoService: videoService),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  _LibraryHubCard(
-                    title: 'İndirdiklerim',
-                    subtitle: 'Cihazına indirdiklerin.',
-                    icon: Icons.download_rounded,
-                    imagePath: 'assets/images/library_downloads.png',
-                    fallbackColors: const [Color(0xFF0A3A22), Color(0xFF07140D)],
-                    accentColor: const Color(0xFF34D399),
-                    // NOT: Henüz gerçek indirme takibi yok, placeholder
-                    // ekrana yönlendiriyor (bkz. downloads_screen.dart).
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const DownloadsScreen()),
-                    ),
-                  ),
-                ],
+                      _LibraryHubCard(
+                        title: 'Favorilerim',
+                        subtitle: 'Beğendiğin içerikler.',
+                        countLabel: '$favoriteCount içerik',
+                        icon: Icons.star_rounded,
+                        imagePath: 'assets/images/library_favorites.png',
+                        fallbackColors: const [Color(0xFF3A2A0A), Color(0xFF141007)],
+                        accentColor: const Color(0xFFF5A623),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => FavoritesScreen(
+                              songLibrary: songLibrary,
+                              player: player,
+                              videoService: videoService,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _LibraryHubCard(
+                        title: 'İndirdiklerim',
+                        subtitle: 'Cihazına indirdiklerin.',
+                        // NOT: Henüz gerçek indirme takibi yok, bu yüzden
+                        // burada sahte bir sayı GÖSTERMİYORUZ (bkz.
+                        // downloads_screen.dart) — takip eklenince buraya
+                        // gerçek bir sayaç bağlanabilir.
+                        countLabel: null,
+                        icon: Icons.download_rounded,
+                        imagePath: 'assets/images/library_downloads.png',
+                        fallbackColors: const [Color(0xFF0A3A22), Color(0xFF07140D)],
+                        accentColor: const Color(0xFF34D399),
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -149,10 +154,41 @@ class LibraryScreen extends StatelessWidget {
   }
 }
 
+/// Video sayısı `fetchProjects()` ile asenkron geldiği için ayrı bir
+/// FutureBuilder sarmalayıcı — diğer kartlarla aynı görünümü kullanıyor,
+/// sadece sayı yüklenene kadar "Videolarım" alt başlığını gösteriyor.
+class _VideoLibraryHubCard extends StatelessWidget {
+  const _VideoLibraryHubCard({required this.videoService, required this.onTap});
+
+  final MusicVideoService videoService;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: videoService.fetchProjects(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.length;
+        return _LibraryHubCard(
+          title: 'Videolarım',
+          subtitle: 'Ürettiğin tüm videolar.',
+          countLabel: count == null ? null : '$count video',
+          icon: Icons.play_arrow_rounded,
+          imagePath: 'assets/images/library_videos.png',
+          fallbackColors: const [Color(0xFF0A2340), Color(0xFF071018)],
+          accentColor: const Color(0xFF3B82F6),
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
+
 class _LibraryHubCard extends StatelessWidget {
   const _LibraryHubCard({
     required this.title,
     required this.subtitle,
+    required this.countLabel,
     required this.icon,
     required this.imagePath,
     required this.fallbackColors,
@@ -162,12 +198,14 @@ class _LibraryHubCard extends StatelessWidget {
 
   final String title;
   final String subtitle;
+
+  /// Örn. "24 şarkı". Gerçek veri henüz yoksa/yüklenmediyse null geç —
+  /// o zaman bu satır hiç gösterilmez, uydurma bir sayı basılmaz.
+  final String? countLabel;
   final IconData icon;
 
-  /// assets/images/ altındaki arkaplan fotoğrafı. pubspec.yaml'da
-  /// "assets:" listesine eklenmiş olmalı. Dosya henüz yoksa (veya
-  /// yüklenemezse) [fallbackColors] ile bir gradient gösterilir --
-  /// böylece görseller eklenmeden önce de uygulama çökmez.
+  /// assets/images/ altındaki arkaplan fotoğrafı. Dosya yoksa/yüklenemezse
+  /// [fallbackColors] ile bir gradient gösterilir.
   final String imagePath;
   final List<Color> fallbackColors;
   final Color accentColor;
@@ -178,92 +216,99 @@ class _LibraryHubCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // DÜZELTME (kesin çözüm): Görsel ve çerçeve artık AYNI
-        // BoxDecoration içinde çiziliyor -- Flutter ikisini tek bir
-        // paint çağrısında, aynı köşe yuvarlamasıyla çiziyor. Önceki
-        // sürümde görsel (ClipRRect) ve çerçeve (ayrı Container) farklı
-        // katmanlardaydı; ikisinin anti-aliasing'i piksel bazında tam
-        // örtüşmüyordu, bu da köşelerde "kesik" görünüme sebep oluyordu.
+        width: double.infinity,
+        height: 92,
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-          color: fallbackColors.first, // görsel yüklenemezse görünen zemin
+          color: fallbackColors.first,
           image: DecorationImage(
             image: AssetImage(imagePath),
             fit: BoxFit.cover,
-            onError: (_, __) {}, // sessizce yut, zemin rengi görünsün
+            alignment: Alignment.centerRight,
+            onError: (_, __) {},
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(23), // border kalınlığı kadar içeride
+          borderRadius: BorderRadius.circular(23),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Metnin okunabilir olması için karartma gradyanı.
+              // Soldan sağa karartma -- metin sol tarafta, görsel sağda
+              // net kalıyor (referans tasarımdaki gibi).
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
                     colors: [
+                      Colors.black.withValues(alpha: 0.88),
+                      Colors.black.withValues(alpha: 0.55),
                       Colors.black.withValues(alpha: 0.15),
-                      Colors.black.withValues(alpha: 0.8),
                     ],
+                    stops: const [0.0, 0.55, 1.0],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          // DEĞİŞTİ: tam opak yerine yarı saydam "cam"
-                          // görünümü -- referans tasarımdaki gibi.
-                          color: accentColor.withValues(alpha: 0.32),
-                          borderRadius: BorderRadius.circular(11),
-                          border: Border.all(color: accentColor.withValues(alpha: 0.5)),
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(icon, color: Colors.white, size: 17),
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10.5,
-                        height: 1.25,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
                     Container(
-                      width: 26,
-                      height: 26,
+                      width: 42,
+                      height: 42,
                       decoration: BoxDecoration(
-                        // DEĞİŞTİ: tam opak yerine yarı saydam "cam"
-                        // görünümü -- referans tasarımdaki gibi.
+                        color: accentColor.withValues(alpha: 0.32),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(color: accentColor.withValues(alpha: 0.5)),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(icon, color: Colors.white, size: 20),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          if (countLabel != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              countLabel!,
+                              style: TextStyle(
+                                color: accentColor,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
                         color: accentColor.withValues(alpha: 0.32),
                         shape: BoxShape.circle,
                         border: Border.all(color: accentColor.withValues(alpha: 0.5)),
@@ -272,7 +317,7 @@ class _LibraryHubCard extends StatelessWidget {
                       child: const Icon(
                         Icons.arrow_forward_rounded,
                         color: Colors.white,
-                        size: 13,
+                        size: 15,
                       ),
                     ),
                   ],

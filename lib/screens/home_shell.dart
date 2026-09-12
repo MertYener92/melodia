@@ -9,8 +9,8 @@ import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
 import '../widgets/premium_bottom_nav.dart';
 import 'create_screen.dart';
+import 'ai_video_screen.dart';
 import 'library_screen.dart';
-import 'my_songs_screen.dart';
 import 'player_screen.dart';
 import 'profile_screen.dart';
 
@@ -82,7 +82,7 @@ class _HomeShellState extends State<HomeShell> {
         library: _library,
         isActive: _index == 0,
       ),
-      MySongsScreen(library: _library, player: _player),
+      const AiVideoScreen(),
       LibraryScreen(
         songLibrary: _library,
         player: _player,
@@ -121,8 +121,8 @@ class _HomeShellState extends State<HomeShell> {
                 items: const [
                   NavItemData(icon: Icons.home_rounded, label: 'AI Müzik'),
                   NavItemData(
-                    icon: Icons.album_rounded,
-                    label: 'My Songs',
+                    icon: Icons.movie_creation_rounded,
+                    label: 'AI Video',
                   ),
                   NavItemData(icon: Icons.video_library_rounded, label: 'Kütüphane'),
                   NavItemData(icon: Icons.person_rounded, label: 'Profile'),
