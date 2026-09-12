@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:video_player/video_player.dart';
 import '../models/music_video_project.dart';
 import '../services/music_video_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
+import 'video_library_screen.dart';
 
 class VideoGenerationScreen extends StatefulWidget {
   const VideoGenerationScreen({
@@ -28,7 +27,6 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   bool _assemblyFailed = false;
   bool _assemblyTriggered = false;
   String? _error;
-  VideoPlayerController? _resultController;
 
   @override
   void initState() {
@@ -39,7 +37,6 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   @override
   void dispose() {
     _pollTimer?.cancel();
-    _resultController?.dispose();
     super.dispose();
   }
 
@@ -64,13 +61,21 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
       if (!mounted) return;
       setState(() => _project = updated);
 
-      // 1) Birleştirme tamamlandı mı?
-      // DEĞİŞTİ: "finalVideoUrl != null" yerine "hasFinalVideo" kontrol
-      // ediliyor -- backend artık URL değil, S3 key döndürüyor.
+      // 1) Birleştirme tamamlandı mı? Hazır olunca, kütüphanedeki AYNI
+      // tam ekran/fullscreen destekli oynatıcıya (video_library_screen.dart)
+      // geçiyoruz -- DÜZELTME: önceden burada kendi eksik/küçük bir
+      // oynatıcı kuruluyordu, bu da kütüphaneden açılan videoyla farklı
+      // (ve daha zayıf) görünmesine sebep oluyordu.
       if (updated.status == 'completed' && updated.hasFinalVideo) {
         _pollTimer?.cancel();
         _pollTimer = null;
-        await _loadResultVideo(updated.projectId);
+        openClipPlayer(
+          context,
+          title: updated.songTitle,
+          projectId: updated.projectId,
+          videoService: widget.videoService,
+          replace: true,
+        );
         return;
       }
 
@@ -132,24 +137,6 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
     }
   }
 
-  // DEĞİŞTİ: artık URL değil, projectId alıyor. İçeride taze bir
-  // CloudFront signed URL isteniyor (bkz. MusicVideoService.getVideoPlayUrl)
-  // -- eski sistemde burada sabit bir URL doğrudan kullanılıyordu ve
-  // birkaç saat içinde ExpiredToken hatasıyla ölüyordu.
-  Future<void> _loadResultVideo(String projectId) async {
-    try {
-      final playUrl = await widget.videoService.getVideoPlayUrl(projectId);
-      final controller = VideoPlayerController.networkUrl(Uri.parse(playUrl));
-      await controller.initialize();
-      if (!mounted) return;
-      setState(() => _resultController = controller);
-    } on MusicVideoException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Video yüklenemedi.');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,7 +155,6 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
   }
 
   Widget _buildBody() {
-    if (_resultController != null) return _buildResult();
     if (_assemblyFailed) return _buildAssemblyFailed();
     if (_pollTimer != null) return _buildProgress();
     return _buildStoryboardConfirm();
@@ -348,45 +334,4 @@ class _VideoGenerationScreenState extends State<VideoGenerationScreen> {
     );
   }
 
-  Widget _buildResult() {
-    final controller = _resultController!;
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        AspectRatio(
-          aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: VideoPlayer(controller),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  controller.value.isPlaying ? controller.pause() : controller.play();
-                });
-              },
-              icon: Icon(
-                controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                color: Colors.white,
-                size: 48,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        GradientButton(
-          label: 'Paylaş',
-          icon: Icons.share_rounded,
-          onPressed: () => SharePlus.instance.share(
-            ShareParams(text: 'Melodia ile AI müzik klibimi oluşturdum! 🎬🎵'),
-          ),
-        ),
-      ],
-    );
-  }
 }

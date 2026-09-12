@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import '../services/music_video_service.dart';
@@ -10,21 +13,30 @@ import '../theme/app_theme.dart';
 
 /// Başka ekranlardan (örn. Favorilerim) da tam ekran klip oynatıcıyı
 /// açabilmek için dışarıya açık yardımcı fonksiyon.
+///
+/// [replace]: true verilirse, çağıran ekranın kendisi de yığından
+/// kaldırılır (ör. VideoGenerationScreen, klip hazır olunca "geri"
+/// basınca artık boş bir ilerleme ekranına değil, bir önceki gerçek
+/// ekrana dönülsün diye kendini bu oynatıcıyla değiştiriyor).
 void openClipPlayer(
   BuildContext context, {
   required String title,
   required String projectId,
   required MusicVideoService videoService,
+  bool replace = false,
 }) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => _ClipPlayerScreen(
-        title: title,
-        projectId: projectId,
-        videoService: videoService,
-      ),
+  final route = MaterialPageRoute(
+    builder: (_) => _ClipPlayerScreen(
+      title: title,
+      projectId: projectId,
+      videoService: videoService,
     ),
   );
+  if (replace) {
+    Navigator.of(context).pushReplacement(route);
+  } else {
+    Navigator.of(context).push(route);
+  }
 }
 
 /// "Kütüphane" sekmesi: kullanıcının ürettiği tüm AI müzik klipleri
@@ -467,13 +479,42 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
     }
   }
 
+  /// DÜZELTME: Önceden burada sadece bir metin paylaşılıyordu, video
+  /// dosyasının kendisi HİÇ eklenmiyordu. Şimdi taze bir CloudFront
+  /// linki alınıp dosya indiriliyor, native paylaşım sayfası (share_plus)
+  /// gerçek .mp4 dosyasıyla açılıyor.
   Future<void> _onShareTap() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
+      final playUrl = await widget.videoService.getVideoPlayUrl(widget.projectId);
+      final response = await http.get(Uri.parse(playUrl)).timeout(const Duration(seconds: 60));
+      if (response.statusCode != 200) {
+        throw MusicVideoException('Video indirilemedi (${response.statusCode}).');
+      }
+
+      final cleanedTitle = widget.title.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
+      final fileName = (cleanedTitle.isEmpty ? 'melodia-klip' : cleanedTitle).replaceAll(' ', '_');
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/$fileName.mp4');
+      await file.writeAsBytes(response.bodyBytes);
+
       await SharePlus.instance.share(
-        ShareParams(text: '${widget.title} — Melodia ile AI ile üretildi 🎬'),
+        ShareParams(
+          files: [XFile(file.path)],
+          text: '${widget.title} — Melodia ile AI ile üretildi 🎬',
+        ),
       );
+    } on MusicVideoException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Video paylaşılamadı.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
