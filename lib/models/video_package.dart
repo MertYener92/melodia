@@ -30,10 +30,10 @@ class VideoPackage {
     title: 'Premium',
     priceLabel: 'X TL', // TODO: gerçek fiyat belirlenince değiştir
     sceneCountLabel: '14-16 sahne',
-    characterLabel: '~%70 karakterli',
+    characterLabel: '%100 karakterli',
     bullets: [
       'Daha uzun, daha zengin bir klip',
-      'Sahnelerin çoğunda karakterin görünmesi',
+      'Karakterin göründüğü, ağırlıklı şarkı söylediği sahneler',
       'Şarkının en özel anlarında (nakarat vb.) yakın plan karakter sahnesi',
       'Daha sinematik, "prodüksiyon" hissi',
     ],

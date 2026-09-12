@@ -6,6 +6,7 @@ import '../models/video_package.dart';
 import '../services/music_video_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_banner.dart';
 import '../widgets/gradient_button.dart';
 import 'video_generation_screen.dart';
 
@@ -251,7 +252,7 @@ class _CreateMusicVideoScreenState extends State<CreateMusicVideoScreen> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: const TextStyle(color: AppColors.pink, fontSize: 13)),
+                  ErrorBanner(message: _error!),
                 ],
                 const SizedBox(height: 28),
                 GradientButton(
