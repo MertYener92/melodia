@@ -103,11 +103,27 @@ class GenerationTask {
   final List<Song> songs;
   final String? errorMessage;
 
+  /// YENİ: backend'deki iş (job) henüz Suno'ya iletilmedi, kuyrukta
+  /// bekliyor. Bu true iken diğer alanların (status/songs) bir anlamı
+  /// yok — sadece beklemeye devam et.
+  final bool isQueued;
+
+  /// YENİ: iş Suno'ya iletildikten sonra backend'in döndürdüğü GERÇEK
+  /// Suno taskId'si. jobId ile karıştırılmamalı — bu, karaoke/zaman
+  /// damgalı söz gibi Suno'ya özel isteklerde kullanılması gereken ID.
+  final String? taskId;
+
   GenerationTask({
     required this.status,
     required this.songs,
     this.errorMessage,
+    this.isQueued = false,
+    this.taskId,
   });
+
+  /// Backend'de job henüz "queued"/"submitting" durumundayken kullanılır.
+  factory GenerationTask.queued() =>
+      GenerationTask(status: TaskStatus.pending, songs: [], isQueued: true);
 
   factory GenerationTask.fromJson(Map<String, dynamic> json) {
     final data = json['data'] as Map<String, dynamic>? ?? {};
@@ -122,6 +138,7 @@ class GenerationTask {
           .map((e) => Song.fromJson(e as Map<String, dynamic>))
           .toList(),
       errorMessage: data['errorMessage']?.toString(),
+      taskId: data['taskId']?.toString(),
     );
   }
 }

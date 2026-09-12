@@ -149,6 +149,9 @@ class SunoApiService {
   // 2) MÜZİK ÜRETİMİ — kota burada kontrol edilir
   // ---------------------------------------------------------------------
 
+  /// DEĞİŞTİ: /generate artık senkron değil — Suno'ya iletilmeden önce
+  /// hemen "202 Accepted" + jobId dönüyor. Gerçek Suno taskId'si daha
+  /// sonra /status?jobId=... ile öğrenilir (bkz. checkStatus).
   Future<String> _requestMusic({
     required String lyricsOrEmpty,
     required String style,
@@ -174,29 +177,44 @@ class SunoApiService {
             'Bu ayki şarkı hakkınızı kullandınız.',
       );
     }
-    if (response.statusCode != 200) {
+    // 202 = "kabul edildi, kuyruğa alındı" — artık BAŞARI durumu.
+    if (response.statusCode != 200 && response.statusCode != 202) {
       throw SunoApiException(
         body['message']?.toString() ?? body['error']?.toString() ?? 'Bilinmeyen hata',
       );
     }
 
-    final taskId = body['taskId']?.toString();
-    if (taskId == null) {
-      throw SunoApiException('Sunucudan taskId alınamadı.');
+    final jobId = body['jobId']?.toString();
+    if (jobId == null) {
+      throw SunoApiException('Sunucudan jobId alınamadı.');
     }
-    return taskId;
+    return jobId;
   }
 
-  Future<GenerationTask> checkStatus(String taskId) async {
-    final response = await _get('/status', {'taskId': taskId});
+  /// DEĞİŞTİ: artık jobId ile pollanıyor (Suno'nun taskId'si henüz yok
+  /// olabilir). Backend, job kuyrukta beklerken {"status":"queued"},
+  /// kalıcı olarak başarısız olduysa {"status":"failed","message":...}
+  /// döner; iş Suno'ya iletildiyse Suno'nun kendi durum objesini + gerçek
+  /// taskId'yi birlikte döner.
+  Future<GenerationTask> checkStatus(String jobId) async {
+    final response = await _get('/status', {'jobId': jobId});
     final data = jsonDecode(response.body) as Map<String, dynamic>;
 
     if (response.statusCode != 200) {
       throw SunoApiException(data['error']?.toString() ?? 'Bilinmeyen hata');
     }
 
-    // GenerationTask.fromJson {'data': ...} şeklinde bekliyor,
-    // backend'imiz doğrudan data objesini döndürüyor.
+    final metaStatus = data['status']?.toString();
+    if (metaStatus == 'queued') {
+      return GenerationTask.queued();
+    }
+    if (metaStatus == 'failed') {
+      throw SunoApiException(
+        data['message']?.toString() ?? 'Şarkı üretimi başlatılamadı.',
+      );
+    }
+
+    // job "ready" -> Suno'nun kendi durum objesi + gerçek taskId
     return GenerationTask.fromJson({'data': data});
   }
 
@@ -378,7 +396,7 @@ class SunoApiService {
       }
     }
 
-    final taskId = await _requestMusic(
+    final jobId = await _requestMusic(
       lyricsOrEmpty: lyrics,
       style: style.isEmpty ? 'Pop' : style,
       title: title,
@@ -394,11 +412,24 @@ class SunoApiService {
       attempt++;
       await Future.delayed(pollInterval);
 
-      final task = await checkStatus(taskId);
+      final task = await checkStatus(jobId);
+
+      if (task.isQueued) {
+        // Backend işi henüz Suno'ya iletmedi (kuyrukta bekliyor ya da
+        // geçici bir Suno hatası nedeniyle otomatik olarak yeniden
+        // deneniyor). Kullanıcıya "beklemede" göster, süre dolana kadar
+        // pollamaya devam et — sistem kendi kendine düzeliyor olabilir.
+        onTick?.call(TaskStatus.pending, attempt);
+        continue;
+      }
+
       onTick?.call(task.status, attempt);
 
       if (task.status.isComplete && task.songs.isNotEmpty) {
-        return task.songs.first.copyWith(taskId: taskId);
+        // ÖNEMLİ: jobId DEĞİL, backend'in Suno'dan aldığı GERÇEK taskId
+        // kullanılıyor — karaoke/zaman damgalı söz gibi Suno'ya özel
+        // isteklerde jobId'nin hiçbir anlamı yok.
+        return task.songs.first.copyWith(taskId: task.taskId ?? jobId);
       }
       if (task.status.isFailed) {
         throw SunoApiException(
