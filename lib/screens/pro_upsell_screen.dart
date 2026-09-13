@@ -169,71 +169,74 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      // DÜZELTME (3. ve KESİN deneme): Column + Expanded + SingleChildScrollView
-      // kombinasyonu web'de (debug mod) sorunsuzdu ama TestFlight'ın RELEASE
-      // build'inde "sonsuz kayma" olarak ortaya çıkıyordu. Bunun sebebi:
-      // Flutter'ın Flex/Expanded esneme hesaplamasındaki bazı sınır
-      // (constraint) sorunları DEBUG modda göze batan kırmızı bir hata
-      // ekranı olarak görünürken, RELEASE modda bu assert'ler devre dışı
-      // kalıp yerine tutarsız/aşırı büyük bir boyutla sessizce devam
-      // edebiliyor -- tam olarak "web'de iyi, telefonda (release) bozuk"
-      // paternine uyuyor.
-      //
-      // ÇÖZÜM: Expanded/SingleChildScrollView'ı TAMAMEN kaldırıp
-      // Flutter'ın kendi resmi "sabit üst + kayan alt" mekanizması olan
-      // CustomScrollView + Sliver'lara geçtik. Sliver'lar boyutlarını
-      // Expanded gibi "esneyerek" değil, doğrudan içeriklerinin kendi
-      // (kesin, sonlu) boyutundan hesaplar -- debug/release farkı olmayan,
-      // belirsizliğe hiç yer bırakmayan bir mekanizma. Kapatma butonu da
-      // artık kaydırılan içeriğin DIŞINDA, ayrı bir katmanda -- kullanıcı
-      // ne kadar aşağı kaydırırsa kaydırsın her zaman erişilebilir kalır.
+      // DÜZELTME (5. ve KESİN deneme): Önceki denemeler (Expanded, sonra
+      // CustomScrollView/Sliver, sonra sadece ClampingScrollPhysics) hep
+      // "üst seviye" bir mekanizma değiştiriyordu ama telefonda sorun
+      // sürdü. Bu sefer ChatGPT'nin verdiği kontrol listesi baz alınarak
+      // Sliver geometrisi (SliverToBoxAdapter) TAMAMEN kaldırıldı --
+      // yerine Flutter'ın EN BASİT, EN ÖNGÖRÜLEBİLİR "ekran boyu kadar ya
+      // da daha uzun" deseni kullanıldı: LayoutBuilder ile GERÇEK viewport
+      // yüksekliğini alıp, SingleChildScrollView'ın tek çocuğunu
+      // ConstrainedBox(minHeight: viewport) ile sarıyoruz + fiziksel
+      // esnek geri sekmeyi (bounce) ClampingScrollPhysics ile kapatıyoruz.
+      // Bu, kaydırılabilir alanın toplam yüksekliğinin MATEMATİKSEL OLARAK
+      // KESİN şekilde max(gerçek içerik, ekran boyu) olmasını garanti
+      // eder -- Sliver'ların kendi iç geometri hesabına, Expanded'ın
+      // esnemesine ya da CustomScrollView'ın maxScrollExtent hesabına hiç
+      // güvenmiyoruz. Kaydırma, içerik nereye kadar varsa TAM ORADA
+      // sert bir şekilde bitiyor; ötesine hiç geçilemiyor.
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: heroHeight,
-                  width: double.infinity,
-                  child: Stack(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      CinematicVideoHero(
-                        assetPath: 'assets/videos/pro_hero.mp4',
+                      SizedBox(
                         height: heroHeight,
-                      ),
-                      // Video -> arka plan geçişi: yumuşak, sert kenar yok.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: heroHeight * 0.65,
-                        child: const DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Color(0x991A1030),
-                                AppColors.background,
-                              ],
+                        width: double.infinity,
+                        child: Stack(
+                          children: [
+                            CinematicVideoHero(
+                              assetPath: 'assets/videos/pro_hero.mp4',
+                              height: heroHeight,
                             ),
-                          ),
+                            // Video -> arka plan geçişi: yumuşak, sert kenar yok.
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              height: heroHeight * 0.65,
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Color(0x991A1030),
+                                      AppColors.background,
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Container(
-                  decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    20,
-                    20,
-                    28 + MediaQuery.of(context).padding.bottom,
-                  ),
+                      Container(
+                        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          20,
+                          20,
+                          28 + MediaQuery.of(context).padding.bottom,
+                        ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
@@ -335,11 +338,14 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                     ],
                   ),
                 ),
-              ),
-            ],
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
 
-          // Kapatma butonu — CustomScrollView'ın DIŞINDA, ayrı bir Stack
+          // Kapatma butonu — kaydırılan alanın DIŞINDA, ayrı bir Stack
           // katmanında. Videonun üzerinde başlıyor ama kaydırma
           // içeriğinin bir parçası olmadığı için her zaman aynı yerde,
           // her zaman dokunulabilir kalıyor.
