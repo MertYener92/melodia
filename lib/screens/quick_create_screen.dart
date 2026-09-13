@@ -92,6 +92,7 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
             styleOverride: spec.generationPrompt,
             titleOverride: spec.title,
             provider: _provider,
+            lyricsLanguage: spec.lyricalLanguage,
           ),
         ),
       );

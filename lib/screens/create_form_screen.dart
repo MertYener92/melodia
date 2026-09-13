@@ -84,6 +84,13 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
           vocal: _vocal,
           durationSeconds: _lengthToSeconds[_length] ?? 90,
           provider: _provider,
+          // NOT: Standart modda music-spec (Claude) yorumlama adımı YOK,
+          // dolayısıyla gerçek bir dil tespiti de yok. Yedek olarak
+          // uygulamanın o anki arayüz dilini kullanıyoruz -- Hızlı/
+          // Gelişmiş modlardaki kadar isabetli olmayabilir (kullanıcı
+          // prompt'u arayüz dilinden farklı bir dilde yazabilir) ama
+          // hiç göndermemekten iyidir.
+          lyricsLanguage: Localizations.localeOf(context).languageCode,
         ),
       ),
     );

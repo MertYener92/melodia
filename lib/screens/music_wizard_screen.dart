@@ -276,6 +276,7 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
           providedLyrics:
               _needsOwnLyricsField ? _ownLyricsController.text.trim() : null,
           provider: _provider,
+          lyricsLanguage: spec.lyricalLanguage,
         ),
       ),
     )
