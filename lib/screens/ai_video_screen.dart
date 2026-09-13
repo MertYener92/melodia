@@ -1,47 +1,36 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../services/music_video_service.dart';
+import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
+import 'pro_upsell_screen.dart';
 
 /// GEÇİCİ: "My Songs" sekmesinin yerini alan yeni "AI Video" sekmesi.
 /// İçerik henüz tasarlanmadı — asıl klip oluşturma akışı ayrı ekranlarda
-/// (select_video_package_screen.dart vb.) yaşıyor. Bu sekme şimdilik sadece
-/// başlık + kalan video jetonu rozetini gösteriyor; navigasyonun (bottom
-/// nav + tab sırası) doğru çalıştığını göstermek için yer tutucu.
-class AiVideoScreen extends StatefulWidget {
-  const AiVideoScreen({super.key, required this.service});
+/// (select_video_package_screen.dart vb.) yaşıyor.
+///
+/// DEĞİŞTİ: Video artık bir jeton/kredi sistemi KULLANMIYOR — kullanıcı
+/// video oluşturmak istediğinde tek seferlik, video başına ücret alınacak
+/// (ayrı bir satın alma akışı, henüz yazılmadı). Bu yüzden burada jeton
+/// rozeti YOK, sadece sabit Pro rozeti gösteriliyor.
+class AiVideoScreen extends StatelessWidget {
+  const AiVideoScreen({
+    super.key,
+    required this.service,
+    required this.authService,
+    required this.apiService,
+  });
 
+  // NOT: service şu an bu ekranda kullanılmıyor (jeton rozeti kaldırıldı),
+  // ama video başına satın alma akışı eklenince (proje durum tablosu #26)
+  // burada tekrar gerekecek — imzada tutuluyor, çağıran taraf (home_shell)
+  // değişmesin diye.
   final MusicVideoService service;
 
-  @override
-  State<AiVideoScreen> createState() => _AiVideoScreenState();
-}
-
-class _AiVideoScreenState extends State<AiVideoScreen> {
-  int? _remainingCredits;
-  String? _creditsError;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBalance();
-  }
-
-  Future<void> _loadBalance() async {
-    try {
-      final balance = await widget.service.getCreditsBalance();
-      if (!mounted) return;
-      setState(() {
-        _remainingCredits = balance;
-        _creditsError = null;
-      });
-    } catch (e) {
-      debugPrint('[AiVideoScreen] getCreditsBalance() başarısız: $e');
-      if (!mounted) return;
-      setState(() => _creditsError = e.toString());
-    }
-  }
+  /// Pro rozetine dokununca [ProUpsellScreen]'i açabilmek için.
+  final AuthService authService;
+  final SunoApiService apiService;
 
   @override
   Widget build(BuildContext context) {
@@ -79,23 +68,24 @@ class _AiVideoScreenState extends State<AiVideoScreen> {
           ),
         ),
 
-        // Sağ üst köşede jeton + Pro rozeti. CreateScreen ve AiMusicScreen
-        // ile BİREBİR aynı padding (20,16,20,0) ve Align(topRight) — başlık
-        // satırından bağımsız ayrı bir overlay katmanı, üç sekmede de aynı
-        // piksel konumda durması için.
+        // Sağ üst köşede SADECE Pro rozeti. CreateScreen ve AiMusicScreen
+        // ile BİREBİR aynı padding (20,16,20,0) ve Align(topRight).
         SafeArea(
           bottom: false,
           child: Align(
             alignment: Alignment.topRight,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CreditsBadge(remaining: _remainingCredits, error: _creditsError),
-                  const SizedBox(width: 8),
-                  const ProBadge(),
-                ],
+              child: ProBadge(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (_) => ProUpsellScreen(
+                      authService: authService,
+                      apiService: apiService,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

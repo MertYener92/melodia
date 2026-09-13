@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
+import '../services/locale_controller.dart';
 import '../services/music_spec_service.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
+import '../services/pro_screen_session_gate.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
@@ -12,6 +17,7 @@ import 'create_screen.dart';
 import 'ai_video_screen.dart';
 import 'library_screen.dart';
 import 'player_screen.dart';
+import 'pro_upsell_screen.dart';
 import 'profile_screen.dart';
 
 /// Bottom navigation bar ile AI Müzik / My Songs / Kütüphane / Profile
@@ -23,6 +29,7 @@ class HomeShell extends StatefulWidget {
     required this.musicSpecService,
     required this.musicVideoService,
     required this.authService,
+    required this.localeController,
     required this.onLoggedOut,
   });
 
@@ -30,6 +37,7 @@ class HomeShell extends StatefulWidget {
   final MusicSpecService musicSpecService;
   final MusicVideoService musicVideoService;
   final AuthService authService;
+  final LocaleController localeController;
 
   /// Çıkış yapıldığında ya da hesap silindiğinde çağrılır (login
   /// ekranına dönmek için).
@@ -44,6 +52,7 @@ class _HomeShellState extends State<HomeShell> {
   late final SongLibrary _library;
   late final PlayerController _player;
   bool _imagesPrecached = false;
+  Timer? _proUpsellTimer;
 
   @override
   void initState() {
@@ -51,6 +60,45 @@ class _HomeShellState extends State<HomeShell> {
     _library = SongLibrary(service: widget.service);
     _library.loadFromBackend();
     _player = PlayerController(service: widget.service);
+    _scheduleProUpsell();
+  }
+
+  /// İSTENEN DAVRANIŞ: uygulama açıldıktan 5 saniye sonra, bu UYGULAMA
+  /// OTURUMU içinde daha önce hiç gösterilmediyse VE kullanıcı zaten Pro
+  /// değilse, PRO ekranı otomatik açılır. "Gösterildi" bilgisi kalıcı
+  /// olarak KAYDEDİLMEZ (bkz. ProScreenSessionGate) — sadece bellekte
+  /// tutulur, uygulama tamamen kapat-aç yapılınca sıfırlanır.
+  void _scheduleProUpsell() {
+    if (ProScreenSessionGate.shownThisSession) return;
+    _proUpsellTimer = Timer(const Duration(seconds: 5), () async {
+      if (!mounted || ProScreenSessionGate.shownThisSession) return;
+
+      // Kullanıcı zaten Pro'ysa (aktif abonelik) upsell ekranını hiç
+      // gösterme. Mevcut jeton/plan sorgusunu (getQuota) kullanıyoruz —
+      // ayrı bir "isPro" mekanizması icat etmiyoruz.
+      bool isAlreadyPro = false;
+      try {
+        final quota = await widget.service.getQuota();
+        isAlreadyPro = quota.plan.startsWith('pro_');
+      } catch (_) {
+        // Sorgu başarısız olursa temkinli davran: upsell'i YİNE DE
+        // göster (yanlışlıkla bir Pro kullanıcıya göstermekten daha
+        // az sakıncalı; kullanıcı zaten Pro'ysa satın alma ekranında
+        // bunu App Store kendi tarafında zaten engeller).
+      }
+      if (!mounted || isAlreadyPro) return;
+
+      ProScreenSessionGate.shownThisSession = true;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ProUpsellScreen(
+            authService: widget.authService,
+            apiService: widget.service,
+          ),
+        ),
+      );
+    });
   }
 
   @override
@@ -79,6 +127,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    _proUpsellTimer?.cancel();
     _player.dispose();
     _library.dispose();
     super.dispose();
@@ -100,14 +149,20 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screens = [
       CreateScreen(
         service: widget.service,
         musicSpecService: widget.musicSpecService,
         library: _library,
         isActive: _index == 0,
+        authService: widget.authService,
       ),
-      AiVideoScreen(service: widget.musicVideoService),
+      AiVideoScreen(
+        service: widget.musicVideoService,
+        authService: widget.authService,
+        apiService: widget.service,
+      ),
       LibraryScreen(
         songLibrary: _library,
         player: _player,
@@ -117,6 +172,7 @@ class _HomeShellState extends State<HomeShell> {
         library: _library,
         service: widget.service,
         authService: widget.authService,
+        localeController: widget.localeController,
         onLoggedOut: widget.onLoggedOut,
       ),
     ];
@@ -127,33 +183,42 @@ class _HomeShellState extends State<HomeShell> {
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: IndexedStack(index: _index, children: screens),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListenableBuilder(
-                listenable: _player,
-                builder: (context, _) => MiniPlayerBar(
-                  controller: _player,
-                  onTap: _openPlayer,
-                ),
-              ),
-              PremiumBottomNav(
-                currentIndex: _index,
-                onTap: _goToTab,
-                items: const [
-                  NavItemData(icon: Icons.home_rounded, label: 'AI Müzik'),
-                  NavItemData(
-                    icon: Icons.movie_creation_rounded,
-                    label: 'AI Video',
+      bottomNavigationBar: Container(
+        // DÜZELTME: extendBody:true olduğu için body (video/arka plan)
+        // bottomNavigationBar'ın ARKASINA kadar uzanıyor. Önceden SafeArea
+        // en dışta olduğu için, alt sistem boşluğu (home indicator alanı)
+        // bu container'ın renklendirmesinin DIŞINDA kalıyor, o dar şeritte
+        // arkadaki video/görsel görünüyordu. Rengi artık en dışa, SafeArea'nın
+        // DIŞINA sarıp o boşluğu da kaplıyoruz.
+        color: AppColors.background,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListenableBuilder(
+                  listenable: _player,
+                  builder: (context, _) => MiniPlayerBar(
+                    controller: _player,
+                    onTap: _openPlayer,
                   ),
-                  NavItemData(icon: Icons.video_library_rounded, label: 'Kütüphane'),
-                  NavItemData(icon: Icons.person_rounded, label: 'Profile'),
-                ],
-              ),
-            ],
+                ),
+                PremiumBottomNav(
+                  currentIndex: _index,
+                  onTap: _goToTab,
+                  items: [
+                    NavItemData(icon: Icons.home_rounded, label: l10n.navAiMusic),
+                    NavItemData(
+                      icon: Icons.movie_creation_rounded,
+                      label: l10n.navAiVideo,
+                    ),
+                    NavItemData(icon: Icons.video_library_rounded, label: l10n.navLibrary),
+                    NavItemData(icon: Icons.person_rounded, label: l10n.navProfile),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

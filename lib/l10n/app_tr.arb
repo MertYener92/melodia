@@ -1,0 +1,154 @@
+{
+  "@@locale": "tr",
+  "navAiMusic": "AI Müzik",
+  "navAiVideo": "AI Video",
+  "navLibrary": "Kütüphane",
+  "navProfile": "Profil",
+  "createBadge": "AI ŞARKI ÜRETİCİ",
+  "createTitle": "Şarkını Oluştur",
+  "createSubtitle": "Fikirlerinizi saniyeler içinde yapay zeka ile özgün şarkılara dönüştürün.",
+  "createButton": "Şarkı Oluştur",
+  "profileTitle": "Profilin",
+  "profileSongs": "Şarkı",
+  "profileFavorites": "Favori",
+  "profileSettings": "Ayarlar",
+  "profileUpgradePlan": "Planı Yükselt",
+  "profileHelpSupport": "Yardım & Destek",
+  "profileAboutApp": "Melodia Studio Hakkında",
+  "settingsLanguage": "Dil",
+  "settingsLanguagePickerTitle": "Dil Seç",
+  "settingsLanguageSystemDefault": "Sistem Dili",
+  "libraryHeroTitle": "Kütüphane",
+  "libraryHeroSubtitle": "Tüm yaratımların burada.",
+  "libraryQuote": "İyi fikirler\nher zaman\nbir yerlerde saklıdır.",
+  "libraryTagline": "YARAT  ·  KEŞFET  ·  SAKLA",
+  "librarySongsTitle": "Şarkılarım",
+  "librarySongsSubtitle": "Ürettiğin tüm şarkılar.",
+  "librarySongsCount": "{count, plural, =0{Şarkı yok} other{{count} şarkı}}",
+  "@librarySongsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryVideosTitle": "Videolarım",
+  "libraryVideosSubtitle": "Ürettiğin tüm videolar.",
+  "libraryVideosCount": "{count, plural, =0{Video yok} other{{count} video}}",
+  "@libraryVideosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryFavoritesTitle": "Favorilerim",
+  "libraryFavoritesSubtitle": "Beğendiğin içerikler.",
+  "libraryFavoritesCount": "{count, plural, =0{İçerik yok} other{{count} içerik}}",
+  "@libraryFavoritesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryDownloadsTitle": "İndirdiklerim",
+  "libraryDownloadsSubtitle": "Cihazına indirdiklerin.",
+  "actionCancel": "İptal",
+  "actionLogout": "Çıkış Yap",
+  "dangerZoneTitle": "TEHLİKELİ BÖLGE",
+  "deleteAccountConfirmTitle": "Hesabını kalıcı olarak sil",
+  "deleteAccountConfirmBody": "Bu işlem geri alınamaz. Tüm şarkıların, video kliplerin ve hesap bilgilerin KALICI olarak silinecek. Devam etmek istediğine emin misin?",
+  "deleteAccountShort": "Hesabımı Sil",
+  "deleteAccountBody": "Tüm şarkıların, video kliplerin ve hesap bilgilerin kalıcı olarak silinir. Bu işlem geri alınamaz.",
+  "deleteAccountPermanentButton": "Hesabımı Kalıcı Olarak Sil",
+  "genericUnexpectedError": "Beklenmeyen bir hata oluştu.",
+  "searchSongsHint": "Şarkı ara...",
+  "noSongsFound": "Şarkı bulunamadı",
+  "removeFromFavorites": "Favorilerden kaldır",
+  "addToFavorites": "Favorilere ekle",
+  "actionRename": "Yeniden adlandır",
+  "actionShare": "Paylaş",
+  "shareComingSoonMessage": "Paylaşım özelliği yakında eklenecek.",
+  "actionDownload": "İndir",
+  "downloadComingSoonMessage": "İndirme özelliği yakında eklenecek.",
+  "actionDelete": "Sil",
+  "renameSongTitle": "Şarkıyı yeniden adlandır",
+  "actionSave": "Kaydet",
+  "favoritesEmptyTitle": "Henüz favori eklemedin",
+  "favoritesEmptyBody": "Şarkı ya da klip oynatırken ♥ ikonuna bas.",
+  "sectionSongs": "Şarkılar",
+  "sectionVideos": "Videolar",
+  "untitledClip": "Adsız klip",
+  "comingSoonTitle": "Bu özellik yakında",
+  "downloadsComingSoonBody": "Cihazına indirdiğin şarkı ve videoları burada görebileceğin bu özellik üzerinde çalışıyoruz.",
+  "aiMusicSubtitle": "Aklındaki şarkıyı tarif et, gerisini biz halledelim.",
+  "modeAdvancedTitle": "Gelişmiş",
+  "modeAdvancedSubtitle": "Müziği insan gibi tarif et — dünyasını, hissini, hikayesini anlat. Yapay zeka profesyonel bir prodüksiyona çevirsin.",
+  "modeStandardTitle": "Standart",
+  "modeStandardSubtitle": "Tarz, ruh hali, vokal ve süreyi kendin seç — hızlı ve net bir form.",
+  "modeQuickTitle": "Hızlı",
+  "modeQuickSubtitle": "Tek cümlede anlat, gerisini yapay zeka tamamlasın. En hızlı yol.",
+  "createFormAppBarTitle": "Şarkını oluştur",
+  "createFormHeadline": "Bir sonraki şarkını oluştur",
+  "createFormSubtitle": "Fikirlerini yapay zeka ile müziğe dönüştür",
+  "describeSongFirst": "Lütfen önce şarkını tarif et.",
+  "songReadyMessage": "Şarkın hazır! 🎶",
+  "describeSongLabel": "Şarkını tarif et",
+  "describeSongHint": "Yaz geceleri hakkında romantik bir pop şarkısı...",
+  "labelGenre": "TÜR",
+  "labelMood": "RUH HALİ",
+  "labelVocal": "VOKAL",
+  "labelSongLength": "ŞARKI SÜRESİ",
+  "quickCreateHeadline": "Şarkını tek cümlede anlat",
+  "quickCreateSubtitle": "Gerisini yapay zeka tamamlasın — tür, tempo, vokal, söz teması, hepsi otomatik.",
+  "quickCreateHint": "Örn: Gece arabayla İstanbul'da dolaşırken dinlenecek, havalı ama biraz karanlık bir şarkı",
+  "preparingLabel": "Hazırlanıyor...",
+  "actionCreate": "Oluştur",
+  "unexpectedErrorWithDetail": "Beklenmeyen bir hata oluştu: {error}",
+  "@unexpectedErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "proUpsellTitle": "Yaratıcılığının Kilidini Aç",
+  "proUpsellSubtitle": "Daha fazla üret. Daha iyi üret.",
+  "planWeeklyTitle": "7 Günlük Erişim",
+  "planWeeklySubtitle": "Sınırsız erişim, haftalık faturalandırılır",
+  "planYearlyTitle": "Yıllık Erişim",
+  "planYearlyBadge": "En Avantajlı",
+  "featureSongsVideos": "Yapay Zeka ile Şarkı & Müzik Videosu Oluştur",
+  "featureVoiceCovers": "Kendi Sesinle Yapay Zeka Coverları Yap",
+  "featurePriorityGeneration": "Öncelikli Üretim",
+  "featureCommercialLicense": "Ticari Lisans Dahil",
+  "ctaContinue": "Devam Et",
+  "cancelAnytimeNote": "İstediğin zaman iptal et.",
+  "restorePurchasesAction": "Satın alımları geri yükle",
+  "purchaseSuccessMessage": "Aboneliğin aktif! Pro'ya hoş geldin.",
+  "saveBadge": "%{percent} Tasarruf",
+  "@saveBadge": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "productsLoadErrorWithDetail": "Ürünler yüklenemedi: {error}",
+  "@productsLoadErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "purchaseStartErrorWithDetail": "Satın alma başlatılamadı: {error}",
+  "@purchaseStartErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
+}

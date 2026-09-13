@@ -1,0 +1,154 @@
+{
+  "@@locale": "es",
+  "navAiMusic": "AI Música",
+  "navAiVideo": "AI Video",
+  "navLibrary": "Biblioteca",
+  "navProfile": "Perfil",
+  "createBadge": "GENERADOR DE CANCIONES IA",
+  "createTitle": "Crea Tu Canción",
+  "createSubtitle": "Convierte tus ideas en canciones originales con IA en segundos.",
+  "createButton": "Generar Canción",
+  "profileTitle": "Tu perfil",
+  "profileSongs": "Canciones",
+  "profileFavorites": "Favoritos",
+  "profileSettings": "Ajustes",
+  "profileUpgradePlan": "Mejorar Plan",
+  "profileHelpSupport": "Ayuda y Soporte",
+  "profileAboutApp": "Acerca de Melodia Studio",
+  "settingsLanguage": "Idioma",
+  "settingsLanguagePickerTitle": "Elegir Idioma",
+  "settingsLanguageSystemDefault": "Idioma del Sistema",
+  "libraryHeroTitle": "Biblioteca",
+  "libraryHeroSubtitle": "Todas tus creaciones, en un solo lugar.",
+  "libraryQuote": "Las buenas ideas\nsiempre se\nguardan en algún lugar.",
+  "libraryTagline": "CREAR  ·  DESCUBRIR  ·  GUARDAR",
+  "librarySongsTitle": "Mis Canciones",
+  "librarySongsSubtitle": "Todas las canciones que has creado.",
+  "librarySongsCount": "{count, plural, =0{Sin canciones} one{1 canción} other{{count} canciones}}",
+  "@librarySongsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryVideosTitle": "Mis Videos",
+  "libraryVideosSubtitle": "Todos los videos que has creado.",
+  "libraryVideosCount": "{count, plural, =0{Sin videos} one{1 video} other{{count} videos}}",
+  "@libraryVideosCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryFavoritesTitle": "Favoritos",
+  "libraryFavoritesSubtitle": "Contenido que te ha gustado.",
+  "libraryFavoritesCount": "{count, plural, =0{Sin elementos} one{1 elemento} other{{count} elementos}}",
+  "@libraryFavoritesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryDownloadsTitle": "Descargas",
+  "libraryDownloadsSubtitle": "Lo que has guardado en tu dispositivo.",
+  "actionCancel": "Cancelar",
+  "actionLogout": "Cerrar Sesión",
+  "dangerZoneTitle": "ZONA DE PELIGRO",
+  "deleteAccountConfirmTitle": "Eliminar tu cuenta permanentemente",
+  "deleteAccountConfirmBody": "Esta acción no se puede deshacer. Todas tus canciones, clips de video e información de cuenta se eliminarán PERMANENTEMENTE. ¿Seguro que quieres continuar?",
+  "deleteAccountShort": "Eliminar Mi Cuenta",
+  "deleteAccountBody": "Todas tus canciones, clips de video e información de cuenta se eliminarán permanentemente. Esta acción no se puede deshacer.",
+  "deleteAccountPermanentButton": "Eliminar Mi Cuenta Permanentemente",
+  "genericUnexpectedError": "Ocurrió un error inesperado.",
+  "searchSongsHint": "Buscar canciones...",
+  "noSongsFound": "No se encontraron canciones",
+  "removeFromFavorites": "Quitar de favoritos",
+  "addToFavorites": "Añadir a favoritos",
+  "actionRename": "Renombrar",
+  "actionShare": "Compartir",
+  "shareComingSoonMessage": "La función de compartir estará disponible pronto.",
+  "actionDownload": "Descargar",
+  "downloadComingSoonMessage": "La función de descarga estará disponible pronto.",
+  "actionDelete": "Eliminar",
+  "renameSongTitle": "Renombrar canción",
+  "actionSave": "Guardar",
+  "favoritesEmptyTitle": "Aún no tienes favoritos",
+  "favoritesEmptyBody": "Toca el ícono ♥ mientras reproduces una canción o clip.",
+  "sectionSongs": "Canciones",
+  "sectionVideos": "Videos",
+  "untitledClip": "Clip sin título",
+  "comingSoonTitle": "Próximamente",
+  "downloadsComingSoonBody": "Estamos trabajando para que puedas ver aquí las canciones y videos que has descargado a tu dispositivo.",
+  "aiMusicSubtitle": "Describe la canción que tienes en mente, nosotros nos encargamos del resto.",
+  "modeAdvancedTitle": "Avanzado",
+  "modeAdvancedSubtitle": "Describe la música como lo harías con una persona — su mundo, sentimiento, historia. La IA la convierte en una producción profesional.",
+  "modeStandardTitle": "Estándar",
+  "modeStandardSubtitle": "Elige tú mismo el estilo, ánimo, voz y duración — un formulario rápido y claro.",
+  "modeQuickTitle": "Rápido",
+  "modeQuickSubtitle": "Descríbelo en una frase, deja que la IA haga el resto. La forma más rápida.",
+  "createFormAppBarTitle": "Crea tu canción",
+  "createFormHeadline": "Crea tu próxima canción",
+  "createFormSubtitle": "Convierte tus ideas en música con IA",
+  "describeSongFirst": "Por favor describe tu canción primero.",
+  "songReadyMessage": "¡Tu canción está lista! 🎶",
+  "describeSongLabel": "Describe tu canción",
+  "describeSongHint": "Una canción pop romántica sobre noches de verano...",
+  "labelGenre": "GÉNERO",
+  "labelMood": "ÁNIMO",
+  "labelVocal": "VOZ",
+  "labelSongLength": "DURACIÓN",
+  "quickCreateHeadline": "Describe tu canción en una frase",
+  "quickCreateSubtitle": "Deja que la IA se encargue del resto — género, tempo, voz, tema lírico, todo automático.",
+  "quickCreateHint": "Ej: Una canción genial pero un poco oscura para escuchar mientras conduces por la ciudad de noche",
+  "preparingLabel": "Preparando...",
+  "actionCreate": "Crear",
+  "unexpectedErrorWithDetail": "Ocurrió un error inesperado: {error}",
+  "@unexpectedErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "proUpsellTitle": "Desbloquea Tu Creatividad",
+  "proUpsellSubtitle": "Crea más. Crea mejor.",
+  "planWeeklyTitle": "Acceso de 7 Días",
+  "planWeeklySubtitle": "Acceso ilimitado, facturado semanalmente",
+  "planYearlyTitle": "Acceso Anual",
+  "planYearlyBadge": "Mejor Valor",
+  "featureSongsVideos": "Crea Canciones y Videos Musicales con IA",
+  "featureVoiceCovers": "Haz Covers con IA con Tu Propia Voz",
+  "featurePriorityGeneration": "Generación Prioritaria",
+  "featureCommercialLicense": "Licencia Comercial Incluida",
+  "ctaContinue": "Continuar",
+  "cancelAnytimeNote": "Cancela cuando quieras.",
+  "restorePurchasesAction": "Restaurar compras",
+  "purchaseSuccessMessage": "¡Tu suscripción está activa! Bienvenido a Pro.",
+  "saveBadge": "Ahorra {percent}%",
+  "@saveBadge": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "productsLoadErrorWithDetail": "No se pudieron cargar los productos: {error}",
+  "@productsLoadErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "purchaseStartErrorWithDetail": "No se pudo iniciar la compra: {error}",
+  "@purchaseStartErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  }
+}

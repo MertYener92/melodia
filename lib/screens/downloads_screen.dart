@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 
 /// "İndirdiklerim" ekranı — ŞİMDİLİK PLACEHOLDER.
@@ -11,33 +12,33 @@ class DownloadsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('İndirdiklerim')),
+      appBar: AppBar(title: Text(l10n.libraryDownloadsTitle)),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-        child: const SafeArea(
+        child: SafeArea(
           child: Center(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.download_rounded, color: AppColors.textMuted, size: 40),
-                  SizedBox(height: 16),
+                  const Icon(Icons.download_rounded, color: AppColors.textMuted, size: 40),
+                  const SizedBox(height: 16),
                   Text(
-                    'Bu özellik yakında',
-                    style: TextStyle(
+                    l10n.comingSoonTitle,
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  const SizedBox(height: 6),
                   Text(
-                    'Cihazına indirdiğin şarkı ve videoları burada '
-                    'görebileceğin bu özellik üzerinde çalışıyoruz.',
+                    l10n.downloadsComingSoonBody,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                 ],
               ),

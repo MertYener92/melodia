@@ -1,0 +1,251 @@
+{
+  "@@locale": "en",
+  "navAiMusic": "AI Music",
+  "@navAiMusic": {
+    "description": "Bottom nav label for the AI Music tab"
+  },
+  "navAiVideo": "AI Video",
+  "@navAiVideo": {
+    "description": "Bottom nav label for the AI Video tab"
+  },
+  "navLibrary": "Library",
+  "@navLibrary": {
+    "description": "Bottom nav label for the Library tab"
+  },
+  "navProfile": "Profile",
+  "@navProfile": {
+    "description": "Bottom nav label for the Profile tab"
+  },
+  "createBadge": "AI SONG GENERATOR",
+  "@createBadge": {
+    "description": "Small pill badge on the home hero screen"
+  },
+  "createTitle": "Generate Your Song",
+  "@createTitle": {
+    "description": "Big headline on the home hero screen"
+  },
+  "createSubtitle": "Turn your ideas into original songs with AI in seconds.",
+  "@createSubtitle": {
+    "description": "Subtitle under the headline on the home hero screen"
+  },
+  "createButton": "Generate Song",
+  "@createButton": {
+    "description": "Primary CTA button on the home hero screen"
+  },
+  "profileTitle": "Your profile",
+  "@profileTitle": {
+    "description": "Heading on the profile screen"
+  },
+  "profileSongs": "Songs",
+  "@profileSongs": {
+    "description": "Stat card label for song count"
+  },
+  "profileFavorites": "Favorites",
+  "@profileFavorites": {
+    "description": "Stat card label for favorites count"
+  },
+  "profileSettings": "Settings",
+  "@profileSettings": {
+    "description": "Menu item leading to settings"
+  },
+  "profileUpgradePlan": "Upgrade Plan",
+  "@profileUpgradePlan": {
+    "description": "Menu item leading to the paywall"
+  },
+  "profileHelpSupport": "Help & Support",
+  "@profileHelpSupport": {
+    "description": "Menu item for help and support"
+  },
+  "profileAboutApp": "About Melodia Studio",
+  "@profileAboutApp": {
+    "description": "Menu item for app info"
+  },
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Settings menu row label for language selection"
+  },
+  "settingsLanguagePickerTitle": "Choose Language",
+  "@settingsLanguagePickerTitle": {
+    "description": "Title of the language picker sheet"
+  },
+  "settingsLanguageSystemDefault": "System Default",
+  "@settingsLanguageSystemDefault": {
+    "description": "Option to follow the device's language automatically"
+  },
+  "libraryHeroTitle": "Library",
+  "@libraryHeroTitle": {
+    "description": "Heading on the library hero header"
+  },
+  "libraryHeroSubtitle": "All your creations, in one place.",
+  "@libraryHeroSubtitle": {
+    "description": "Subtitle under the library heading"
+  },
+  "libraryQuote": "Good ideas\nare always\nsaved somewhere.",
+  "@libraryQuote": {
+    "description": "Decorative italic quote on the library hero, multi-line"
+  },
+  "libraryTagline": "CREATE  ·  DISCOVER  ·  SAVE",
+  "@libraryTagline": {
+    "description": "Small caps tagline under the quote"
+  },
+  "librarySongsTitle": "My Songs",
+  "@librarySongsTitle": {
+    "description": "Hub card title for songs"
+  },
+  "librarySongsSubtitle": "All the songs you've made.",
+  "@librarySongsSubtitle": {
+    "description": "Hub card subtitle for songs"
+  },
+  "librarySongsCount": "{count, plural, =0{No songs} one{1 song} other{{count} songs}}",
+  "@librarySongsCount": {
+    "description": "Song count label on the songs hub card",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryVideosTitle": "My Videos",
+  "@libraryVideosTitle": {
+    "description": "Hub card title for videos"
+  },
+  "libraryVideosSubtitle": "All the videos you've made.",
+  "@libraryVideosSubtitle": {
+    "description": "Hub card subtitle for videos"
+  },
+  "libraryVideosCount": "{count, plural, =0{No videos} one{1 video} other{{count} videos}}",
+  "@libraryVideosCount": {
+    "description": "Video count label on the videos hub card",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryFavoritesTitle": "Favorites",
+  "@libraryFavoritesTitle": {
+    "description": "Hub card title for favorites"
+  },
+  "libraryFavoritesSubtitle": "Content you've liked.",
+  "@libraryFavoritesSubtitle": {
+    "description": "Hub card subtitle for favorites"
+  },
+  "libraryFavoritesCount": "{count, plural, =0{No items} one{1 item} other{{count} items}}",
+  "@libraryFavoritesCount": {
+    "description": "Favorites count label on the favorites hub card",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryDownloadsTitle": "Downloads",
+  "@libraryDownloadsTitle": {
+    "description": "Hub card title for downloads"
+  },
+  "libraryDownloadsSubtitle": "What you've saved to your device.",
+  "@libraryDownloadsSubtitle": {
+    "description": "Hub card subtitle for downloads"
+  },
+  "actionCancel": "Cancel",
+  "actionLogout": "Log Out",
+  "dangerZoneTitle": "DANGER ZONE",
+  "deleteAccountConfirmTitle": "Permanently delete your account",
+  "deleteAccountConfirmBody": "This action cannot be undone. All your songs, video clips, and account information will be PERMANENTLY deleted. Are you sure you want to continue?",
+  "deleteAccountShort": "Delete My Account",
+  "deleteAccountBody": "All your songs, video clips, and account information will be permanently deleted. This action cannot be undone.",
+  "deleteAccountPermanentButton": "Permanently Delete My Account",
+  "genericUnexpectedError": "An unexpected error occurred.",
+  "searchSongsHint": "Search songs...",
+  "noSongsFound": "No songs found",
+  "removeFromFavorites": "Remove from favorites",
+  "addToFavorites": "Add to favorites",
+  "actionRename": "Rename",
+  "actionShare": "Share",
+  "shareComingSoonMessage": "Sharing will be available soon.",
+  "actionDownload": "Download",
+  "downloadComingSoonMessage": "Downloading will be available soon.",
+  "actionDelete": "Delete",
+  "renameSongTitle": "Rename song",
+  "actionSave": "Save",
+  "favoritesEmptyTitle": "No favorites yet",
+  "favoritesEmptyBody": "Tap the ♥ icon while playing a song or clip.",
+  "sectionSongs": "Songs",
+  "sectionVideos": "Videos",
+  "untitledClip": "Untitled clip",
+  "comingSoonTitle": "Coming soon",
+  "downloadsComingSoonBody": "We're working on letting you see the songs and videos you've downloaded to your device here.",
+  "aiMusicSubtitle": "Describe the song in your mind, we'll take care of the rest.",
+  "modeAdvancedTitle": "Advanced",
+  "modeAdvancedSubtitle": "Describe the music like you would to a person — its world, feeling, story. AI turns it into a professional production.",
+  "modeStandardTitle": "Standard",
+  "modeStandardSubtitle": "Pick the style, mood, vocal and length yourself — a quick and clear form.",
+  "modeQuickTitle": "Quick",
+  "modeQuickSubtitle": "Describe it in one sentence, let AI finish the rest. The fastest way.",
+  "createFormAppBarTitle": "Create your song",
+  "createFormHeadline": "Create your next song",
+  "createFormSubtitle": "Turn your ideas into music with AI",
+  "describeSongFirst": "Please describe your song first.",
+  "songReadyMessage": "Your song is ready! 🎶",
+  "describeSongLabel": "Describe your song",
+  "describeSongHint": "A romantic pop song about summer nights...",
+  "labelGenre": "GENRE",
+  "labelMood": "MOOD",
+  "labelVocal": "VOCAL",
+  "labelSongLength": "SONG LENGTH",
+  "quickCreateHeadline": "Describe your song in one sentence",
+  "quickCreateSubtitle": "Let AI handle the rest — genre, tempo, vocal, lyrical theme, all automatic.",
+  "quickCreateHint": "E.g: A cool but slightly dark song to listen to while driving through the city at night",
+  "preparingLabel": "Preparing...",
+  "actionCreate": "Create",
+  "unexpectedErrorWithDetail": "An unexpected error occurred: {error}",
+  "@unexpectedErrorWithDetail": {
+    "description": "Generic error message with a technical detail appended",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "proUpsellTitle": "Unlock Your Creativity",
+  "proUpsellSubtitle": "Create more. Create better.",
+  "planWeeklyTitle": "7-Day Access",
+  "planWeeklySubtitle": "Unlimited access, billed weekly",
+  "planYearlyTitle": "Yearly Access",
+  "planYearlyBadge": "Best Value",
+  "featureSongsVideos": "Create AI Songs & Music Videos",
+  "featureVoiceCovers": "Make AI Covers with Your Own Voice",
+  "featurePriorityGeneration": "Priority Generation",
+  "featureCommercialLicense": "Commercial License Included",
+  "ctaContinue": "Continue",
+  "cancelAnytimeNote": "Cancel anytime.",
+  "restorePurchasesAction": "Restore purchases",
+  "purchaseSuccessMessage": "Your subscription is active! Welcome to Pro.",
+  "saveBadge": "Save {percent}%",
+  "@saveBadge": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    },
+    "description": "Placeholder string for saveBadge"
+  },
+  "productsLoadErrorWithDetail": "Couldn't load products: {error}",
+  "@productsLoadErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "Placeholder string for productsLoadErrorWithDetail"
+  },
+  "purchaseStartErrorWithDetail": "Couldn't start the purchase: {error}",
+  "@purchaseStartErrorWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "Placeholder string for purchaseStartErrorWithDetail"
+  }
+}

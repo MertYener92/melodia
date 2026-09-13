@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
@@ -51,10 +52,11 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
   }
 
   Future<void> _generate() async {
+    final l10n = AppLocalizations.of(context)!;
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please describe your song first.')),
+        SnackBar(content: Text(l10n.describeSongFirst)),
       );
       return;
     }
@@ -83,7 +85,7 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Your song is ready! 🎶')),
+          SnackBar(content: Text(l10n.songReadyMessage)),
         );
         _promptController.clear();
       }
@@ -92,8 +94,9 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Create your song')),
+      appBar: AppBar(title: Text(l10n.createFormAppBarTitle)),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -101,52 +104,52 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Create your next song',
-                style: TextStyle(
+              Text(
+                l10n.createFormHeadline,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Turn your ideas into music with AI',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              Text(
+                l10n.createFormSubtitle,
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 22),
-              _buildPromptCard(),
+              _buildPromptCard(l10n),
               const SizedBox(height: 22),
               ChipGroup(
-                label: 'GENRE',
+                label: l10n.labelGenre,
                 options: _genres,
                 selected: _genre,
                 onSelected: (v) => setState(() => _genre = v),
               ),
               const SizedBox(height: 18),
               ChipGroup(
-                label: 'MOOD',
+                label: l10n.labelMood,
                 options: _moods,
                 selected: _mood,
                 onSelected: (v) => setState(() => _mood = v),
               ),
               const SizedBox(height: 18),
               ChipGroup(
-                label: 'VOCAL',
+                label: l10n.labelVocal,
                 options: _vocals,
                 selected: _vocal,
                 onSelected: (v) => setState(() => _vocal = v),
               ),
               const SizedBox(height: 18),
               ChipGroup(
-                label: 'SONG LENGTH',
+                label: l10n.labelSongLength,
                 options: _lengths,
                 selected: _length,
                 onSelected: (v) => setState(() => _length = v),
               ),
               const SizedBox(height: 28),
               GradientButton(
-                label: 'Generate Song',
+                label: l10n.createButton,
                 icon: Icons.auto_awesome,
                 onPressed: _generate,
                 height: 58,
@@ -158,16 +161,16 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
     );
   }
 
-  Widget _buildPromptCard() {
+  Widget _buildPromptCard(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: AppColors.glassCard(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Describe your song',
-            style: TextStyle(
+          Text(
+            l10n.describeSongLabel,
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
               fontSize: 15,
@@ -180,7 +183,7 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
             maxLength: 300,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'A romantic pop song about summer nights...',
+              hintText: l10n.describeSongHint,
               counterStyle: const TextStyle(color: AppColors.textMuted),
               filled: false,
               border: InputBorder.none,

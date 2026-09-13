@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
+import '../services/locale_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
@@ -12,12 +14,14 @@ class ProfileScreen extends StatelessWidget {
     required this.library,
     required this.service,
     required this.authService,
+    required this.localeController,
     required this.onLoggedOut,
   });
 
   final SongLibrary library;
   final SunoApiService service;
   final AuthService authService;
+  final LocaleController localeController;
 
   /// Çıkış yapıldığında ya da hesap silindiğinde çağrılır (main.dart'a
   /// kadar bubbling yaparak login ekranına dönmeyi sağlar).
@@ -25,6 +29,7 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       child: ListenableBuilder(
         listenable: library,
@@ -48,10 +53,10 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              const Center(
+              Center(
                 child: Text(
-                  'Your profile',
-                  style: TextStyle(
+                  l10n.profileTitle,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -62,12 +67,12 @@ class ProfileScreen extends StatelessWidget {
               Row(
                 children: [
                   _StatCard(
-                    label: 'Songs',
+                    label: l10n.profileSongs,
                     value: '${library.songs.length}',
                   ),
                   const SizedBox(width: 12),
                   _StatCard(
-                    label: 'Favorites',
+                    label: l10n.profileFavorites,
                     value:
                         '${library.songs.where((s) => s.isFavorite).length}',
                   ),
@@ -76,12 +81,13 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 28),
               _MenuTile(
                 icon: Icons.settings_outlined,
-                label: 'Settings',
+                label: l10n.profileSettings,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => SettingsScreen(
                       service: service,
                       authService: authService,
+                      localeController: localeController,
                       onAccountDeleted: onLoggedOut,
                     ),
                   ),
@@ -89,7 +95,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               _MenuTile(
                 icon: Icons.workspace_premium_outlined,
-                label: 'Upgrade Plan',
+                label: l10n.profileUpgradePlan,
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => PaywallScreen(
@@ -99,8 +105,8 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const _MenuTile(icon: Icons.help_outline, label: 'Help & Support'),
-              const _MenuTile(icon: Icons.info_outline, label: 'About Melodia Studio'),
+              _MenuTile(icon: Icons.help_outline, label: l10n.profileHelpSupport),
+              _MenuTile(icon: Icons.info_outline, label: l10n.profileAboutApp),
             ],
           );
         },

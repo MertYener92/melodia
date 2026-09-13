@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
@@ -29,6 +30,7 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -43,9 +45,9 @@ class LibraryScreen extends StatelessWidget {
                 const _LibraryHero(),
                 const SizedBox(height: 20),
                 _LibraryHubCard(
-                  title: 'Şarkılarım',
-                  subtitle: 'Ürettiğin tüm şarkılar.',
-                  countLabel: '$songCount şarkı',
+                  title: l10n.librarySongsTitle,
+                  subtitle: l10n.librarySongsSubtitle,
+                  countLabel: l10n.librarySongsCount(songCount),
                   icon: Icons.music_note_rounded,
                   imagePath: 'assets/images/library_songs.png',
                   fallbackColors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
@@ -53,7 +55,7 @@ class LibraryScreen extends StatelessWidget {
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => Scaffold(
-                        appBar: AppBar(title: const Text('Şarkılarım')),
+                        appBar: AppBar(title: Text(l10n.librarySongsTitle)),
                         body: Container(
                           decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
                           child: MySongsScreen(library: songLibrary, player: player),
@@ -71,9 +73,9 @@ class LibraryScreen extends StatelessWidget {
                   ),
                 ),
                 _LibraryHubCard(
-                  title: 'Favorilerim',
-                  subtitle: 'Beğendiğin içerikler.',
-                  countLabel: '$favoriteCount içerik',
+                  title: l10n.libraryFavoritesTitle,
+                  subtitle: l10n.libraryFavoritesSubtitle,
+                  countLabel: l10n.libraryFavoritesCount(favoriteCount),
                   icon: Icons.star_rounded,
                   imagePath: 'assets/images/library_favorites.png',
                   fallbackColors: const [Color(0xFF3A2A0A), Color(0xFF141007)],
@@ -89,8 +91,8 @@ class LibraryScreen extends StatelessWidget {
                   ),
                 ),
                 _LibraryHubCard(
-                  title: 'İndirdiklerim',
-                  subtitle: 'Cihazına indirdiklerin.',
+                  title: l10n.libraryDownloadsTitle,
+                  subtitle: l10n.libraryDownloadsSubtitle,
                   // NOT: Henüz gerçek indirme takibi yok, bu yüzden
                   // burada sahte bir sayı GÖSTERMİYORUZ (bkz.
                   // downloads_screen.dart) — takip eklenince buraya
@@ -123,8 +125,9 @@ class _LibraryHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
-      height: 340,
+      height: 270,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         color: AppColors.surfaceElevated,
@@ -161,9 +164,9 @@ class _LibraryHero extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Kütüphane',
-                    style: TextStyle(
+                  Text(
+                    l10n.libraryHeroTitle,
+                    style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
@@ -171,7 +174,7 @@ class _LibraryHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tüm yaratımların burada.',
+                    l10n.libraryHeroSubtitle,
                     style: TextStyle(
                       color: AppColors.textPrimary.withValues(alpha: 0.75),
                       fontSize: 14,
@@ -190,10 +193,10 @@ class _LibraryHero extends StatelessWidget {
                           height: 0.6,
                         ),
                       ),
-                      const Text(
-                        'İyi fikirler\nher zaman\nbir yerlerde saklıdır.',
+                      Text(
+                        l10n.libraryQuote,
                         textAlign: TextAlign.left,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
                           fontStyle: FontStyle.italic,
@@ -209,7 +212,7 @@ class _LibraryHero extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'YARAT  ·  KEŞFET  ·  SAKLA',
+                        l10n.libraryTagline,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 11,
@@ -258,14 +261,15 @@ class _VideoLibraryHubCardState extends State<_VideoLibraryHubCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _projectsFuture,
       builder: (context, snapshot) {
         final count = snapshot.data?.length;
         return _LibraryHubCard(
-          title: 'Videolarım',
-          subtitle: 'Ürettiğin tüm videolar.',
-          countLabel: count == null ? null : '$count video',
+          title: l10n.libraryVideosTitle,
+          subtitle: l10n.libraryVideosSubtitle,
+          countLabel: count == null ? null : l10n.libraryVideosCount(count),
           icon: Icons.play_arrow_rounded,
           imagePath: 'assets/images/library_videos.png',
           fallbackColors: const [Color(0xFF0A2340), Color(0xFF071018)],

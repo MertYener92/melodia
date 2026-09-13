@@ -80,12 +80,16 @@ class CreditsBadge extends StatelessWidget {
 }
 
 /// Sağ üst köşede jeton rozetinin yanında görünen sabit "Pro" rozeti.
+/// [onTap] verilirse rozet dokunulabilir olur (ör. Pro'ya geçiş ekranını
+/// açmak için) — verilmezse eskisi gibi tamamen dekoratif kalır.
 class ProBadge extends StatelessWidget {
-  const ProBadge({super.key});
+  const ProBadge({super.key, this.onTap});
+
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
@@ -107,5 +111,7 @@ class ProBadge extends StatelessWidget {
         ],
       ),
     );
+    if (onTap == null) return badge;
+    return GestureDetector(onTap: onTap, child: badge);
   }
 }

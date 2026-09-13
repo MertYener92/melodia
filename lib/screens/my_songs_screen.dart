@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
@@ -37,6 +38,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       child: ListenableBuilder(
         listenable: Listenable.merge([widget.library, widget.player]),
@@ -61,9 +63,9 @@ class _MySongsScreenState extends State<MySongsScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                 child: Row(
                   children: [
-                    const Text(
-                      'My Songs',
-                      style: TextStyle(
+                    Text(
+                      l10n.librarySongsTitle,
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -90,9 +92,9 @@ class _MySongsScreenState extends State<MySongsScreen> {
                 child: TextField(
                   controller: _searchController,
                   style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: const InputDecoration(
-                    hintText: 'Search songs...',
-                    prefixIcon: Icon(
+                  decoration: InputDecoration(
+                    hintText: l10n.searchSongsHint,
+                    prefixIcon: const Icon(
                       Icons.search,
                       color: AppColors.textMuted,
                     ),
@@ -103,10 +105,10 @@ class _MySongsScreenState extends State<MySongsScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: songs.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                          'No songs found',
-                          style: TextStyle(color: AppColors.textMuted),
+                          l10n.noSongsFound,
+                          style: const TextStyle(color: AppColors.textMuted),
                         ),
                       )
                     : ListView.builder(
@@ -134,6 +136,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
   }
 
   void _showActions(BuildContext context, LibrarySong song) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surfaceElevated,
@@ -152,8 +155,8 @@ class _MySongsScreenState extends State<MySongsScreen> {
                 ),
                 title: Text(
                   song.isFavorite
-                      ? 'Remove from favorites'
-                      : 'Add to favorites',
+                      ? l10n.removeFromFavorites
+                      : l10n.addToFavorites,
                   style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
@@ -166,9 +169,9 @@ class _MySongsScreenState extends State<MySongsScreen> {
                   Icons.edit_outlined,
                   color: AppColors.textSecondary,
                 ),
-                title: const Text(
-                  'Rename',
-                  style: TextStyle(color: AppColors.textPrimary),
+                title: Text(
+                  l10n.actionRename,
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -180,19 +183,14 @@ class _MySongsScreenState extends State<MySongsScreen> {
                   Icons.share_outlined,
                   color: AppColors.textSecondary,
                 ),
-                title: const Text(
-                  'Share',
-                  style: TextStyle(color: AppColors.textPrimary),
+                title: Text(
+                  l10n.actionShare,
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Share: audioUrl\'i paylaşım paketiyle (share_plus) '
-                        'entegre edebiliriz.',
-                      ),
-                    ),
+                    SnackBar(content: Text(l10n.shareComingSoonMessage)),
                   );
                 },
               ),
@@ -201,27 +199,22 @@ class _MySongsScreenState extends State<MySongsScreen> {
                   Icons.download_outlined,
                   color: AppColors.textSecondary,
                 ),
-                title: const Text(
-                  'Download',
-                  style: TextStyle(color: AppColors.textPrimary),
+                title: Text(
+                  l10n.actionDownload,
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Download: dosya indirme için path_provider + '
-                        'dio/http entegrasyonu eklenmeli.',
-                      ),
-                    ),
+                    SnackBar(content: Text(l10n.downloadComingSoonMessage)),
                   );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
+                title: Text(
+                  l10n.actionDelete,
+                  style: const TextStyle(color: Colors.red),
                 ),
                 onTap: () async {
                   // DEĞİŞTİ: remove() artık backend'e gerçekten silme
@@ -248,14 +241,15 @@ class _MySongsScreenState extends State<MySongsScreen> {
   }
 
   void _showRenameDialog(BuildContext context, LibrarySong song) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: song.song.title);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Rename song',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          l10n.renameSongTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
         content: TextField(
           controller: controller,
@@ -265,14 +259,14 @@ class _MySongsScreenState extends State<MySongsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.actionCancel),
           ),
           TextButton(
             onPressed: () {
               widget.library.rename(song, controller.text.trim());
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text(l10n.actionSave),
           ),
         ],
       ),

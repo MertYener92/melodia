@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 
+import '../services/auth_service.dart';
 import '../services/music_spec_service.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
@@ -9,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
 import '../widgets/gradient_button.dart';
 import 'ai_music_screen.dart';
+import 'pro_upsell_screen.dart';
 
 /// "AI Müzik" sekmesinin ilk açılış ekranı: assets/videos/create_hero.mp4'ü
 /// tam ekran arka plan olarak oynatan premium bir video-hero ekranı.
@@ -25,12 +28,14 @@ class CreateScreen extends StatefulWidget {
     required this.musicSpecService,
     required this.library,
     required this.isActive,
+    required this.authService,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final SongLibrary library;
   final bool isActive;
+  final AuthService authService;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -132,13 +137,15 @@ class _CreateScreenState extends State<CreateScreen> {
           service: widget.service,
           musicSpecService: widget.musicSpecService,
           library: widget.library,
+          authService: widget.authService,
         ),
       ),
-    );
+    ).then((_) => _loadQuota());
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -173,11 +180,11 @@ class _CreateScreenState extends State<CreateScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildBadge(),
+                _buildBadge(l10n),
                 const SizedBox(height: 14),
-                const Text(
-                  'Generate Your Song',
-                  style: TextStyle(
+                Text(
+                  l10n.createTitle,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 30,
                     fontWeight: FontWeight.w800,
@@ -185,10 +192,9 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'Fikirlerinizi saniyeler içinde yapay zeka ile özgün '
-                  'şarkılara dönüştürün.',
-                  style: TextStyle(
+                Text(
+                  l10n.createSubtitle,
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
                     height: 1.4,
@@ -197,7 +203,7 @@ class _CreateScreenState extends State<CreateScreen> {
                 ),
                 const SizedBox(height: 22),
                 GradientButton(
-                  label: 'Generate Song',
+                  label: l10n.createButton,
                   icon: Icons.auto_awesome,
                   onPressed: _openModeSelector,
                   height: 52,
@@ -223,7 +229,17 @@ class _CreateScreenState extends State<CreateScreen> {
                 children: [
                   CreditsBadge(remaining: _remainingCredits, error: _quotaError),
                   const SizedBox(width: 8),
-                  const ProBadge(),
+                  ProBadge(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        fullscreenDialog: true,
+                        builder: (_) => ProUpsellScreen(
+                          authService: widget.authService,
+                          apiService: widget.service,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -264,16 +280,16 @@ class _CreateScreenState extends State<CreateScreen> {
     );
   }
 
-  Widget _buildBadge() {
+  Widget _buildBadge(AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(999),
       ),
-      child: const Text(
-        'AI SONG GENERATOR',
-        style: TextStyle(
+      child: Text(
+        l10n.createBadge,
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.w700,

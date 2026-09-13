@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
+import '../services/locale_controller.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 
@@ -8,11 +10,13 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.service,
     required this.authService,
+    required this.localeController,
     required this.onAccountDeleted,
   });
 
   final SunoApiService service;
   final AuthService authService;
+  final LocaleController localeController;
 
   /// Hesap başarıyla silindikten sonra çağrılır — uygulamanın üst
   /// seviyesinde (main.dart) oturumu kapatıp login ekranına dönmek için.
@@ -25,31 +29,112 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _deleting = false;
 
+  static const Map<String, String> _languageNames = {
+    'en': 'English',
+    'tr': 'Türkçe',
+    'es': 'Español',
+  };
+
+  Future<void> _openLanguagePicker() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                  child: Text(
+                    l10n.settingsLanguagePickerTitle,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                // Sistem dilini takip et (kayıtlı bir tercih varsa siler).
+                ListTile(
+                  leading: Icon(
+                    Icons.smartphone_rounded,
+                    color: widget.localeController.locale == null
+                        ? AppColors.pink
+                        : AppColors.textSecondary,
+                  ),
+                  title: Text(
+                    l10n.settingsLanguageSystemDefault,
+                    style: const TextStyle(color: AppColors.textPrimary),
+                  ),
+                  trailing: widget.localeController.locale == null
+                      ? const Icon(Icons.check_rounded, color: AppColors.pink)
+                      : null,
+                  onTap: () async {
+                    await widget.localeController.useSystemDefault();
+                    if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                  },
+                ),
+                for (final locale in LocaleController.supportedLocalesList)
+                  ListTile(
+                    leading: Icon(
+                      Icons.language_rounded,
+                      color: widget.localeController.locale?.languageCode ==
+                              locale.languageCode
+                          ? AppColors.pink
+                          : AppColors.textSecondary,
+                    ),
+                    title: Text(
+                      _languageNames[locale.languageCode] ?? locale.languageCode,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                    trailing: widget.localeController.locale?.languageCode ==
+                            locale.languageCode
+                        ? const Icon(Icons.check_rounded, color: AppColors.pink)
+                        : null,
+                    onTap: () async {
+                      await widget.localeController.setLocale(locale);
+                      if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _confirmDeleteAccount() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surfaceElevated,
-        title: const Text(
-          'Hesabını kalıcı olarak sil',
-          style: TextStyle(color: AppColors.textPrimary),
+        title: Text(
+          l10n.deleteAccountConfirmTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
         ),
-        content: const Text(
-          'Bu işlem geri alınamaz. Tüm şarkıların, video kliplerin ve '
-          'hesap bilgilerin KALICI olarak silinecek. Devam etmek '
-          'istediğine emin misin?',
-          style: TextStyle(color: AppColors.textSecondary),
+        content: Text(
+          l10n.deleteAccountConfirmBody,
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Vazgeç'),
+            child: Text(l10n.actionCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              'Hesabımı Sil',
-              style: TextStyle(color: AppColors.pink, fontWeight: FontWeight.w700),
+            child: Text(
+              l10n.deleteAccountShort,
+              style: const TextStyle(color: AppColors.pink, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -72,15 +157,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() => _deleting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Beklenmeyen bir hata oluştu.')),
+        SnackBar(content: Text(l10n.genericUnexpectedError)),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Ayarlar')),
+      appBar: AppBar(title: Text(l10n.profileSettings)),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: SafeArea(
@@ -93,8 +179,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   children: [
                     ListTile(
+                      leading: const Icon(Icons.language_rounded, color: AppColors.textSecondary),
+                      title: Text(l10n.settingsLanguage, style: const TextStyle(color: AppColors.textPrimary)),
+                      trailing: Text(
+                        _languageNames[widget.localeController.effectiveLanguageCode] ?? '',
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                      onTap: _openLanguagePicker,
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    ListTile(
                       leading: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
-                      title: const Text('Çıkış Yap', style: TextStyle(color: AppColors.textPrimary)),
+                      title: Text(l10n.actionLogout, style: const TextStyle(color: AppColors.textPrimary)),
                       onTap: () async {
                         await widget.authService.signOut();
                         if (mounted) widget.onAccountDeleted();
@@ -104,9 +200,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 28),
-              const Text(
-                'TEHLİKELİ BÖLGE',
-                style: TextStyle(
+              Text(
+                l10n.dangerZoneTitle,
+                style: const TextStyle(
                   color: AppColors.pink,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -124,19 +220,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Hesabımı Sil',
-                      style: TextStyle(
+                    Text(
+                      l10n.deleteAccountShort,
+                      style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Tüm şarkıların, video kliplerin ve hesap bilgilerin '
-                      'kalıcı olarak silinir. Bu işlem geri alınamaz.',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.4),
+                    Text(
+                      l10n.deleteAccountBody,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.4),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -156,9 +251,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 height: 18,
                                 child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.pink),
                               )
-                            : const Text(
-                                'Hesabımı Kalıcı Olarak Sil',
-                                style: TextStyle(color: AppColors.pink, fontWeight: FontWeight.w600),
+                            : Text(
+                                l10n.deleteAccountPermanentButton,
+                                style: const TextStyle(color: AppColors.pink, fontWeight: FontWeight.w600),
                               ),
                       ),
                     ),

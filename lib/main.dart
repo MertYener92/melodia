@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/auth_service.dart';
+import 'services/locale_controller.dart';
 import 'services/music_spec_service.dart';
 import 'services/music_video_service.dart';
 import 'services/suno_api_service.dart';
@@ -27,7 +30,11 @@ const String musicVideoApiUrl = String.fromEnvironment(
   defaultValue: 'https://69e04hkaag.execute-api.eu-north-1.amazonaws.com',
 );
 
-void main() {
+final localeController = LocaleController();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await localeController.load();
   runApp(const MelodiaApp());
 }
 
@@ -36,27 +43,40 @@ class MelodiaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Melodia Studio',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
-      builder: (context, child) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            final currentFocus = FocusScope.of(context);
-            if (!currentFocus.hasPrimaryFocus &&
-                currentFocus.focusedChild != null) {
-              FocusManager.instance.primaryFocus?.unfocus();
-            }
+    return ListenableBuilder(
+      listenable: localeController,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Melodia Studio',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.dark,
+          themeMode: ThemeMode.dark,
+          locale: localeController.locale,
+          supportedLocales: LocaleController.supportedLocalesList,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) {
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                final currentFocus = FocusScope.of(context);
+                if (!currentFocus.hasPrimaryFocus &&
+                    currentFocus.focusedChild != null) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                }
+              },
+              child: child,
+            );
           },
-          child: child,
+          home: (apiUrl.isEmpty || userPoolClientId.isEmpty)
+              ? const _MissingConfigScreen()
+              : const _AppRoot(),
         );
       },
-      home: (apiUrl.isEmpty || userPoolClientId.isEmpty)
-          ? const _MissingConfigScreen()
-          : const _AppRoot(),
     );
   }
 }
@@ -121,6 +141,7 @@ class _AppRootState extends State<_AppRoot> {
       musicSpecService: _musicSpecService,
       musicVideoService: _musicVideoService,
       authService: _authService,
+      localeController: localeController,
       onLoggedOut: () => setState(() => _loggedIn = false),
     );
   }

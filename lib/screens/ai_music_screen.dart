@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
+import '../services/auth_service.dart';
 import '../services/music_spec_service.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
@@ -7,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
 import 'create_form_screen.dart';
 import 'music_wizard_screen.dart';
+import 'pro_upsell_screen.dart';
 import 'quick_create_screen.dart';
 
 /// "AI Müzik" sekmesi (eski Home sekmesinin yerini alır). Kullanıcıya 3
@@ -23,11 +26,13 @@ class AiMusicScreen extends StatefulWidget {
     required this.service,
     required this.musicSpecService,
     required this.library,
+    required this.authService,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final SongLibrary library;
+  final AuthService authService;
 
   @override
   State<AiMusicScreen> createState() => _AiMusicScreenState();
@@ -60,6 +65,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final service = widget.service;
     final musicSpecService = widget.musicSpecService;
     final library = widget.library;
@@ -88,10 +94,10 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                       constraints: const BoxConstraints(),
                     ),
                     const SizedBox(width: 4),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'AI Müzik',
-                        style: TextStyle(
+                        l10n.navAiMusic,
+                        style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -101,19 +107,17 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Padding(
-                  padding: EdgeInsets.only(left: 32),
+                Padding(
+                  padding: const EdgeInsets.only(left: 32),
                   child: Text(
-                    'Aklındaki şarkıyı tarif et, gerisini biz halledelim.',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    l10n.aiMusicSubtitle,
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                 ),
                 const SizedBox(height: 24),
                 _ModeCard(
-                  title: 'Gelişmiş',
-                  subtitle:
-                      'Müziği insan gibi tarif et — dünyasını, hissini, hikayesini '
-                      'anlat. Yapay zeka profesyonel bir prodüksiyona çevirsin.',
+                  title: l10n.modeAdvancedTitle,
+                  subtitle: l10n.modeAdvancedSubtitle,
                   icon: Icons.auto_awesome_rounded,
                   gradient: AppColors.primaryGradient,
                   onTap: () => Navigator.of(context).push(
@@ -124,14 +128,12 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         library: library,
                       ),
                     ),
-                  ),
+                  ).then((_) => _loadQuota()),
                 ),
                 const SizedBox(height: 14),
                 _ModeCard(
-                  title: 'Standart',
-                  subtitle:
-                      'Tarz, ruh hali, vokal ve süreyi kendin seç — hızlı ve net '
-                      'bir form.',
+                  title: l10n.modeStandardTitle,
+                  subtitle: l10n.modeStandardSubtitle,
                   icon: Icons.tune_rounded,
                   gradient: const LinearGradient(
                     colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
@@ -144,14 +146,12 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         library: library,
                       ),
                     ),
-                  ),
+                  ).then((_) => _loadQuota()),
                 ),
                 const SizedBox(height: 14),
                 _ModeCard(
-                  title: 'Hızlı',
-                  subtitle:
-                      'Tek cümlede anlat, gerisini yapay zeka tamamlasın. En hızlı '
-                      'yol.',
+                  title: l10n.modeQuickTitle,
+                  subtitle: l10n.modeQuickSubtitle,
                   icon: Icons.bolt_rounded,
                   gradient: const LinearGradient(
                     colors: [AppColors.surfaceElevated, AppColors.surfaceElevated],
@@ -165,7 +165,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         library: library,
                       ),
                     ),
-                  ),
+                  ).then((_) => _loadQuota()),
                 ),
               ],
             ),
@@ -188,7 +188,17 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                   children: [
                     CreditsBadge(remaining: _remainingCredits, error: _quotaError),
                     const SizedBox(width: 8),
-                    const ProBadge(),
+                    ProBadge(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          fullscreenDialog: true,
+                          builder: (_) => ProUpsellScreen(
+                            authService: widget.authService,
+                            apiService: widget.service,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

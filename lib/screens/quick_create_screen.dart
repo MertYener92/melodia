@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../models/music_spec.dart';
 import '../services/music_spec_service.dart';
 import '../services/song_library.dart';
@@ -49,7 +50,11 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
     try {
       final MusicSpec spec = await widget.musicSpecService.interpret(
         answers: {'story': text, 'creative_direction': text},
-        language: 'tr',
+        // DÜZELTME: Önceden sabit 'tr' idi -- uygulama başka bir dilde
+        // (ör. İngilizce) kullanılırken bile yorumlama isteği Türkçe
+        // gönderiliyordu. Artık o an aktif olan uygulama diline göre
+        // gönderiliyor.
+        language: Localizations.localeOf(context).languageCode,
       );
 
       if (!mounted) return;
@@ -102,8 +107,9 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = 'Beklenmeyen bir hata oluştu: $e';
+        _error = l10n.unexpectedErrorWithDetail(e.toString());
         _loading = false;
       });
     }
@@ -111,8 +117,9 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Hızlı Oluştur')),
+      appBar: AppBar(title: Text(l10n.modeQuickTitle)),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: SafeArea(
@@ -124,19 +131,18 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
               children: [
                 const Icon(Icons.bolt_rounded, color: AppColors.pink, size: 34),
                 const SizedBox(height: 14),
-                const Text(
-                  'Şarkını tek cümlede anlat',
-                  style: TextStyle(
+                Text(
+                  l10n.quickCreateHeadline,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Gerisini yapay zeka tamamlasın — tür, tempo, vokal, '
-                  'söz teması, hepsi otomatik.',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                Text(
+                  l10n.quickCreateSubtitle,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -152,17 +158,15 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
                     enabled: !_loading,
                     style: const TextStyle(color: AppColors.textPrimary),
                     onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      hintText:
-                          'Örn: Gece arabayla İstanbul\'da dolaşırken '
-                          'dinlenecek, havalı ama biraz karanlık bir şarkı',
-                      hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 13.5),
+                    decoration: InputDecoration(
+                      hintText: l10n.quickCreateHint,
+                      hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13.5),
                       filled: false,
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.all(14),
-                      counterStyle: TextStyle(color: AppColors.textMuted),
+                      contentPadding: const EdgeInsets.all(14),
+                      counterStyle: const TextStyle(color: AppColors.textMuted),
                     ),
                   ),
                 ),
@@ -175,7 +179,7 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
                 ],
                 const SizedBox(height: 20),
                 GradientButton(
-                  label: _loading ? 'Hazırlanıyor...' : 'Oluştur',
+                  label: _loading ? l10n.preparingLabel : l10n.actionCreate,
                   icon: Icons.auto_awesome_rounded,
                   isLoading: _loading,
                   onPressed: _controller.text.trim().isEmpty || _loading

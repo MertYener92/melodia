@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
@@ -34,8 +35,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Favorilerim')),
+      appBar: AppBar(title: Text(l10n.libraryFavoritesTitle)),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: SafeArea(
@@ -73,18 +75,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             child: const Icon(Icons.favorite_border_rounded, color: Colors.white, size: 32),
                           ),
                           const SizedBox(height: 16),
-                          const Center(
+                          Center(
                             child: Text(
-                              'Henüz favori eklemedin',
-                              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                              l10n.favoritesEmptyTitle,
+                              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Center(
+                          Center(
                             child: Text(
-                              'Şarkı ya da klip oynatırken ♥ ikonuna bas.',
+                              l10n.favoritesEmptyBody,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
+                              style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5),
                             ),
                           ),
                         ],
@@ -95,9 +97,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                       children: [
                         if (favoriteSongs.isNotEmpty) ...[
-                          const Text(
-                            'Şarkılar',
-                            style: TextStyle(
+                          Text(
+                            l10n.sectionSongs,
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -112,9 +114,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           const SizedBox(height: 16),
                         ],
                         if (favoriteVideos.isNotEmpty) ...[
-                          const Text(
-                            'Videolar',
-                            style: TextStyle(
+                          Text(
+                            l10n.sectionVideos,
+                            style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -147,7 +149,8 @@ class _FavoriteVideoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = project['songTitle']?.toString() ?? 'Adsız klip';
+    final l10n = AppLocalizations.of(context)!;
+    final title = project['songTitle']?.toString() ?? l10n.untitledClip;
     final isReady = project['hasFinalVideo'] == true;
     final projectId = project['projectId']?.toString() ?? '';
 
