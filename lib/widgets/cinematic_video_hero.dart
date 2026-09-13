@@ -64,11 +64,20 @@ class _CinematicVideoHeroState extends State<CinematicVideoHero> {
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
+    // DÜZELTME: iOS'ta bazı cihazlarda video hazır (initialized) olsa
+    // bile controller.value.size ilk karede (0,0) gelebiliyor -- bu
+    // durumda FittedBox dejenere (sıfır boyutlu) bir çocukla karşılaşıp
+    // beklenmedik/tutarsız bir düzen üretebiliyordu (web'de bu davranış
+    // farklı olduğu için orada sorun görünmüyordu). Boyut gerçekten
+    // pozitif olana kadar da placeholder gösteriyoruz.
+    final hasValidSize = controller != null &&
+        controller.value.size.width > 0 &&
+        controller.value.size.height > 0;
     return ClipRect(
       child: SizedBox(
         height: widget.height,
         width: double.infinity,
-        child: (_failed || controller == null || !_ready)
+        child: (_failed || controller == null || !_ready || !hasValidSize)
             ? const DecoratedBox(
                 decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
               )

@@ -247,5 +247,37 @@
       }
     },
     "description": "Placeholder string for purchaseStartErrorWithDetail"
+  },
+  "loginHeadline": "Bring your music\nto life.",
+  "loginSignInWithApple": "Continue with Apple",
+  "loginOr": "or",
+  "loginEmailLabel": "Email",
+  "loginPasswordLabel": "Password (min. 8 characters)",
+  "loginVerificationCodeLabel": "Verification code",
+  "loginTitleSignIn": "Sign in to continue",
+  "loginTitleSignUp": "Create a new account",
+  "loginTitleConfirm": "Verify your email",
+  "loginButtonSignIn": "Sign In",
+  "loginButtonSignUp": "Sign Up",
+  "loginButtonConfirm": "Verify",
+  "loginNoAccount": "Don't have an account? Sign up",
+  "loginHaveAccount": "Already have an account? Sign in",
+  "loginAppleSignInFailedWithDetail": "Apple sign-in failed: {error}",
+  "@loginAppleSignInFailedWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    },
+    "description": "Placeholder string for loginAppleSignInFailedWithDetail"
+  },
+  "loginConfirmCodeSentTo": "Enter the 6-digit code sent to {email}.",
+  "@loginConfirmCodeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    },
+    "description": "Placeholder string for loginConfirmCodeSentTo"
   }
 }

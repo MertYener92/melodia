@@ -358,4 +358,56 @@ class AppLocalizationsTr extends AppLocalizations {
   String purchaseStartErrorWithDetail(String error) {
     return 'Satın alma başlatılamadı: $error';
   }
+
+  @override
+  String get loginHeadline => 'Aklındaki müziği\nhayata geçir.';
+
+  @override
+  String get loginSignInWithApple => 'Apple ile devam et';
+
+  @override
+  String get loginOr => 'veya';
+
+  @override
+  String get loginEmailLabel => 'E-posta';
+
+  @override
+  String get loginPasswordLabel => 'Şifre (en az 8 karakter)';
+
+  @override
+  String get loginVerificationCodeLabel => 'Doğrulama kodu';
+
+  @override
+  String get loginTitleSignIn => 'Devam etmek için giriş yap';
+
+  @override
+  String get loginTitleSignUp => 'Yeni bir hesap oluştur';
+
+  @override
+  String get loginTitleConfirm => 'E-postanı doğrula';
+
+  @override
+  String get loginButtonSignIn => 'Giriş yap';
+
+  @override
+  String get loginButtonSignUp => 'Kayıt ol';
+
+  @override
+  String get loginButtonConfirm => 'Doğrula';
+
+  @override
+  String get loginNoAccount => 'Hesabın yok mu? Kayıt ol';
+
+  @override
+  String get loginHaveAccount => 'Zaten hesabın var mı? Giriş yap';
+
+  @override
+  String loginAppleSignInFailedWithDetail(String error) {
+    return 'Apple ile giriş başarısız: $error';
+  }
+
+  @override
+  String loginConfirmCodeSentTo(String email) {
+    return '$email adresine gönderilen 6 haneli kodu girin.';
+  }
 }

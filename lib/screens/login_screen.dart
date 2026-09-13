@@ -1,13 +1,23 @@
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/looping_video_background.dart';
 
 enum _Mode { signIn, signUp, confirm }
 
+/// Login ekranı.
+///
+/// DEĞİŞTİ: Artık tam ekran, sessiz ve döngüde oynayan bir video arka
+/// plan var (assets/videos/login-bg.mp4) + metinlerin okunabilmesi için
+/// üstüne koyu bir gölge (gradient scrim). Form (e-posta/şifre/Apple ile
+/// giriş/kayıt) işlevsel olarak birebir aynı — sadece bu yeni arka planın
+/// üzerine, alt yarıda konumlandı. Apple ile giriş butonu zaten vardı,
+/// sadece burada tekrar (ve çevirili) düzenlendi.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     super.key,
@@ -57,7 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       widget.onLoggedIn();
     } catch (e) {
-      setState(() => _error = 'Apple ile giriş başarısız: $e');
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() => _error = l10n.loginAppleSignInFailedWithDetail(e.toString()));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -103,17 +115,56 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-        child: SafeArea(
-          child: Center(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // 1. Tam ekran, sessiz, döngüde oynayan video arka plan.
+          const Positioned.fill(
+            child: LoopingVideoBackground(assetPath: 'assets/videos/login-bg.mp4'),
+          ),
+          // 2. Video -> okunabilirlik için koyu gölge (scrim). Üst kısım
+          // daha açık (video görünsün), alt yarı (form alanı) neredeyse
+          // tamamen opak -- metinler/inputlar her koşulda net okunsun.
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.38, 0.62, 1.0],
+                  colors: [
+                    Color(0x55000000),
+                    Color(0x991A1030),
+                    Color(0xE60A0A12),
+                    Color(0xFF0A0A12),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // 3. İçerik: başlık (üst yarı, video üzerinde) + form (alt yarı).
+          SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const SizedBox(height: 48),
+                  // Kısa, ilham verici başlık -- video'nun görünür kaldığı
+                  // üst bölgede, referans tasarımdaki gibi.
+                  Text(
+                    l10n.loginHeadline,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 180),
                   ShaderMask(
                     shaderCallback: (bounds) =>
                         AppColors.primaryGradient.createShader(bounds),
@@ -129,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _titleFor(_mode),
+                    _titleFor(l10n, _mode),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),
@@ -138,23 +189,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-posta',
-                        prefixIcon: Icon(Icons.email_outlined),
+                      decoration: InputDecoration(
+                        labelText: l10n.loginEmailLabel,
+                        prefixIcon: const Icon(Icons.email_outlined),
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Şifre (en az 8 karakter)',
-                        prefixIcon: Icon(Icons.lock_outline),
+                      decoration: InputDecoration(
+                        labelText: l10n.loginPasswordLabel,
+                        prefixIcon: const Icon(Icons.lock_outline),
                       ),
                     ),
                   ] else ...[
                     Text(
-                      '${_emailController.text} adresine gönderilen 6 haneli kodu girin.',
+                      l10n.loginConfirmCodeSentTo(_emailController.text),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: AppColors.textMuted),
                     ),
@@ -164,8 +215,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                      decoration: const InputDecoration(
-                        labelText: 'Doğrulama kodu',
+                      decoration: InputDecoration(
+                        labelText: l10n.loginVerificationCodeLabel,
                       ),
                     ),
                   ],
@@ -201,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : Text(
-                                    _buttonLabelFor(_mode),
+                                    _buttonLabelFor(l10n, _mode),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
@@ -221,11 +272,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Expanded(
                           child: Divider(color: AppColors.border),
                         ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'veya',
-                            style: TextStyle(color: AppColors.textMuted),
+                            l10n.loginOr,
+                            style: const TextStyle(color: AppColors.textMuted),
                           ),
                         ),
                         const Expanded(
@@ -240,6 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _loading ? () {} : _signInWithApple,
                         style: SignInWithAppleButtonStyle.white,
                         borderRadius: BorderRadius.circular(16),
+                        text: l10n.loginSignInWithApple,
                       ),
                     ),
                   ],
@@ -255,8 +307,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               }),
                       child: Text(
                         _mode == _Mode.signIn
-                            ? 'Hesabın yok mu? Kayıt ol'
-                            : 'Zaten hesabın var mı? Giriş yap',
+                            ? l10n.loginNoAccount
+                            : l10n.loginHaveAccount,
                         style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ),
@@ -264,30 +316,30 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  String _titleFor(_Mode mode) {
+  String _titleFor(AppLocalizations l10n, _Mode mode) {
     switch (mode) {
       case _Mode.signIn:
-        return 'Devam etmek için giriş yap';
+        return l10n.loginTitleSignIn;
       case _Mode.signUp:
-        return 'Yeni bir hesap oluştur';
+        return l10n.loginTitleSignUp;
       case _Mode.confirm:
-        return 'E-postanı doğrula';
+        return l10n.loginTitleConfirm;
     }
   }
 
-  String _buttonLabelFor(_Mode mode) {
+  String _buttonLabelFor(AppLocalizations l10n, _Mode mode) {
     switch (mode) {
       case _Mode.signIn:
-        return 'Giriş yap';
+        return l10n.loginButtonSignIn;
       case _Mode.signUp:
-        return 'Kayıt ol';
+        return l10n.loginButtonSignUp;
       case _Mode.confirm:
-        return 'Doğrula';
+        return l10n.loginButtonConfirm;
     }
   }
 }

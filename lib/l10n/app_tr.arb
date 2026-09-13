@@ -150,5 +150,35 @@
         "type": "String"
       }
     }
+  },
+  "loginHeadline": "Aklındaki müziği\nhayata geçir.",
+  "loginSignInWithApple": "Apple ile devam et",
+  "loginOr": "veya",
+  "loginEmailLabel": "E-posta",
+  "loginPasswordLabel": "Şifre (en az 8 karakter)",
+  "loginVerificationCodeLabel": "Doğrulama kodu",
+  "loginTitleSignIn": "Devam etmek için giriş yap",
+  "loginTitleSignUp": "Yeni bir hesap oluştur",
+  "loginTitleConfirm": "E-postanı doğrula",
+  "loginButtonSignIn": "Giriş yap",
+  "loginButtonSignUp": "Kayıt ol",
+  "loginButtonConfirm": "Doğrula",
+  "loginNoAccount": "Hesabın yok mu? Kayıt ol",
+  "loginHaveAccount": "Zaten hesabın var mı? Giriş yap",
+  "loginAppleSignInFailedWithDetail": "Apple ile giriş başarısız: {error}",
+  "@loginAppleSignInFailedWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loginConfirmCodeSentTo": "{email} adresine gönderilen 6 haneli kodu girin.",
+  "@loginConfirmCodeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -711,6 +711,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t start the purchase: {error}'**
   String purchaseStartErrorWithDetail(String error);
+
+  /// No description provided for @loginHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring your music\nto life.'**
+  String get loginHeadline;
+
+  /// No description provided for @loginSignInWithApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get loginSignInWithApple;
+
+  /// No description provided for @loginOr.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get loginOr;
+
+  /// No description provided for @loginEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get loginEmailLabel;
+
+  /// No description provided for @loginPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (min. 8 characters)'**
+  String get loginPasswordLabel;
+
+  /// No description provided for @loginVerificationCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code'**
+  String get loginVerificationCodeLabel;
+
+  /// No description provided for @loginTitleSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get loginTitleSignIn;
+
+  /// No description provided for @loginTitleSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a new account'**
+  String get loginTitleSignUp;
+
+  /// No description provided for @loginTitleConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email'**
+  String get loginTitleConfirm;
+
+  /// No description provided for @loginButtonSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get loginButtonSignIn;
+
+  /// No description provided for @loginButtonSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get loginButtonSignUp;
+
+  /// No description provided for @loginButtonConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get loginButtonConfirm;
+
+  /// No description provided for @loginNoAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? Sign up'**
+  String get loginNoAccount;
+
+  /// No description provided for @loginHaveAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Sign in'**
+  String get loginHaveAccount;
+
+  /// Placeholder string for loginAppleSignInFailedWithDetail
+  ///
+  /// In en, this message translates to:
+  /// **'Apple sign-in failed: {error}'**
+  String loginAppleSignInFailedWithDetail(String error);
+
+  /// Placeholder string for loginConfirmCodeSentTo
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to {email}.'**
+  String loginConfirmCodeSentTo(String email);
 }
 
 class _AppLocalizationsDelegate

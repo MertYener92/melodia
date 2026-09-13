@@ -169,157 +169,184 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      // DÜZELTME: Önceden video + içerik TEK bir sınırsız
-      // SingleChildScrollView içindeydi — bazı cihazlarda alt kısımda
-      // belirsiz/aşırı bir boşluk oluşmasına yol açıyordu. Artık video
-      // her zaman SABİT yükseklikte üstte duruyor (Column'un normal --
-      // scroll etmeyen -- bir çocuğu), sadece ALTINDAKİ içerik kendi
-      // sınırlı (Expanded) alanı içinde kaydırılıyor. Bu sayede içerik
-      // ne kadar kısa/uzun olursa olsun ekranın gerçek sınırları asla
-      // aşılmıyor.
-      body: Column(
+      // DÜZELTME (3. ve KESİN deneme): Column + Expanded + SingleChildScrollView
+      // kombinasyonu web'de (debug mod) sorunsuzdu ama TestFlight'ın RELEASE
+      // build'inde "sonsuz kayma" olarak ortaya çıkıyordu. Bunun sebebi:
+      // Flutter'ın Flex/Expanded esneme hesaplamasındaki bazı sınır
+      // (constraint) sorunları DEBUG modda göze batan kırmızı bir hata
+      // ekranı olarak görünürken, RELEASE modda bu assert'ler devre dışı
+      // kalıp yerine tutarsız/aşırı büyük bir boyutla sessizce devam
+      // edebiliyor -- tam olarak "web'de iyi, telefonda (release) bozuk"
+      // paternine uyuyor.
+      //
+      // ÇÖZÜM: Expanded/SingleChildScrollView'ı TAMAMEN kaldırıp
+      // Flutter'ın kendi resmi "sabit üst + kayan alt" mekanizması olan
+      // CustomScrollView + Sliver'lara geçtik. Sliver'lar boyutlarını
+      // Expanded gibi "esneyerek" değil, doğrudan içeriklerinin kendi
+      // (kesin, sonlu) boyutundan hesaplar -- debug/release farkı olmayan,
+      // belirsizliğe hiç yer bırakmayan bir mekanizma. Kapatma butonu da
+      // artık kaydırılan içeriğin DIŞINDA, ayrı bir katmanda -- kullanıcı
+      // ne kadar aşağı kaydırırsa kaydırsın her zaman erişilebilir kalır.
+      body: Stack(
         children: [
-          Stack(
-            children: [
-              CinematicVideoHero(
-                assetPath: 'assets/videos/pro_hero.mp4',
-                height: heroHeight,
-              ),
-              // Video -> arka plan geçişi: yumuşak, sert kenar yok.
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: heroHeight * 0.65,
-                child: const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        const Color(0x991A1030),
-                        AppColors.background,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              // Kapatma butonu — videonun üzerinde, glassmorphism.
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 12,
-                right: 16,
-                child: _GlassCloseButton(onTap: () => Navigator.of(context).pop(false)),
-              ),
-            ],
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Container(
-                decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      l10n.proUpsellTitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: heroHeight,
+                  width: double.infinity,
+                  child: Stack(
+                    children: [
+                      CinematicVideoHero(
+                        assetPath: 'assets/videos/pro_hero.mp4',
+                        height: heroHeight,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.proUpsellSubtitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (_loading)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 32),
-                        child: Center(
-                          child: CircularProgressIndicator(color: AppColors.purple),
-                        ),
-                      )
-                    else ...[
-                      if (_error != null) ...[
-                        _ErrorBanner(message: _error!),
-                        const SizedBox(height: 14),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (_weekly != null)
-                            Expanded(
-                              child: _PlanCard(
-                                title: l10n.planWeeklyTitle,
-                                subtitle: l10n.planWeeklySubtitle,
-                                price: _weekly!.price,
-                                badge: null,
-                                isSelected: _selected?.id == _weekly!.id,
-                                onTap: () => setState(() => _selected = _weekly),
-                              ),
+                      // Video -> arka plan geçişi: yumuşak, sert kenar yok.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: heroHeight * 0.65,
+                        child: const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Color(0x991A1030),
+                                AppColors.background,
+                              ],
                             ),
-                          if (_weekly != null && _yearly != null)
-                            const SizedBox(width: 12),
-                          if (_yearly != null)
-                            Expanded(
-                              child: _PlanCard(
-                                title: l10n.planYearlyTitle,
-                                subtitle: l10n.planYearlyBadge,
-                                price: _yearly!.price,
-                                badge: _savingsPercent != null
-                                    ? l10n.saveBadge(_savingsPercent!)
-                                    : null,
-                                isSelected: _selected?.id == _yearly!.id,
-                                onTap: () => setState(() => _selected = _yearly),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-                      _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureSongsVideos),
-                      const SizedBox(height: 12),
-                      _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureVoiceCovers),
-                      const SizedBox(height: 12),
-                      _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featurePriorityGeneration),
-                      const SizedBox(height: 12),
-                      _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureCommercialLicense),
-                      const SizedBox(height: 26),
-                      _PrimaryCta(
-                        label: l10n.ctaContinue,
-                        isLoading: _purchasing,
-                        onPressed: (_selected == null || _purchasing) ? null : _subscribe,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        l10n.cancelAnytimeNote,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                      ),
-                      const SizedBox(height: 6),
-                      Center(
-                        child: TextButton(
-                          onPressed: _purchasing ? null : _restore,
-                          child: Text(
-                            l10n.restorePurchasesAction,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                           ),
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    20,
+                    20,
+                    28 + MediaQuery.of(context).padding.bottom,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.proUpsellTitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.proUpsellSubtitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      if (_loading)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: CircularProgressIndicator(color: AppColors.purple),
+                          ),
+                        )
+                      else ...[
+                        if (_error != null) ...[
+                          _ErrorBanner(message: _error!),
+                          const SizedBox(height: 14),
+                        ],
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_weekly != null)
+                              Expanded(
+                                child: _PlanCard(
+                                  title: l10n.planWeeklyTitle,
+                                  subtitle: l10n.planWeeklySubtitle,
+                                  price: _weekly!.price,
+                                  badge: null,
+                                  isSelected: _selected?.id == _weekly!.id,
+                                  onTap: () => setState(() => _selected = _weekly),
+                                ),
+                              ),
+                            if (_weekly != null && _yearly != null)
+                              const SizedBox(width: 12),
+                            if (_yearly != null)
+                              Expanded(
+                                child: _PlanCard(
+                                  title: l10n.planYearlyTitle,
+                                  subtitle: l10n.planYearlyBadge,
+                                  price: _yearly!.price,
+                                  badge: _savingsPercent != null
+                                      ? l10n.saveBadge(_savingsPercent!)
+                                      : null,
+                                  isSelected: _selected?.id == _yearly!.id,
+                                  onTap: () => setState(() => _selected = _yearly),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureSongsVideos),
+                        const SizedBox(height: 12),
+                        _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureVoiceCovers),
+                        const SizedBox(height: 12),
+                        _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featurePriorityGeneration),
+                        const SizedBox(height: 12),
+                        _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureCommercialLicense),
+                        const SizedBox(height: 26),
+                        _PrimaryCta(
+                          label: l10n.ctaContinue,
+                          isLoading: _purchasing,
+                          onPressed: (_selected == null || _purchasing) ? null : _subscribe,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          l10n.cancelAnytimeNote,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                        ),
+                        const SizedBox(height: 6),
+                        Center(
+                          child: TextButton(
+                            onPressed: _purchasing ? null : _restore,
+                            child: Text(
+                              l10n.restorePurchasesAction,
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Kapatma butonu — CustomScrollView'ın DIŞINDA, ayrı bir Stack
+          // katmanında. Videonun üzerinde başlıyor ama kaydırma
+          // içeriğinin bir parçası olmadığı için her zaman aynı yerde,
+          // her zaman dokunulabilir kalıyor.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            right: 16,
+            child: _GlassCloseButton(onTap: () => Navigator.of(context).pop(false)),
           ),
         ],
       ),

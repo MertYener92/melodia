@@ -361,4 +361,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String purchaseStartErrorWithDetail(String error) {
     return 'Couldn\'t start the purchase: $error';
   }
+
+  @override
+  String get loginHeadline => 'Bring your music\nto life.';
+
+  @override
+  String get loginSignInWithApple => 'Continue with Apple';
+
+  @override
+  String get loginOr => 'or';
+
+  @override
+  String get loginEmailLabel => 'Email';
+
+  @override
+  String get loginPasswordLabel => 'Password (min. 8 characters)';
+
+  @override
+  String get loginVerificationCodeLabel => 'Verification code';
+
+  @override
+  String get loginTitleSignIn => 'Sign in to continue';
+
+  @override
+  String get loginTitleSignUp => 'Create a new account';
+
+  @override
+  String get loginTitleConfirm => 'Verify your email';
+
+  @override
+  String get loginButtonSignIn => 'Sign In';
+
+  @override
+  String get loginButtonSignUp => 'Sign Up';
+
+  @override
+  String get loginButtonConfirm => 'Verify';
+
+  @override
+  String get loginNoAccount => 'Don\'t have an account? Sign up';
+
+  @override
+  String get loginHaveAccount => 'Already have an account? Sign in';
+
+  @override
+  String loginAppleSignInFailedWithDetail(String error) {
+    return 'Apple sign-in failed: $error';
+  }
+
+  @override
+  String loginConfirmCodeSentTo(String email) {
+    return 'Enter the 6-digit code sent to $email.';
+  }
 }

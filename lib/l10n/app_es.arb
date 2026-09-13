@@ -150,5 +150,35 @@
         "type": "String"
       }
     }
+  },
+  "loginHeadline": "Dale vida\na tu música.",
+  "loginSignInWithApple": "Continuar con Apple",
+  "loginOr": "o",
+  "loginEmailLabel": "Correo electrónico",
+  "loginPasswordLabel": "Contraseña (mín. 8 caracteres)",
+  "loginVerificationCodeLabel": "Código de verificación",
+  "loginTitleSignIn": "Inicia sesión para continuar",
+  "loginTitleSignUp": "Crea una cuenta nueva",
+  "loginTitleConfirm": "Verifica tu correo",
+  "loginButtonSignIn": "Iniciar sesión",
+  "loginButtonSignUp": "Registrarse",
+  "loginButtonConfirm": "Verificar",
+  "loginNoAccount": "¿No tienes cuenta? Regístrate",
+  "loginHaveAccount": "¿Ya tienes cuenta? Inicia sesión",
+  "loginAppleSignInFailedWithDetail": "Error al iniciar sesión con Apple: {error}",
+  "@loginAppleSignInFailedWithDetail": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "loginConfirmCodeSentTo": "Ingresa el código de 6 dígitos enviado a {email}.",
+  "@loginConfirmCodeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
   }
 }
