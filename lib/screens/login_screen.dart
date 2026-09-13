@@ -145,191 +145,185 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           // 3. İçerik: başlık (üst yarı, video üzerinde) + form (alt yarı).
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(28, 0, 28, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 48),
-                  // Kısa, ilham verici başlık -- video'nun görünür kaldığı
-                  // üst bölgede, referans tasarımdaki gibi.
-                  Text(
-                    l10n.loginHeadline,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                    ),
-                  ),
-                  const SizedBox(height: 180),
-                  ShaderMask(
-                    shaderCallback: (bounds) =>
-                        AppColors.primaryGradient.createShader(bounds),
-                    child: const Text(
-                      'Melodia Studio',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+          //
+          // DÜZELTME: Önceden SingleChildScrollView içindeydi -- kullanıcı
+          // sayfayı elle aşağı kaydırabiliyordu, bu istenmiyordu. Artık
+          // Positioned.fill + sabit boyutlu bir Column kullanıyoruz;
+          // aradaki SABİT (180px) boşluk yerine esnek bir Spacer koyduk --
+          // bu sayede içerik HER ZAMAN tam ekrana sığıyor (taşma da,
+          // kaydırma ihtiyacı da olmuyor), ekran boyu ne olursa olsun.
+          // Ayrıca "Melodia Studio" biraz yukarı çekildi ve altındaki
+          // alt başlık metni ("Devam etmek için giriş yap" vb.) Apple
+          // butonuna yer açmak için tamamen kaldırıldı.
+          Positioned.fill(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(28, 0, 28, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 28),
+                    // Kısa, ilham verici başlık -- video'nun görünür kaldığı
+                    // üst bölgede, referans tasarımdaki gibi.
+                    Text(
+                      l10n.loginHeadline,
+                      style: const TextStyle(
                         color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _titleFor(l10n, _mode),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 32),
-                  if (_mode != _Mode.confirm) ...[
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: l10n.loginEmailLabel,
-                        prefixIcon: const Icon(Icons.email_outlined),
+                    const Spacer(flex: 3),
+                    ShaderMask(
+                      shaderCallback: (bounds) =>
+                          AppColors.primaryGradient.createShader(bounds),
+                      child: const Text(
+                        'Melodia Studio',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: l10n.loginPasswordLabel,
-                        prefixIcon: const Icon(Icons.lock_outline),
+                    const SizedBox(height: 20),
+                    if (_mode != _Mode.confirm) ...[
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: l10n.loginEmailLabel,
+                          prefixIcon: const Icon(Icons.email_outlined),
+                        ),
                       ),
-                    ),
-                  ] else ...[
-                    Text(
-                      l10n.loginConfirmCodeSentTo(_emailController.text),
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textMuted),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _codeController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                      decoration: InputDecoration(
-                        labelText: l10n.loginVerificationCodeLabel,
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.loginPasswordLabel,
+                          prefixIcon: const Icon(Icons.lock_outline),
+                        ),
                       ),
-                    ),
-                  ],
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
+                    ] else ...[
+                      Text(
+                        l10n.loginConfirmCodeSentTo(_emailController.text),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textMuted),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _codeController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 24, letterSpacing: 8),
+                        decoration: InputDecoration(
+                          labelText: l10n.loginVerificationCodeLabel,
+                        ),
+                      ),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: AppColors.primaryGradient,
                         borderRadius: BorderRadius.circular(16),
-                        onTap: _loading ? null : _submit,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Center(
-                            child: _loading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _loading ? null : _submit,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            child: Center(
+                              child: _loading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      _buttonLabelFor(l10n, _mode),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  )
-                                : Text(
-                                    _buttonLabelFor(l10n, _mode),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_mode != _Mode.confirm &&
-                      !kIsWeb &&
-                      defaultTargetPlatform == TargetPlatform.iOS) ...[
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Divider(color: AppColors.border),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            l10n.loginOr,
-                            style: const TextStyle(color: AppColors.textMuted),
+                    const SizedBox(height: 14),
+                    if (_mode != _Mode.confirm &&
+                        !kIsWeb &&
+                        defaultTargetPlatform == TargetPlatform.iOS) ...[
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Divider(color: AppColors.border),
                           ),
-                        ),
-                        const Expanded(
-                          child: Divider(color: AppColors.border),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 50,
-                      child: SignInWithAppleButton(
-                        onPressed: _loading ? () {} : _signInWithApple,
-                        style: SignInWithAppleButtonStyle.white,
-                        borderRadius: BorderRadius.circular(16),
-                        text: l10n.loginSignInWithApple,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              l10n.loginOr,
+                              style: const TextStyle(color: AppColors.textMuted),
+                            ),
+                          ),
+                          const Expanded(
+                            child: Divider(color: AppColors.border),
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 48,
+                        child: SignInWithAppleButton(
+                          onPressed: _loading ? () {} : _signInWithApple,
+                          style: SignInWithAppleButtonStyle.white,
+                          borderRadius: BorderRadius.circular(16),
+                          text: l10n.loginSignInWithApple,
+                        ),
+                      ),
+                    ],
+                    if (_mode != _Mode.confirm)
+                      TextButton(
+                        onPressed: _loading
+                            ? null
+                            : () => setState(() {
+                                  _error = null;
+                                  _mode = _mode == _Mode.signIn
+                                      ? _Mode.signUp
+                                      : _Mode.signIn;
+                                }),
+                        child: Text(
+                          _mode == _Mode.signIn
+                              ? l10n.loginNoAccount
+                              : l10n.loginHaveAccount,
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
                   ],
-                  if (_mode != _Mode.confirm)
-                    TextButton(
-                      onPressed: _loading
-                          ? null
-                          : () => setState(() {
-                                _error = null;
-                                _mode = _mode == _Mode.signIn
-                                    ? _Mode.signUp
-                                    : _Mode.signIn;
-                              }),
-                      child: Text(
-                        _mode == _Mode.signIn
-                            ? l10n.loginNoAccount
-                            : l10n.loginHaveAccount,
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _titleFor(AppLocalizations l10n, _Mode mode) {
-    switch (mode) {
-      case _Mode.signIn:
-        return l10n.loginTitleSignIn;
-      case _Mode.signUp:
-        return l10n.loginTitleSignUp;
-      case _Mode.confirm:
-        return l10n.loginTitleConfirm;
-    }
   }
 
   String _buttonLabelFor(AppLocalizations l10n, _Mode mode) {
