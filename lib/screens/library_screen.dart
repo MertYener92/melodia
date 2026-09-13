@@ -32,119 +32,194 @@ class LibraryScreen extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListenableBuilder(
+          listenable: songLibrary,
+          builder: (context, _) {
+            final songCount = songLibrary.songs.length;
+            final favoriteCount = songLibrary.songs.where((s) => s.isFavorite).length;
+
+            return ListView(
               children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Kütüphane',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
+                const _LibraryHero(),
+                const SizedBox(height: 20),
+                _LibraryHubCard(
+                  title: 'Şarkılarım',
+                  subtitle: 'Ürettiğin tüm şarkılar.',
+                  countLabel: '$songCount şarkı',
+                  icon: Icons.music_note_rounded,
+                  imagePath: 'assets/images/library_songs.png',
+                  fallbackColors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
+                  accentColor: AppColors.pink,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(title: const Text('Şarkılarım')),
+                        body: Container(
+                          decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+                          child: MySongsScreen(library: songLibrary, player: player),
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Tüm yaratımların burada.',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceElevated,
-                    shape: BoxShape.circle,
+                _VideoLibraryHubCard(
+                  videoService: videoService,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => VideoLibraryScreen(videoService: videoService),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                ),
+                _LibraryHubCard(
+                  title: 'Favorilerim',
+                  subtitle: 'Beğendiğin içerikler.',
+                  countLabel: '$favoriteCount içerik',
+                  icon: Icons.star_rounded,
+                  imagePath: 'assets/images/library_favorites.png',
+                  fallbackColors: const [Color(0xFF3A2A0A), Color(0xFF141007)],
+                  accentColor: const Color(0xFFF5A623),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => FavoritesScreen(
+                        songLibrary: songLibrary,
+                        player: player,
+                        videoService: videoService,
+                      ),
+                    ),
+                  ),
+                ),
+                _LibraryHubCard(
+                  title: 'İndirdiklerim',
+                  subtitle: 'Cihazına indirdiklerin.',
+                  // NOT: Henüz gerçek indirme takibi yok, bu yüzden
+                  // burada sahte bir sayı GÖSTERMİYORUZ (bkz.
+                  // downloads_screen.dart) — takip eklenince buraya
+                  // gerçek bir sayaç bağlanabilir.
+                  countLabel: null,
+                  icon: Icons.download_rounded,
+                  imagePath: 'assets/images/library_downloads.png',
+                  fallbackColors: const [Color(0xFF0A3A22), Color(0xFF07140D)],
+                  accentColor: const Color(0xFF34D399),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+                  ),
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: ListenableBuilder(
-                listenable: songLibrary,
-                builder: (context, _) {
-                  final songCount = songLibrary.songs.length;
-                  final favoriteCount = songLibrary.songs.where((s) => s.isFavorite).length;
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
 
-                  return ListView(
+/// Kütüphane sekmesinin üst kısmındaki "kapak" bölümü: kullanıcının
+/// hazırladığı plak (vinil) görseli arka plan, üzerinde başlık, ilham
+/// verici bir alıntı ve küçük bir etiket satırı. Görsel dosyası
+/// assets/images/library_hero.png konumuna eklenmelidir (assets/images/
+/// klasörü pubspec.yaml'da zaten tanımlı, ayrı bir kayıt gerekmiyor).
+class _LibraryHero extends StatelessWidget {
+  const _LibraryHero();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 340,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        color: AppColors.surfaceElevated,
+        image: const DecorationImage(
+          image: AssetImage('assets/images/library_hero.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Üstte başlığın, altta alıntı/etiketin okunabilmesi için
+            // yukarı ve aşağı doğru koyulaşan gradient — orta kısımda
+            // plak görseli net kalıyor.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.28, 0.62, 1.0],
+                  colors: [
+                    Color(0xCC0A0A12),
+                    Color(0x330A0A12),
+                    Color(0x550A0A12),
+                    Color(0xEE0A0A12),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Kütüphane',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tüm yaratımların burada.',
+                    style: TextStyle(
+                      color: AppColors.textPrimary.withValues(alpha: 0.75),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _LibraryHubCard(
-                        title: 'Şarkılarım',
-                        subtitle: 'Ürettiğin tüm şarkılar.',
-                        countLabel: '$songCount şarkı',
-                        icon: Icons.music_note_rounded,
-                        imagePath: 'assets/images/library_songs.png',
-                        fallbackColors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
-                        accentColor: AppColors.pink,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => Scaffold(
-                              appBar: AppBar(title: const Text('Şarkılarım')),
-                              body: Container(
-                                decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-                                child: MySongsScreen(library: songLibrary, player: player),
-                              ),
-                            ),
-                          ),
+                      const Text(
+                        '“',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 34,
+                          fontWeight: FontWeight.bold,
+                          height: 0.6,
                         ),
                       ),
-                      _VideoLibraryHubCard(
-                        videoService: videoService,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => VideoLibraryScreen(videoService: videoService),
-                          ),
+                      const Text(
+                        'İyi fikirler\nher zaman\nbir yerlerde saklıdır.',
+                        textAlign: TextAlign.left,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
                         ),
                       ),
-                      _LibraryHubCard(
-                        title: 'Favorilerim',
-                        subtitle: 'Beğendiğin içerikler.',
-                        countLabel: '$favoriteCount içerik',
-                        icon: Icons.star_rounded,
-                        imagePath: 'assets/images/library_favorites.png',
-                        fallbackColors: const [Color(0xFF3A2A0A), Color(0xFF141007)],
-                        accentColor: const Color(0xFFF5A623),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => FavoritesScreen(
-                              songLibrary: songLibrary,
-                              player: player,
-                              videoService: videoService,
-                            ),
-                          ),
-                        ),
+                      const SizedBox(height: 14),
+                      Container(
+                        width: 40,
+                        height: 1.5,
+                        color: Colors.white.withValues(alpha: 0.4),
                       ),
-                      _LibraryHubCard(
-                        title: 'İndirdiklerim',
-                        subtitle: 'Cihazına indirdiklerin.',
-                        // NOT: Henüz gerçek indirme takibi yok, bu yüzden
-                        // burada sahte bir sayı GÖSTERMİYORUZ (bkz.
-                        // downloads_screen.dart) — takip eklenince buraya
-                        // gerçek bir sayaç bağlanabilir.
-                        countLabel: null,
-                        icon: Icons.download_rounded,
-                        imagePath: 'assets/images/library_downloads.png',
-                        fallbackColors: const [Color(0xFF0A3A22), Color(0xFF07140D)],
-                        accentColor: const Color(0xFF34D399),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const DownloadsScreen()),
+                      const SizedBox(height: 14),
+                      Text(
+                        'YARAT  ·  KEŞFET  ·  SAKLA',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 2.2,
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ],
               ),
             ),
           ],
@@ -240,12 +315,10 @@ class _LibraryHubCard extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-          color: fallbackColors.first,
-          image: DecorationImage(
-            image: AssetImage(imagePath),
-            fit: BoxFit.cover,
-            alignment: Alignment.centerRight,
-            onError: (_, __) {},
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: fallbackColors,
           ),
         ),
         child: ClipRRect(
@@ -253,6 +326,36 @@ class _LibraryHubCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // Görsel artık kırpılmıyor (BoxFit.contain) — yıldız, kamera
+              // gibi ikonlar tam görünür. Sağda sabit genişlikli bir kutu
+              // içinde, dikeyde ortalanmış şekilde yerleşiyor.
+              // Görsel artık sağ tarafta daha geniş bir alanda (kart
+              // genişliğinin ~65%'i) ve SOL kenarı ShaderMask ile
+              // şeffaflaşarak arka plan gradyanına karışıyor -- önceki
+              // versiyonda görsel sert kenarlı bir "kare/yama" gibi
+              // duruyordu, bu artık yumuşak bir geçişle çözülüyor.
+              Align(
+                alignment: Alignment.centerRight,
+                child: FractionallySizedBox(
+                  widthFactor: 0.68,
+                  heightFactor: 1,
+                  child: ShaderMask(
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.transparent, Colors.black, Colors.black],
+                      stops: [0.0, 0.45, 1.0],
+                    ).createShader(rect),
+                    blendMode: BlendMode.dstIn,
+                    child: Image.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ),
               // Soldan sağa karartma -- metin sol tarafta, görsel sağda
               // net kalıyor (referans tasarımdaki gibi).
               Container(

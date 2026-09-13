@@ -107,7 +107,7 @@ class _HomeShellState extends State<HomeShell> {
         library: _library,
         isActive: _index == 0,
       ),
-      const AiVideoScreen(),
+      AiVideoScreen(service: widget.musicVideoService),
       LibraryScreen(
         songLibrary: _library,
         player: _player,

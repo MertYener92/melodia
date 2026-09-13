@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
@@ -5,6 +6,7 @@ import '../services/music_spec_service.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/credit_badges.dart';
 import '../widgets/gradient_button.dart';
 import 'ai_music_screen.dart';
 
@@ -40,11 +42,45 @@ class _CreateScreenState extends State<CreateScreen> {
   VideoPlayerController? _controller;
   bool _videoReady = false;
   bool _videoFailed = false;
+  int? _remainingCredits;
+  String? _quotaError;
 
   @override
   void initState() {
     super.initState();
     _initVideo();
+    _loadQuota();
+  }
+
+  Future<void> _loadQuota() async {
+    try {
+      final quota = await widget.service.getQuota();
+      if (!mounted) return;
+      setState(() {
+        _remainingCredits = quota.remaining;
+        _quotaError = null;
+      });
+    } catch (e) {
+      // İlk deneme (ör. token henüz hazır değilken) başarısız olursa
+      // kısa bir bekleme sonrası bir kez daha dener. GEÇİCİ: gerçek hata
+      // hem debug konsoluna basılıyor hem de CreditsBadge'in dokunulabilir
+      // uyarı haline aktarılıyor.
+      debugPrint('[CreateScreen] getQuota() 1. deneme başarısız: $e');
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
+      try {
+        final quota = await widget.service.getQuota();
+        if (!mounted) return;
+        setState(() {
+          _remainingCredits = quota.remaining;
+          _quotaError = null;
+        });
+      } catch (e2) {
+        debugPrint('[CreateScreen] getQuota() 2. deneme de başarısız: $e2');
+        if (!mounted) return;
+        setState(() => _quotaError = e2.toString());
+      }
+    }
   }
 
   Future<void> _initVideo() async {
@@ -167,6 +203,29 @@ class _CreateScreenState extends State<CreateScreen> {
                   height: 52,
                 ),
               ],
+            ),
+          ),
+        ),
+
+        // 4. Sağ üst köşede jeton + Pro rozeti. AI Video sekmesiyle BİREBİR
+        // aynı padding (20,16,...) kullanılıyor — sekmeler arası geçişte
+        // rozetin zıplamaması için. Align ile açıkça sağ ÜSTE sabitleniyor
+        // — bunsuz Stack(fit: expand) yüzünden Row tüm yüksekliğe yayılıp
+        // içerik dikeyde ortalanıyordu.
+        SafeArea(
+          bottom: false,
+          child: Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CreditsBadge(remaining: _remainingCredits, error: _quotaError),
+                  const SizedBox(width: 8),
+                  const ProBadge(),
+                ],
+              ),
             ),
           ),
         ),

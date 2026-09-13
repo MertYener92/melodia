@@ -22,6 +22,20 @@ class MusicVideoService {
     };
   }
 
+  /// AI Video sekmesinde jeton rozetini doldurmak için kullanıcının
+  /// güncel videoCreditsBalance'ını getirir.
+  Future<int> getCreditsBalance() async {
+    final response = await http.get(
+      Uri.parse('$apiUrl/video/credits'),
+      headers: _headers,
+    );
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw MusicVideoException(body['error']?.toString() ?? 'Jeton bakiyesi alınamadı.');
+    }
+    return (body['balance'] as num?)?.toInt() ?? 0;
+  }
+
   /// Kullanıcının tüm klip projelerini getirir (Kütüphane sekmesi için).
   Future<List<Map<String, dynamic>>> fetchProjects() async {
     final response = await http.get(

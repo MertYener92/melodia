@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/music_spec_service.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/credit_badges.dart';
 import 'create_form_screen.dart';
 import 'music_wizard_screen.dart';
 import 'quick_create_screen.dart';
@@ -15,7 +17,7 @@ import 'quick_create_screen.dart';
 /// - Gelişmiş: çok adımlı "sihirbaz" — kullanıcı müziği insan gibi tarif
 ///   eder, backend (Bedrock) bunu profesyonel bir Music Specification'a
 ///   çevirir.
-class AiMusicScreen extends StatelessWidget {
+class AiMusicScreen extends StatefulWidget {
   const AiMusicScreen({
     super.key,
     required this.service,
@@ -28,17 +30,51 @@ class AiMusicScreen extends StatelessWidget {
   final SongLibrary library;
 
   @override
+  State<AiMusicScreen> createState() => _AiMusicScreenState();
+}
+
+class _AiMusicScreenState extends State<AiMusicScreen> {
+  int? _remainingCredits;
+  String? _quotaError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuota();
+  }
+
+  Future<void> _loadQuota() async {
+    try {
+      final quota = await widget.service.getQuota();
+      if (!mounted) return;
+      setState(() {
+        _remainingCredits = quota.remaining;
+        _quotaError = null;
+      });
+    } catch (e) {
+      debugPrint('[AiMusicScreen] getQuota() başarısız: $e');
+      if (!mounted) return;
+      setState(() => _quotaError = e.toString());
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final service = widget.service;
+    final musicSpecService = widget.musicSpecService;
+    final library = widget.library;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-        child: SafeArea(
-          bottom: false,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+            child: SafeArea(
+              bottom: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Row(
                   children: [
                     IconButton(
@@ -62,7 +98,6 @@ class AiMusicScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _ProBadge(),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -136,31 +171,27 @@ class AiMusicScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
+          ),
 
-class _ProBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded, color: Colors.white, size: 14),
-          SizedBox(width: 4),
-          Text(
-            'Pro',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+          // Sağ üst köşede jeton + Pro rozeti. CreateScreen ve AiVideoScreen
+          // ile BİREBİR aynı padding (20,16,...) ve Align(topRight) — geri
+          // butonu/başlık satırından bağımsız, üç sekmede de aynı piksel
+          // konumda durması için ayrı bir overlay katmanı.
+          SafeArea(
+            bottom: false,
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CreditsBadge(remaining: _remainingCredits, error: _quotaError),
+                    const SizedBox(width: 8),
+                    const ProBadge(),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
