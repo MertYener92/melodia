@@ -6,6 +6,7 @@ import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/provider_selector.dart';
 import 'generating_screen.dart';
 
 /// "Hızlı" modu: kullanıcı tek cümlede fikrini yazar, arka planda aynı
@@ -31,6 +32,7 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _loading = false;
   String? _error;
+  String _provider = 'suno';
 
   @override
   void dispose() {
@@ -39,6 +41,13 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
   }
 
   Future<void> _generate() async {
+    // DÜZELTME: hızlı art arda iki dokunuş (setState henüz butonu devre
+    // dışı bırakmadan), _generate()'in iki kez çalışıp iki ayrı gerçek
+    // şarkı isteği (= 2 jeton) oluşturmasına sebep olabiliyordu. Bu
+    // senkron kontrol, ikinci dokunuşu setState'in bitmesini beklemeden
+    // hemen engeller.
+    if (_loading) return;
+
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
@@ -82,6 +91,7 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
             durationSeconds: 120,
             styleOverride: spec.generationPrompt,
             titleOverride: spec.title,
+            provider: _provider,
           ),
         ),
       );
@@ -121,7 +131,13 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.modeQuickTitle)),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        // DÜZELTME: Önceden AppColors.backgroundGlow (üstte mora çalan bir
+        // gradyan) kullanılıyordu -- Standart ekran (create_form_screen.dart)
+        // ise Scaffold'un düz siyah varsayılanını kullanıyordu. Bu, Hızlı
+        // ekranın üstünün "siyah altı mavi/mor" gibi farklı görünmesine
+        // sebep oluyordu. Artık üçü de (Hızlı/Standart/Gelişmiş) aynı düz
+        // siyah arka planı kullanıyor.
+        color: AppColors.background,
         child: SafeArea(
           top: false,
           child: SingleChildScrollView(
@@ -145,6 +161,13 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
                   style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
+                ProviderSelector(
+                  value: _provider,
+                  onChanged: _loading
+                      ? (_) {}
+                      : (v) => setState(() => _provider = v),
+                ),
+                const SizedBox(height: 14),
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.surfaceElevated,

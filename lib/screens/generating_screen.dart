@@ -15,6 +15,7 @@ class GeneratingScreen extends StatefulWidget {
     this.styleOverride,
     this.titleOverride,
     this.providedLyrics,
+    this.provider = 'suno',
   });
 
   final SunoApiService service;
@@ -29,6 +30,9 @@ class GeneratingScreen extends StatefulWidget {
   final String? styleOverride;
   final String? titleOverride;
   final String? providedLyrics;
+
+  /// YENİ: 'suno' (varsayılan) | 'lyria'.
+  final String provider;
 
   @override
   State<GeneratingScreen> createState() => _GeneratingScreenState();
@@ -75,6 +79,7 @@ class _GeneratingScreenState extends State<GeneratingScreen>
         styleOverride: widget.styleOverride,
         titleOverride: widget.titleOverride,
         providedLyrics: widget.providedLyrics,
+        provider: widget.provider,
         onLyricsStart: () {
           if (!mounted) return;
           setState(() => _stage = _Stage.lyrics);

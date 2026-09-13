@@ -232,6 +232,7 @@ class _ModeCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 118),
         padding: const EdgeInsets.all(18),
         decoration: AppColors.glassCard(),
         child: Row(

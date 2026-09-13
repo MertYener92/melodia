@@ -148,6 +148,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await widget.service.deleteAccount();
       await widget.authService.signOut();
       if (!mounted) return;
+      // DÜZELTME: Çıkış Yap'taki ile aynı sebep -- bu ekran pushed bir
+      // route, önce onu kapatıp en alt route'a dönmemiz gerekiyor.
+      Navigator.of(context).popUntil((route) => route.isFirst);
       widget.onAccountDeleted();
     } on SunoApiException catch (e) {
       if (!mounted) return;
@@ -193,7 +196,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: Text(l10n.actionLogout, style: const TextStyle(color: AppColors.textPrimary)),
                       onTap: () async {
                         await widget.authService.signOut();
-                        if (mounted) widget.onAccountDeleted();
+                        if (!mounted) return;
+                        // DÜZELTME: Bu ekran (Ayarlar) Navigator'da üste
+                        // itilmiş (pushed) bir route. Oturum durumu
+                        // değişip _AppRoot LoginScreen'e geçse bile, bu
+                        // route Navigator yığınının EN ÜSTÜNDE kaldığı
+                        // sürece görünüm değişmiyordu -- kullanıcı "geri"
+                        // basıp bu route'u kapatana kadar hiçbir şey olmuş
+                        // gibi görünmüyordu. Önce bu route'u (ve varsa
+                        // üzerine gelmiş başka route'ları) kapatıp en alt
+                        // route'a dönüyoruz, SONRA oturumu kapatıyoruz --
+                        // böylece LoginScreen hemen görünür.
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        widget.onAccountDeleted();
                       },
                     ),
                   ],

@@ -236,14 +236,14 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get modeStandardSubtitle =>
-      'Tarz, ruh hali, vokal ve süreyi kendin seç — hızlı ve net bir form.';
+      'Tarz, ruh hali, vokal ve şarkı süresini kendin seç — hızlı, net ve tamamen senin kontrolünde bir form ile şarkını birkaç adımda oluştur.';
 
   @override
   String get modeQuickTitle => 'Hızlı';
 
   @override
   String get modeQuickSubtitle =>
-      'Tek cümlede anlat, gerisini yapay zeka tamamlasın. En hızlı yol.';
+      'Aklındaki fikri tek cümlede anlat, gerisini yapay zeka tamamlasın — tür, tempo, vokal ve söz teması dahil her şey otomatik olarak seçilsin.';
 
   @override
   String get createFormAppBarTitle => 'Şarkını oluştur';

@@ -34,6 +34,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
@@ -42,3 +43,13 @@ flutter:
   assets:
     - assets/videos/
     - assets/images/
+
+# YENİ: App Icon'u tek komutla (dart run flutter_launcher_icons) hem iOS
+# hem Android için tüm gerekli boyutlarda otomatik üretir. Kaynak görsel
+# assets/icon/icon.png -- 1024x1024, şeffaflık YOK (App Store bunu kabul
+# etmiyor, remove_alpha_ios bunu garanti altına alıyor).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  remove_alpha_ios: true

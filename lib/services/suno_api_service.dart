@@ -159,6 +159,7 @@ class SunoApiService {
     required bool instrumental,
     String? vocalGender,
     int? durationSeconds,
+    required String provider,
   }) async {
     final response = await _post('/generate', {
       'instrumental': instrumental,
@@ -167,6 +168,11 @@ class SunoApiService {
       'title': title,
       if (vocalGender != null) 'vocalGender': vocalGender,
       if (durationSeconds != null) 'durationSeconds': durationSeconds,
+      // YENİ: hangi motor kullanılacak ('suno' | 'lyria'). Backend
+      // verilmezse zaten 'suno' varsayıyor, ama açıkça göndermek daha
+      // net -- geriye dönük uyumluluk endişesi yok, bu istemci zaten
+      // güncel backend'e konuşuyor.
+      'provider': provider,
     });
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -392,6 +398,9 @@ class SunoApiService {
     String? styleOverride,
     String? titleOverride,
     String? providedLyrics,
+    // YENİ: 'suno' (varsayılan) | 'lyria'. Kullanıcının üretim ekranında
+    // seçtiği motor.
+    String provider = 'suno',
   }) async {
     final style = (styleOverride != null && styleOverride.isNotEmpty)
         ? styleOverride
@@ -408,7 +417,13 @@ class SunoApiService {
         // Kullanıcı kendi sözlerini/nakaratını verdi: AI söz üretimini
         // atla, verdiği metni olduğu gibi kullan.
         lyrics = providedLyrics.trim();
-      } else {
+      } else if (provider != 'lyria') {
+        // DÜZELTME: Lyria kendi sözlerini TEK istekte kendisi yazıyor
+        // (backend'deki buildLyriaPrompt'a bakınız) -- bu yüzden Lyria
+        // seçiliyken Suno'ya özel ayrı söz üretim adımını (ki bu hem
+        // gereksiz bir Suno çağrısı hem de fazladan gecikme demek)
+        // tamamen ATLIYORUZ. lyrics boş kalır, backend Lyria'nın kendi
+        // söz yazmasına izin verir.
         onLyricsStart?.call();
         final result = await _generateLyricsAndWait(descriptionPrompt);
         lyrics = result.text;
@@ -425,6 +440,7 @@ class SunoApiService {
       instrumental: instrumental,
       vocalGender: vocalGender,
       durationSeconds: durationSeconds,
+      provider: provider,
     );
 
     final deadline = DateTime.now().add(timeout);

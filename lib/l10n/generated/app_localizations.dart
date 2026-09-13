@@ -493,7 +493,7 @@ abstract class AppLocalizations {
   /// No description provided for @modeStandardSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Pick the style, mood, vocal and length yourself — a quick and clear form.'**
+  /// **'Pick the style, mood, vocal and length yourself — a quick, clear form that puts you fully in control while still creating your song in just a few simple steps.'**
   String get modeStandardSubtitle;
 
   /// No description provided for @modeQuickTitle.
@@ -505,7 +505,7 @@ abstract class AppLocalizations {
   /// No description provided for @modeQuickSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Describe it in one sentence, let AI finish the rest. The fastest way.'**
+  /// **'Describe your idea in one sentence and let AI handle the rest — genre, tempo, vocal style and lyrical theme are all chosen automatically for you.'**
   String get modeQuickSubtitle;
 
   /// No description provided for @createFormAppBarTitle.

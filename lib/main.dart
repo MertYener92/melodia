@@ -8,6 +8,7 @@ import 'services/music_video_service.dart';
 import 'services/suno_api_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'screens/splash_video_screen.dart';
 import 'theme/app_theme.dart';
 
 const String apiUrl = String.fromEnvironment('API_URL');
@@ -74,9 +75,53 @@ class MelodiaApp extends StatelessWidget {
           },
           home: (apiUrl.isEmpty || userPoolClientId.isEmpty)
               ? const _MissingConfigScreen()
-              : const _AppRoot(),
+              : const _RootSwitcher(),
         );
       },
+    );
+  }
+}
+
+/// Uygulama açılışında splash videosunu, altında ZATEN mount edilmiş
+/// (dolayısıyla oturum kontrolünü ARKA PLANDA paralel yürüten) [_AppRoot]
+/// ile birlikte gösterir. Splash bitince yumuşak bir crossfade ile
+/// [_AppRoot]'a geçilir -- bu sayede splash'in 4 saniyesi boyunca zaten
+/// süregelen oturum kontrolü genelde tamamlanmış olur, splash kalkar
+/// kalkmaz doğru ekran (Login/HomeShell) hazır durumda görünür.
+class _RootSwitcher extends StatefulWidget {
+  const _RootSwitcher();
+
+  @override
+  State<_RootSwitcher> createState() => _RootSwitcherState();
+}
+
+class _RootSwitcherState extends State<_RootSwitcher> {
+  double _splashOpacity = 1;
+  bool _splashMounted = true;
+
+  void _finishSplash() {
+    // DİKKAT: opacity'yi 0'a indirip widget'ı HEMEN ağaçtan kaldırmıyoruz --
+    // aksi halde AnimatedOpacity'nin animasyona başlaması için hiç zaman
+    // kalmaz, geçiş "yumuşak" değil ANİ görünür. Önce fade-out'un
+    // (400ms) bitmesini bekliyoruz, SONRA widget'ı tamamen kaldırıyoruz.
+    setState(() => _splashOpacity = 0);
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _splashMounted = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const _AppRoot(),
+        if (_splashMounted)
+          AnimatedOpacity(
+            opacity: _splashOpacity,
+            duration: const Duration(milliseconds: 400),
+            child: SplashVideoScreen(onFinished: _finishSplash),
+          ),
+      ],
     );
   }
 }

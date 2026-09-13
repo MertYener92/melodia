@@ -637,7 +637,12 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
               child: Container(decoration: const BoxDecoration(gradient: AppColors.backgroundGlow)),
             ),
           Positioned.fill(
-            child: Container(color: Colors.black.withValues(alpha: 0.45)),
+            // DÜZELTME: 0.45 alpha çok düşüktü -- videonun o anki karesi
+            // parlak/renkli olduğunda arka plan üstten alta tutarsız,
+            // "lekeli" görünüyordu (bkz. paylaşım ekranı görüntüleri).
+            // 0.78'e çıkarınca bulanık video sadece hafif bir ortam rengi
+            // katıyor, genel karanlık sayfa tonuyla tutarlı kalıyor.
+            child: Container(color: Colors.black.withValues(alpha: 0.78)),
           ),
           SafeArea(
             child: Padding(

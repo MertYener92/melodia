@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -50,9 +51,40 @@ class PlayerScreen extends StatelessWidget {
               : controller.position.inMilliseconds /
                   controller.duration.inMilliseconds;
 
-          return Container(
-            decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-            child: SafeArea(
+          return Stack(
+            children: [
+              // DÜZELTME: video oynatıcıdaki (video_library_screen.dart
+              // _ClipPlayerScreen) ile BİREBİR aynı bulanık arka plan
+              // deseni -- şarkı kapağı 1.5x büyütülüp 45 sigma bulanıklık
+              // + %78 siyah katman ile karartılıyor. Önceden burada sade
+              // bir backgroundGlow gradyanı vardı, iki oynatıcı arasında
+              // görsel tutarsızlık yaratıyordu.
+              if (song.imageUrl.isNotEmpty)
+                Positioned.fill(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
+                    child: Transform.scale(
+                      scale: 1.5,
+                      child: Image.network(
+                        song.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const DecoratedBox(
+                          decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
+                  ),
+                ),
+              Positioned.fill(
+                child: Container(color: Colors.black.withValues(alpha: 0.78)),
+              ),
+              SafeArea(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                 child: Column(
@@ -224,6 +256,7 @@ class PlayerScreen extends StatelessWidget {
                 ),
               ),
             ),
+            ],
           );
         },
       ),

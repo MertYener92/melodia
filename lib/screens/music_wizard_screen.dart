@@ -6,6 +6,7 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_multi_group.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/provider_selector.dart';
 import 'generating_screen.dart';
 
 const String _worldCustomOption = 'Kendi fikrimi yazacağım';
@@ -126,6 +127,12 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
   String? _specError;
   MusicSpec? _spec;
 
+  // DÜZELTME: "Şarkıyı Oluştur" butonunda hiç gönderim koruması yoktu --
+  // art arda iki dokunuş iki ayrı gerçek şarkı isteği (= 2 jeton)
+  // oluşturabiliyordu.
+  bool _generating = false;
+  String _provider = 'suno';
+
   @override
   void dispose() {
     _worldCustomController.dispose();
@@ -209,7 +216,9 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
     try {
       final spec = await widget.musicSpecService.interpret(
         answers: _buildAnswers(),
-        language: 'tr',
+        // DÜZELTME: Önceden sabit 'tr' idi (bkz. quick_create_screen.dart'ta
+        // yapılan aynı düzeltme) -- artık aktif uygulama diline göre.
+        language: Localizations.localeOf(context).languageCode,
       );
       if (!mounted) return;
       setState(() {
@@ -232,8 +241,11 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
   }
 
   void _startGeneration() {
+    if (_generating) return;
     final spec = _spec;
     if (spec == null) return;
+
+    setState(() => _generating = true);
 
     String vocalLabel;
     switch (spec.vocalGender) {
@@ -263,10 +275,12 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
           titleOverride: spec.title,
           providedLyrics:
               _needsOwnLyricsField ? _ownLyricsController.text.trim() : null,
+          provider: _provider,
         ),
       ),
     )
         .then((song) {
+      if (mounted) setState(() => _generating = false);
       if (song == null) return;
       widget.library.add(
         LibrarySong(
@@ -284,7 +298,9 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        // DÜZELTME: Hızlı/Standart ile aynı düz siyah arka plan -- bkz.
+        // quick_create_screen.dart'taki aynı düzeltme notu.
+        color: AppColors.background,
         child: SafeArea(
           child: Column(
             children: [
@@ -804,10 +820,16 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
           ),
         ),
         const SizedBox(height: 8),
+        ProviderSelector(
+          value: _provider,
+          onChanged: _generating ? (_) {} : (v) => setState(() => _provider = v),
+        ),
+        const SizedBox(height: 14),
         GradientButton(
           label: 'Şarkıyı Oluştur',
           icon: Icons.auto_awesome_rounded,
-          onPressed: _startGeneration,
+          isLoading: _generating,
+          onPressed: _generating ? null : _startGeneration,
         ),
       ],
     );

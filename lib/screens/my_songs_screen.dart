@@ -39,65 +39,84 @@ class _MySongsScreenState extends State<MySongsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: Listenable.merge([widget.library, widget.player]),
-        builder: (context, _) {
-          var songs = widget.library.songs;
-          if (_favoritesOnly) {
-            songs = songs.where((s) => s.isFavorite).toList();
-          }
-          if (_query.isNotEmpty) {
-            songs = songs
-                .where(
-                  (s) => s.song.title
-                      .toLowerCase()
-                      .contains(_query.toLowerCase()),
-                )
-                .toList();
-          }
+    // DÜZELTME: Önceden bu ekran çıplak bir SafeArea döndürüyordu ve
+    // library_screen.dart onu ayrı bir Scaffold+standart AppBar içine
+    // sarıyordu. AppBar'ın arka planı (tema varsayılanı, düz siyah) ile
+    // hemen altındaki backgroundGlow gradyanının üst rengi (mora çalan)
+    // arasında görünür bir sınır/renk sıçraması oluyordu. Artık Videolarım
+    // ekranıyla (video_library_screen.dart) BİREBİR aynı desen: ekran
+    // kendi Scaffold'unu ve gradyanını yönetiyor, gradyan en tepeden
+    // (durum çubuğunun hemen altından) başlıyor, standart AppBar yok.
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        child: SafeArea(
+          child: ListenableBuilder(
+            listenable: Listenable.merge([widget.library, widget.player]),
+            builder: (context, _) {
+              var songs = widget.library.songs;
+              if (_favoritesOnly) {
+                songs = songs.where((s) => s.isFavorite).toList();
+              }
+              if (_query.isNotEmpty) {
+                songs = songs
+                    .where(
+                      (s) => s.song.title
+                          .toLowerCase()
+                          .contains(_query.toLowerCase()),
+                    )
+                    .toList();
+              }
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                child: Row(
-                  children: [
-                    Text(
-                      l10n.librarySongsTitle,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          l10n.librarySongsTitle,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () =>
+                              setState(() => _favoritesOnly = !_favoritesOnly),
+                          icon: Icon(
+                            _favoritesOnly
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: _favoritesOnly
+                                ? AppColors.pink
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () =>
-                          setState(() => _favoritesOnly = !_favoritesOnly),
-                      icon: Icon(
-                        _favoritesOnly
-                            ? Icons.favorite
-                            : Icons.favorite_border,
-                        color: _favoritesOnly
-                            ? AppColors.pink
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  controller: _searchController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: l10n.searchSongsHint,
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: AppColors.textMuted,
-                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: l10n.searchSongsHint,
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.textMuted,
+                        ),
                   ),
                   onChanged: (v) => setState(() => _query = v),
                 ),
@@ -131,6 +150,8 @@ class _MySongsScreenState extends State<MySongsScreen> {
             ],
           );
         },
+      ),
+        ),
       ),
     );
   }

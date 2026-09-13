@@ -5,6 +5,7 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_group.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/provider_selector.dart';
 import 'generating_screen.dart';
 
 /// Şarkı üretim formu: prompt, genre/mood/vocal/length seçimleri ve
@@ -39,6 +40,14 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
   String _vocal = _vocals.first;
   String _length = _lengths[1];
 
+  // DÜZELTME: bu ekranda daha önce HİÇ bir gönderim koruması yoktu --
+  // "Generate Song"a art arda iki kez basmak (ya da tek bir dokunuşun
+  // donanım/render gecikmesiyle iki kez tetiklenmesi) iki ayrı gerçek
+  // şarkı isteği (= 2 jeton) oluşturabiliyordu. Bu bayrak, buton devre
+  // dışı kalana kadarki senkron pencereyi de kapatır.
+  bool _submitting = false;
+  String _provider = 'suno';
+
   static const Map<String, int> _lengthToSeconds = {
     'Short': 30,
     'Medium': 90,
@@ -52,6 +61,8 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
   }
 
   Future<void> _generate() async {
+    if (_submitting) return;
+
     final l10n = AppLocalizations.of(context)!;
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
@@ -60,6 +71,8 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
       );
       return;
     }
+
+    setState(() => _submitting = true);
 
     final song = await Navigator.of(context).push(
       MaterialPageRoute(
@@ -70,9 +83,13 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
           mood: _mood,
           vocal: _vocal,
           durationSeconds: _lengthToSeconds[_length] ?? 90,
+          provider: _provider,
         ),
       ),
     );
+
+    if (!mounted) return;
+    setState(() => _submitting = false);
 
     if (song != null) {
       widget.library.add(
@@ -147,11 +164,19 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
                 selected: _length,
                 onSelected: (v) => setState(() => _length = v),
               ),
+              const SizedBox(height: 18),
+              ProviderSelector(
+                value: _provider,
+                onChanged: _submitting
+                    ? (_) {}
+                    : (v) => setState(() => _provider = v),
+              ),
               const SizedBox(height: 28),
               GradientButton(
                 label: l10n.createButton,
                 icon: Icons.auto_awesome,
-                onPressed: _generate,
+                isLoading: _submitting,
+                onPressed: _submitting ? null : _generate,
                 height: 58,
               ),
             ],

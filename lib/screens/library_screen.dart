@@ -54,13 +54,7 @@ class LibraryScreen extends StatelessWidget {
                   accentColor: AppColors.pink,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => Scaffold(
-                        appBar: AppBar(title: Text(l10n.librarySongsTitle)),
-                        body: Container(
-                          decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
-                          child: MySongsScreen(library: songLibrary, player: player),
-                        ),
-                      ),
+                      builder: (_) => MySongsScreen(library: songLibrary, player: player),
                     ),
                   ),
                 ),
@@ -427,22 +421,6 @@ class _LibraryHubCard extends StatelessWidget {
                             ),
                           ],
                         ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.32),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: accentColor.withValues(alpha: 0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: Colors.white,
-                        size: 15,
                       ),
                     ),
                   ],

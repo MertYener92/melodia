@@ -245,14 +245,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get modeStandardSubtitle =>
-      'Elige tú mismo el estilo, ánimo, voz y duración — un formulario rápido y claro.';
+      'Elige tú mismo el estilo, ánimo, voz y duración — un formulario rápido y claro que te da el control total mientras creas tu canción en solo unos pasos.';
 
   @override
   String get modeQuickTitle => 'Rápido';
 
   @override
   String get modeQuickSubtitle =>
-      'Descríbelo en una frase, deja que la IA haga el resto. La forma más rápida.';
+      'Describe tu idea en una frase y deja que la IA haga el resto — género, tempo, estilo vocal y tema lírico se eligen automáticamente por ti.';
 
   @override
   String get createFormAppBarTitle => 'Crea tu canción';
