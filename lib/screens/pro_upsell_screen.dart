@@ -506,6 +506,7 @@ class _PlanCard extends StatelessWidget {
               : null,
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
