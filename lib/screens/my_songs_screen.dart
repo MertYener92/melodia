@@ -4,6 +4,7 @@ import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/generation_card.dart';
 import '../widgets/song_tile.dart';
 
 class MySongsScreen extends StatefulWidget {
@@ -55,15 +56,22 @@ class _MySongsScreenState extends State<MySongsScreen> {
             listenable: Listenable.merge([widget.library, widget.player]),
             builder: (context, _) {
               var songs = widget.library.songs;
+              // DEĞİŞTİ: Devam eden üretim kartları (generation card)
+              // favori/arama filtrelerinden ETKİLENMEZ -- kullanıcı
+              // hangi filtrede olursa olsun üretimini takip edebilmeli.
               if (_favoritesOnly) {
-                songs = songs.where((s) => s.isFavorite).toList();
+                songs = songs
+                    .where((s) => s.isFavorite || s.pendingId != null)
+                    .toList();
               }
               if (_query.isNotEmpty) {
                 songs = songs
                     .where(
-                      (s) => s.song.title
-                          .toLowerCase()
-                          .contains(_query.toLowerCase()),
+                      (s) =>
+                          s.pendingId != null ||
+                          s.song.title
+                              .toLowerCase()
+                              .contains(_query.toLowerCase()),
                     )
                     .toList();
               }
@@ -135,6 +143,21 @@ class _MySongsScreenState extends State<MySongsScreen> {
                         itemCount: songs.length,
                         itemBuilder: (context, index) {
                           final s = songs[index];
+                          // YENİ: Devam eden (ya da başarısız olmuş) bir
+                          // üretim için normal SongTile yerine
+                          // GenerationCard gösterilir -- ayrı bir
+                          // loading sayfası YOK, kart doğrudan bu
+                          // listenin içinde. Aynı pendingId için asla
+                          // ikinci bir kart oluşmaz (bkz. SongLibrary).
+                          if (s.pendingId != null) {
+                            return GenerationCard(
+                              key: ValueKey(s.pendingId),
+                              librarySong: s,
+                              onDismiss: s.isFailedGeneration
+                                  ? () => widget.library.removePending(s)
+                                  : null,
+                            );
+                          }
                           return SongTile(
                             librarySong: s,
                             isPlaying:

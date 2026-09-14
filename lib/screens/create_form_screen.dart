@@ -1,12 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
+import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_group.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/provider_selector.dart';
-import 'generating_screen.dart';
+import 'my_songs_screen.dart';
 
 /// Şarkı üretim formu: prompt, genre/mood/vocal/length seçimleri ve
 /// "Generate Song" akışı. Bu ekran, yeni video-hero [CreateScreen]'in
@@ -18,10 +21,12 @@ class CreateFormScreen extends StatefulWidget {
     super.key,
     required this.service,
     required this.library,
+    required this.player,
   });
 
   final SunoApiService service;
   final SongLibrary library;
+  final PlayerController player;
 
   @override
   State<CreateFormScreen> createState() => _CreateFormScreenState();
@@ -74,46 +79,40 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
 
     setState(() => _submitting = true);
 
-    final song = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => GeneratingScreen(
-          service: widget.service,
-          prompt: prompt,
-          genre: _genre,
-          mood: _mood,
-          vocal: _vocal,
-          durationSeconds: _lengthToSeconds[_length] ?? 90,
-          provider: _provider,
-          // NOT: Standart modda music-spec (Claude) yorumlama adımı YOK,
-          // dolayısıyla gerçek bir dil tespiti de yok. Yedek olarak
-          // uygulamanın o anki arayüz dilini kullanıyoruz -- Hızlı/
-          // Gelişmiş modlardaki kadar isabetli olmayabilir (kullanıcı
-          // prompt'u arayüz dilinden farklı bir dilde yazabilir) ama
-          // hiç göndermemekten iyidir.
-          lyricsLanguage: Localizations.localeOf(context).languageCode,
-        ),
+    final instrumental = _vocal == 'Instrumental';
+    String? vocalGender;
+    if (_vocal == 'Female') vocalGender = 'f';
+    if (_vocal == 'Male') vocalGender = 'm';
+
+    // DEĞİŞTİ: Artık ayrı bir GeneratingScreen'e push edip sonucu
+    // BEKLEMİYORUZ. Üretim SongLibrary içinde arka planda başlar
+    // (Şarkılarım listesinin en üstünde ANINDA bir generation card
+    // belirir) ve kullanıcı hemen o ekrana yönlendirilir.
+    unawaited(
+      widget.library.startGeneration(
+        prompt: prompt,
+        displayGenre: _genre,
+        displayMood: _mood,
+        genre: _genre,
+        mood: _mood,
+        vocalGender: vocalGender,
+        instrumental: instrumental,
+        durationSeconds: _lengthToSeconds[_length] ?? 90,
+        provider: _provider,
+        lyricsLanguage: Localizations.localeOf(context).languageCode,
       ),
     );
 
     if (!mounted) return;
-    setState(() => _submitting = false);
-
-    if (song != null) {
-      widget.library.add(
-        LibrarySong(
-          song: song,
-          genre: _genre,
-          mood: _mood,
-          createdAt: DateTime.now(),
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => MySongsScreen(
+          library: widget.library,
+          player: widget.player,
         ),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.songReadyMessage)),
-        );
-        _promptController.clear();
-      }
-    }
+      ),
+      (route) => route.isFirst,
+    );
   }
 
   @override

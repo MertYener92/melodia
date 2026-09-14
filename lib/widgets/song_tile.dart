@@ -48,7 +48,7 @@ class SongTile extends StatelessWidget {
                           width: 58,
                           height: 58,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholderArt(),
+                          errorBuilder: (_, _, _) => _placeholderArt(),
                         )
                       : _placeholderArt(),
                 ),

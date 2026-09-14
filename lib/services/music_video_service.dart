@@ -201,8 +201,8 @@ class MusicVideoService {
       Uri.parse('$apiUrl/video/projects/$projectId'),
       headers: _headers,
       body: jsonEncode({
-        if (isFavorite != null) 'isFavorite': isFavorite,
-        if (note != null) 'note': note,
+        'isFavorite': ?isFavorite,
+        'note': ?note,
       }),
     );
     if (response.statusCode != 200) {

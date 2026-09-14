@@ -43,6 +43,10 @@ flutter:
   assets:
     - assets/videos/
     - assets/images/
+    # YENİ: icon.png artık sadece launcher icon üretimi için değil,
+    # generation card'daki (lib/widgets/generation_card.dart) gerçek
+    # Melodia ikonunu göstermek için de uygulama içinde kullanılıyor.
+    - assets/icon/
 
 # YENİ: App Icon'u tek komutla (dart run flutter_launcher_icons) hem iOS
 # hem Android için tüm gerekli boyutlarda otomatik üretir. Kaynak görsel

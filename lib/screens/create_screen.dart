@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import 'package:video_player/video_player.dart';
 
 import '../services/auth_service.dart';
 import '../services/music_spec_service.dart';
+import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
@@ -27,6 +27,7 @@ class CreateScreen extends StatefulWidget {
     required this.service,
     required this.musicSpecService,
     required this.library,
+    required this.player,
     required this.isActive,
     required this.authService,
   });
@@ -34,6 +35,7 @@ class CreateScreen extends StatefulWidget {
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final SongLibrary library;
+  final PlayerController player;
   final bool isActive;
   final AuthService authService;
 
@@ -137,6 +139,7 @@ class _CreateScreenState extends State<CreateScreen> {
           service: widget.service,
           musicSpecService: widget.musicSpecService,
           library: widget.library,
+          player: widget.player,
           authService: widget.authService,
         ),
       ),

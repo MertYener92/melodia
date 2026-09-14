@@ -196,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: Text(l10n.actionLogout, style: const TextStyle(color: AppColors.textPrimary)),
                       onTap: () async {
                         await widget.authService.signOut();
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         // DÜZELTME: Bu ekran (Ayarlar) Navigator'da üste
                         // itilmiş (pushed) bir route. Oturum durumu
                         // değişip _AppRoot LoginScreen'e geçse bile, bu

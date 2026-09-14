@@ -13,7 +13,7 @@ import '../models/song.dart';
 ///   3) Kota dolunca istek Suno'ya hiç gitmez, kredi harcanmaz
 ///
 /// Her istek, kullanıcının Cognito girişinden aldığı idToken'ı
-/// Authorization: Bearer <idToken> başlığıyla gönderir.
+/// `Authorization: Bearer <idToken>` başlığıyla gönderir.
 class SunoApiService {
   SunoApiService({
     required this.baseUrl,
@@ -167,8 +167,8 @@ class SunoApiService {
       if (!instrumental) 'lyrics': lyricsOrEmpty,
       'style': style,
       'title': title,
-      if (vocalGender != null) 'vocalGender': vocalGender,
-      if (durationSeconds != null) 'durationSeconds': durationSeconds,
+      'vocalGender': ?vocalGender,
+      'durationSeconds': ?durationSeconds,
       // YENİ: hangi motor kullanılacak ('suno' | 'lyria'). Backend
       // verilmezse zaten 'suno' varsayıyor, ama açıkça göndermek daha
       // net -- geriye dönük uyumluluk endişesi yok, bu istemci zaten
@@ -177,7 +177,7 @@ class SunoApiService {
       // YENİ: Lyria'nın sözleri doğru dilde yazması için -- Suno bu
       // alanı kullanmıyor (kendi söz üretim adımı zaten doğru dilde
       // çalışıyor), sadece Lyria worker'ı okuyor.
-      if (lyricsLanguage != null) 'lyricsLanguage': lyricsLanguage,
+      'lyricsLanguage': ?lyricsLanguage,
     });
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -385,7 +385,22 @@ class SunoApiService {
   // 3) DIŞARIYA AÇILAN ANA FONKSİYON
   // ---------------------------------------------------------------------
 
-  Future<Song> generateAndWait(
+  /// ÖNEMLİ (SunoAPI.org davranışı): Suno için TEK bir /generate isteği
+  /// aynı taskId altında HER ZAMAN 2 farklı klip döndürür (V5_5 modeli
+  /// varyasyon olarak ikisini birden üretir). Google Lyria ise TEK bir
+  /// sonuç döndürür. Bu yüzden bu fonksiyon artık `List<Song>` döndürüyor:
+  /// Suno için genelde 2 eleman, Lyria için 1 eleman içerir — hangisi
+  /// olduğuna backend'in `sunoData` alanında kaç öğe döndürdüğüne bakarak
+  /// karar verilir, provider'a göre AYRI bir dallanma YOKTUR (bu da
+  /// Lyria'nın davranışını hiç etkilemez).
+  ///
+  /// DİKKAT: Bu fonksiyon SADECE TEK bir /generate isteği atar (_requestMusic
+  /// bir kez çağrılıyor). İkinci klip için İKİNCİ bir istek ASLA atılmaz —
+  /// ikisi de aynı taskId'nin polling sonucundan (task.songs) gelir. Kredi
+  /// de zaten backend'de jobId başına (yani bu tek istek başına) bir kez
+  /// düşülüyor (bkz. melodia-backend/processMusicGeneration.js deductCredits),
+  /// dolayısıyla 2 klip = tek üretim kredisi burada otomatik sağlanıyor.
+  Future<List<Song>> generateAndWait(
     String descriptionPrompt, {
     String? genre,
     String? mood,
@@ -477,7 +492,16 @@ class SunoApiService {
         // ÖNEMLİ: jobId DEĞİL, backend'in Suno'dan aldığı GERÇEK taskId
         // kullanılıyor — karaoke/zaman damgalı söz gibi Suno'ya özel
         // isteklerde jobId'nin hiçbir anlamı yok.
-        return task.songs.first.copyWith(taskId: task.taskId ?? jobId);
+        //
+        // DÜZELTME: Önceden burada SADECE `task.songs.first` döndürülüp
+        // Suno'nun aynı taskId altında ürettiği İKİNCİ klip sessizce
+        // ATILIYORDU. Artık backend'in döndürdüğü TÜM klipler (Suno için
+        // genelde 2, Lyria için 1) korunuyor -- ikinci bir API isteği
+        // ATILMADAN, aynı tek generation'ın tüm çıktıları döndürülüyor.
+        final resolvedTaskId = task.taskId ?? jobId;
+        return task.songs
+            .map((song) => song.copyWith(taskId: resolvedTaskId))
+            .toList();
       }
       if (task.status.isFailed) {
         throw SunoApiException(

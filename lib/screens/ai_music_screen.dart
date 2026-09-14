@@ -1,8 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../services/music_spec_service.dart';
+import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
@@ -26,12 +26,14 @@ class AiMusicScreen extends StatefulWidget {
     required this.service,
     required this.musicSpecService,
     required this.library,
+    required this.player,
     required this.authService,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final SongLibrary library;
+  final PlayerController player;
   final AuthService authService;
 
   @override
@@ -126,6 +128,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         service: service,
                         musicSpecService: musicSpecService,
                         library: library,
+                        player: widget.player,
                       ),
                     ),
                   ).then((_) => _loadQuota()),
@@ -144,6 +147,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                       builder: (_) => CreateFormScreen(
                         service: service,
                         library: library,
+                        player: widget.player,
                       ),
                     ),
                   ).then((_) => _loadQuota()),
@@ -163,6 +167,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         service: service,
                         musicSpecService: musicSpecService,
                         library: library,
+                        player: widget.player,
                       ),
                     ),
                   ).then((_) => _loadQuota()),

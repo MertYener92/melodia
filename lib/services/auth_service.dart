@@ -173,7 +173,7 @@ class AuthService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'identityToken': identityToken,
-        if (email != null) 'email': email,
+        'email': ?email,
       }),
     );
 

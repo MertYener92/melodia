@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/music_spec.dart';
 import '../services/music_spec_service.dart';
+import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_multi_group.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/provider_selector.dart';
-import 'generating_screen.dart';
+import 'my_songs_screen.dart';
 
 const String _worldCustomOption = 'Kendi fikrimi yazacağım';
 
@@ -94,11 +97,13 @@ class MusicWizardScreen extends StatefulWidget {
     required this.service,
     required this.musicSpecService,
     required this.library,
+    required this.player,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final SongLibrary library;
+  final PlayerController player;
 
   @override
   State<MusicWizardScreen> createState() => _MusicWizardScreenState();
@@ -258,41 +263,45 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
       default: // duet — mevcut Generating akışı 3 seçenek destekliyor
         vocalLabel = 'Female';
     }
+    final instrumental = vocalLabel == 'Instrumental';
+    String? vocalGender;
+    if (vocalLabel == 'Female') vocalGender = 'f';
+    if (vocalLabel == 'Male') vocalGender = 'm';
 
-    Navigator.of(context)
-        .push<dynamic>(
+    // DEĞİŞTİ: Artık ayrı bir GeneratingScreen'e push edip sonucu
+    // BEKLEMİYORUZ. Üretim SongLibrary içinde arka planda başlar
+    // (Şarkılarım listesinin en üstünde ANINDA bir generation card
+    // belirir) ve kullanıcı hemen o ekrana yönlendirilir.
+    unawaited(
+      widget.library.startGeneration(
+        prompt: spec.lyricalTheme.isNotEmpty
+            ? spec.lyricalTheme
+            : _storyController.text.trim(),
+        displayGenre: spec.genre,
+        displayMood: spec.mood.isNotEmpty ? spec.mood.first : '',
+        genre: spec.genre,
+        mood: spec.mood.join(', '),
+        vocalGender: vocalGender,
+        instrumental: instrumental,
+        durationSeconds: 120,
+        styleOverride: spec.generationPrompt,
+        titleOverride: spec.title,
+        providedLyrics:
+            _needsOwnLyricsField ? _ownLyricsController.text.trim() : null,
+        provider: _provider,
+        lyricsLanguage: spec.lyricalLanguage,
+      ),
+    );
+
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => GeneratingScreen(
-          service: widget.service,
-          prompt: spec.lyricalTheme.isNotEmpty
-              ? spec.lyricalTheme
-              : _storyController.text.trim(),
-          genre: spec.genre,
-          mood: spec.mood.join(', '),
-          vocal: vocalLabel,
-          durationSeconds: 120,
-          styleOverride: spec.generationPrompt,
-          titleOverride: spec.title,
-          providedLyrics:
-              _needsOwnLyricsField ? _ownLyricsController.text.trim() : null,
-          provider: _provider,
-          lyricsLanguage: spec.lyricalLanguage,
+        builder: (_) => MySongsScreen(
+          library: widget.library,
+          player: widget.player,
         ),
       ),
-    )
-        .then((song) {
-      if (mounted) setState(() => _generating = false);
-      if (song == null) return;
-      widget.library.add(
-        LibrarySong(
-          song: song,
-          genre: spec.genre,
-          mood: spec.mood.isNotEmpty ? spec.mood.first : '',
-          createdAt: DateTime.now(),
-        ),
-      );
-      if (mounted) Navigator.of(context).pop();
-    });
+      (route) => route.isFirst,
+    );
   }
 
   @override
@@ -548,7 +557,7 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
             );
           }).toList(),
         ),
-        if (extra != null) extra,
+        ?extra,
       ],
     );
   }

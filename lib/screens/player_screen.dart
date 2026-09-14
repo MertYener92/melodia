@@ -68,7 +68,7 @@ class PlayerScreen extends StatelessWidget {
                       child: Image.network(
                         song.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const DecoratedBox(
+                        errorBuilder: (_, _, _) => const DecoratedBox(
                           decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
                         ),
                       ),
@@ -128,7 +128,7 @@ class PlayerScreen extends StatelessWidget {
                               width: 280,
                               height: 280,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _placeholderArt(),
+                              errorBuilder: (_, _, _) => _placeholderArt(),
                             )
                           : _placeholderArt(),
                     ),

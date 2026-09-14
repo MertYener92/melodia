@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../models/music_spec.dart';
 import '../services/music_spec_service.dart';
+import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/provider_selector.dart';
-import 'generating_screen.dart';
+import 'my_songs_screen.dart';
 
 /// "Hızlı" modu: kullanıcı tek cümlede fikrini yazar, arka planda aynı
 /// Bedrock yorumlama adımından geçer ama hiçbir soru sorulmaz — en az
@@ -18,11 +21,13 @@ class QuickCreateScreen extends StatefulWidget {
     required this.service,
     required this.musicSpecService,
     required this.library,
+    required this.player,
   });
 
   final SunoApiService service;
   final MusicSpecService musicSpecService;
   final SongLibrary library;
+  final PlayerController player;
 
   @override
   State<QuickCreateScreen> createState() => _QuickCreateScreenState();
@@ -79,37 +84,50 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
         default:
           vocalLabel = 'Female';
       }
+      final instrumental = vocalLabel == 'Instrumental';
+      String? vocalGender;
+      if (vocalLabel == 'Female') vocalGender = 'f';
+      if (vocalLabel == 'Male') vocalGender = 'm';
 
-      final song = await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => GeneratingScreen(
-            service: widget.service,
-            prompt: spec.lyricalTheme.isNotEmpty ? spec.lyricalTheme : text,
-            genre: spec.genre,
-            mood: spec.mood.join(', '),
-            vocal: vocalLabel,
-            durationSeconds: 120,
-            styleOverride: spec.generationPrompt,
-            titleOverride: spec.title,
-            provider: _provider,
-            lyricsLanguage: spec.lyricalLanguage,
-          ),
+      // DEĞİŞTİ: Artık ayrı bir GeneratingScreen'e push edip sonucu
+      // BEKLEMİYORUZ. Üretim SongLibrary içinde arka planda başlar
+      // (Şarkılarım listesinin en üstünde ANINDA bir generation card
+      // belirir) ve kullanıcı hemen o ekrana yönlendirilir. Future'ı
+      // burada bilerek await ETMİYORUZ (unawaited) -- SongLibrary tek
+      // bir singleton olduğu için üretim, bu ekran kapansa bile arka
+      // planda devam eder.
+      unawaited(
+        widget.library.startGeneration(
+          prompt: spec.lyricalTheme.isNotEmpty ? spec.lyricalTheme : text,
+          displayGenre: spec.genre,
+          displayMood: spec.mood.isNotEmpty ? spec.mood.first : '',
+          genre: spec.genre,
+          mood: spec.mood.join(', '),
+          vocalGender: vocalGender,
+          instrumental: instrumental,
+          durationSeconds: 120,
+          styleOverride: spec.generationPrompt,
+          titleOverride: spec.title,
+          provider: _provider,
+          lyricsLanguage: spec.lyricalLanguage,
         ),
       );
 
-      if (song != null) {
-        widget.library.add(
-          LibrarySong(
-            song: song,
-            genre: spec.genre,
-            mood: spec.mood.isNotEmpty ? spec.mood.first : '',
-            createdAt: DateTime.now(),
+      if (!mounted) return;
+      // Bu ekranı (ve üstündeki Hızlı formu) kapatıp doğrudan
+      // Şarkılarım'a geçiyoruz -- HomeShell (ilk/tek kök rota) korunur,
+      // sadece üretim formu route'ları temizlenir. Kullanıcı zaten
+      // Şarkılarım'daysa (bu akışta mümkün değil, ama savunma amaçlı)
+      // ikinci bir push oluşmaz çünkü zaten route yığını temizleniyor.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => MySongsScreen(
+            library: widget.library,
+            player: widget.player,
           ),
-        );
-        if (mounted) Navigator.of(context).pop();
-      } else {
-        setState(() => _loading = false);
-      }
+        ),
+        (route) => route.isFirst,
+      );
     } on MusicSpecException catch (e) {
       if (!mounted) return;
       setState(() {
