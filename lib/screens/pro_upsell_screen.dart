@@ -304,7 +304,19 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                           _ErrorBanner(message: _error!),
                           const SizedBox(height: 14),
                         ],
-                        Row(
+                        // DÜZELTME (GERÇEK KÖK NEDEN): Bu Row'daki
+                        // crossAxisAlignment.stretch, yukarıdan gelen
+                        // (SingleChildScrollView zincirinden miras kalan)
+                        // sınırsız (infinity) tavanı çocuklara SIKI (tight)
+                        // bir kısıt olarak dayatıyordu -- _PlanCard'daki
+                        // mainAxisSize.min düzeltmesi bile bunu engelleyemedi
+                        // çünkü sıkı kısıt her şeyin önüne geçer. IntrinsicHeight,
+                        // stretch uygulanmadan ÖNCE gerçek/sonlu bir
+                        // yükseklik hesaplattığı için bu sorunu güvenli
+                        // şekilde ortadan kaldırıyor -- kartlar yine eşit
+                        // yükseklikte görünüyor, ama artık sonsuzluk riski yok.
+                        IntrinsicHeight(
+                          child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (_weekly != null)
@@ -334,6 +346,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                                 ),
                               ),
                           ],
+                        ),
                         ),
                         const SizedBox(height: 28),
                         _FeatureRow(icon: Icons.check_circle_rounded, text: l10n.featureSongsVideos),
