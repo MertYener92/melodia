@@ -49,8 +49,12 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
   // tahminle değil ÖLÇEREK bulmak için. Sorun çözülünce bu blok (ve
   // build()'deki _DebugOverlay çağrısı) TAMAMEN kaldırılacak.
   final _contentKey = GlobalKey();
+  final _heroKey = GlobalKey();
+  final _contentBoxKey = GlobalKey();
   final _scrollController = ScrollController();
   double? _measuredContentHeight;
+  double? _measuredHeroHeight;
+  double? _measuredContentBoxHeight;
 
   @override
   void initState() {
@@ -70,8 +74,14 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
 
   void _measureContent([_]) {
     final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box != null && mounted) {
-      setState(() => _measuredContentHeight = box.size.height);
+    final heroBox = _heroKey.currentContext?.findRenderObject() as RenderBox?;
+    final contentBox = _contentBoxKey.currentContext?.findRenderObject() as RenderBox?;
+    if (mounted) {
+      setState(() {
+        if (box != null) _measuredContentHeight = box.size.height;
+        if (heroBox != null) _measuredHeroHeight = heroBox.size.height;
+        if (contentBox != null) _measuredContentBoxHeight = contentBox.size.height;
+      });
     }
   }
 
@@ -217,6 +227,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(
+                        key: _heroKey,
                         height: heroHeight,
                         width: double.infinity,
                         child: Stack(
@@ -249,6 +260,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                         ),
                       ),
                       Container(
+                        key: _contentBoxKey,
                         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
                         padding: EdgeInsets.fromLTRB(
                           20,
@@ -382,6 +394,8 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
               screenHeight: screenHeight,
               heroHeight: heroHeight,
               measuredContentHeight: _measuredContentHeight,
+              measuredHeroHeight: _measuredHeroHeight,
+              measuredContentBoxHeight: _measuredContentBoxHeight,
               maxScrollExtent: _scrollController.hasClients
                   ? _scrollController.position.maxScrollExtent
                   : null,
@@ -405,6 +419,8 @@ class _DebugOverlay extends StatelessWidget {
     required this.screenHeight,
     required this.heroHeight,
     required this.measuredContentHeight,
+    required this.measuredHeroHeight,
+    required this.measuredContentBoxHeight,
     required this.maxScrollExtent,
     required this.currentScrollPixels,
   });
@@ -412,6 +428,8 @@ class _DebugOverlay extends StatelessWidget {
   final double screenHeight;
   final double heroHeight;
   final double? measuredContentHeight;
+  final double? measuredHeroHeight;
+  final double? measuredContentBoxHeight;
   final double? maxScrollExtent;
   final double? currentScrollPixels;
 
@@ -427,8 +445,10 @@ class _DebugOverlay extends StatelessWidget {
       ),
       child: Text(
         'ekranH: ${fmt(screenHeight)}\n'
-        'videoH: ${fmt(heroHeight)}\n'
-        'icerikH: ${fmt(measuredContentHeight)}\n'
+        'videoH(hedef): ${fmt(heroHeight)}\n'
+        'videoH(olcum): ${fmt(measuredHeroHeight)}\n'
+        'icerikKutuH: ${fmt(measuredContentBoxHeight)}\n'
+        'toplamH: ${fmt(measuredContentHeight)}\n'
         'maxScroll: ${fmt(maxScrollExtent)}\n'
         'kaydirma: ${fmt(currentScrollPixels)}',
         style: const TextStyle(
