@@ -37,9 +37,6 @@ class LibraryScreen extends StatelessWidget {
         child: ListenableBuilder(
           listenable: songLibrary,
           builder: (context, _) {
-            final songCount = songLibrary.songs.length;
-            final favoriteCount = songLibrary.songs.where((s) => s.isFavorite).length;
-
             return ListView(
               children: [
                 const _LibraryHero(),
@@ -47,10 +44,7 @@ class LibraryScreen extends StatelessWidget {
                 _LibraryHubCard(
                   title: l10n.librarySongsTitle,
                   subtitle: l10n.librarySongsSubtitle,
-                  countLabel: l10n.librarySongsCount(songCount),
                   icon: Icons.music_note_rounded,
-                  imagePath: 'assets/images/library_songs.png',
-                  fallbackColors: const [Color(0xFF3A0A2E), Color(0xFF120714)],
                   accentColor: AppColors.pink,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
@@ -59,7 +53,6 @@ class LibraryScreen extends StatelessWidget {
                   ),
                 ),
                 _VideoLibraryHubCard(
-                  videoService: videoService,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => VideoLibraryScreen(videoService: videoService),
@@ -69,11 +62,8 @@ class LibraryScreen extends StatelessWidget {
                 _LibraryHubCard(
                   title: l10n.libraryFavoritesTitle,
                   subtitle: l10n.libraryFavoritesSubtitle,
-                  countLabel: l10n.libraryFavoritesCount(favoriteCount),
-                  icon: Icons.star_rounded,
-                  imagePath: 'assets/images/library_favorites.png',
-                  fallbackColors: const [Color(0xFF3A2A0A), Color(0xFF141007)],
-                  accentColor: const Color(0xFFF5A623),
+                  icon: Icons.favorite_rounded,
+                  accentColor: const Color(0xFFE0457B),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => FavoritesScreen(
@@ -87,15 +77,9 @@ class LibraryScreen extends StatelessWidget {
                 _LibraryHubCard(
                   title: l10n.libraryDownloadsTitle,
                   subtitle: l10n.libraryDownloadsSubtitle,
-                  // NOT: Henüz gerçek indirme takibi yok, bu yüzden
-                  // burada sahte bir sayı GÖSTERMİYORUZ (bkz.
-                  // downloads_screen.dart) — takip eklenince buraya
-                  // gerçek bir sayaç bağlanabilir.
-                  countLabel: null,
                   icon: Icons.download_rounded,
-                  imagePath: 'assets/images/library_downloads.png',
-                  fallbackColors: const [Color(0xFF0A3A22), Color(0xFF07140D)],
-                  accentColor: const Color(0xFF34D399),
+                  accentColor: const Color(0xFF2FA36B),
+                  showDivider: false,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const DownloadsScreen()),
                   ),
@@ -226,209 +210,109 @@ class _LibraryHero extends StatelessWidget {
   }
 }
 
-/// Video sayısı `fetchProjects()` ile asenkron geldiği için ayrı bir
-/// sarmalayıcı. DÜZELTME: Bu artık StatefulWidget -- Future SADECE bir
-/// kez (initState'te) oluşturuluyor ve saklanıyor. Önceki (Stateless +
-/// build() içinde `future:` oluşturma) yaklaşımı, LibraryScreen'in
-/// üstündeki ListenableBuilder her rebuild olduğunda (ör. bir şarkı
-/// favorilenince) bu widget'ı da yeniden build ediyor, bu da HER
-/// SEFERİNDE ağa yeni bir istek atıp video sayısını kısa süreliğine
-/// kaybolup tekrar belirmesine (titreşim/gecikme hissi) sebep oluyordu.
-class _VideoLibraryHubCard extends StatefulWidget {
-  const _VideoLibraryHubCard({required this.videoService, required this.onTap});
+/// Videolarım satırı için ince bir sarmalayıcı (l10n metinlerini
+/// _LibraryHubCard'a bağlıyor). DÜZELTME: Sadeleştirilmiş tasarımda video
+/// sayısı artık gösterilmediği için önceki asenkron (fetchProjects
+/// + StatefulWidget) yapıya gerek kalmadı, düz bir StatelessWidget'a
+/// indirgendi.
+class _VideoLibraryHubCard extends StatelessWidget {
+  const _VideoLibraryHubCard({required this.onTap});
 
-  final MusicVideoService videoService;
   final VoidCallback onTap;
-
-  @override
-  State<_VideoLibraryHubCard> createState() => _VideoLibraryHubCardState();
-}
-
-class _VideoLibraryHubCardState extends State<_VideoLibraryHubCard> {
-  late final Future<List<Map<String, dynamic>>> _projectsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _projectsFuture = widget.videoService.fetchProjects();
-  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _projectsFuture,
-      builder: (context, snapshot) {
-        final count = snapshot.data?.length;
-        return _LibraryHubCard(
-          title: l10n.libraryVideosTitle,
-          subtitle: l10n.libraryVideosSubtitle,
-          countLabel: count == null ? null : l10n.libraryVideosCount(count),
-          icon: Icons.play_arrow_rounded,
-          imagePath: 'assets/images/library_videos.png',
-          fallbackColors: const [Color(0xFF0A2340), Color(0xFF071018)],
-          accentColor: const Color(0xFF3B82F6),
-          onTap: widget.onTap,
-        );
-      },
+    // NOT: Sadeleştirilmiş tasarımda artık video sayısını göstermiyoruz
+    // (referans görseldeki gibi sade bir satır) -- bu yüzden projeleri
+    // ayrıca çekmeye de gerek kalmadı.
+    return _LibraryHubCard(
+      title: l10n.libraryVideosTitle,
+      subtitle: l10n.libraryVideosSubtitle,
+      icon: Icons.play_arrow_rounded,
+      accentColor: const Color(0xFF3B82F6),
+      onTap: onTap,
     );
   }
 }
 
+/// Kütüphane hub'ındaki her satır (Şarkılarım/Videolarım/Favorilerim/
+/// İndirdiklerim). DEĞİŞTİ: Önceki görsel/gradient kart tasarımı yerine
+/// referans tasarımdaki gibi sade bir liste satırı -- renkli yuvarlak
+/// köşeli ikon kare + başlık + alt yazı + sağda ok, aralarında ince bir
+/// ayraç çizgisi.
 class _LibraryHubCard extends StatelessWidget {
   const _LibraryHubCard({
     required this.title,
     required this.subtitle,
-    required this.countLabel,
     required this.icon,
-    required this.imagePath,
-    required this.fallbackColors,
     required this.accentColor,
     required this.onTap,
+    this.showDivider = true,
   });
 
   final String title;
   final String subtitle;
-
-  /// Örn. "24 şarkı". Gerçek veri henüz yoksa/yüklenmediyse null geç —
-  /// o zaman bu satır hiç gösterilmez, uydurma bir sayı basılmaz.
-  final String? countLabel;
   final IconData icon;
-
-  /// assets/images/ altındaki arkaplan fotoğrafı. Dosya yoksa/yüklenemezse
-  /// [fallbackColors] ile bir gradient gösterilir.
-  final String imagePath;
-  final List<Color> fallbackColors;
   final Color accentColor;
   final VoidCallback onTap;
 
+  /// Son satırdan sonra ayraç çizgisi gösterilmesin diye.
+  final bool showDivider;
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 92,
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: fallbackColors,
-          ),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(23),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Görsel artık kırpılmıyor (BoxFit.contain) — yıldız, kamera
-              // gibi ikonlar tam görünür. Sağda sabit genişlikli bir kutu
-              // içinde, dikeyde ortalanmış şekilde yerleşiyor.
-              // Görsel artık sağ tarafta daha geniş bir alanda (kart
-              // genişliğinin ~65%'i) ve SOL kenarı ShaderMask ile
-              // şeffaflaşarak arka plan gradyanına karışıyor -- önceki
-              // versiyonda görsel sert kenarlı bir "kare/yama" gibi
-              // duruyordu, bu artık yumuşak bir geçişle çözülüyor.
-              Align(
-                alignment: Alignment.centerRight,
-                child: FractionallySizedBox(
-                  widthFactor: 0.68,
-                  heightFactor: 1,
-                  child: ShaderMask(
-                    shaderCallback: (rect) => const LinearGradient(
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      colors: [Colors.transparent, Colors.black, Colors.black],
-                      stops: [0.0, 0.45, 1.0],
-                    ).createShader(rect),
-                    blendMode: BlendMode.dstIn,
-                    child: Image.asset(
-                      imagePath,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: Colors.white, size: 22),
                 ),
-              ),
-              // Soldan sağa karartma -- metin sol tarafta, görsel sağda
-              // net kalıyor (referans tasarımdaki gibi).
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.88),
-                      Colors.black.withValues(alpha: 0.55),
-                      Colors.black.withValues(alpha: 0.15),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                      ),
                     ],
-                    stops: const [0.0, 0.55, 1.0],
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.32),
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(color: accentColor.withValues(alpha: 0.5)),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(icon, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
-                          ),
-                          if (countLabel != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              countLabel!,
-                              style: TextStyle(
-                                color: accentColor,
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+              ],
+            ),
           ),
-        ),
+          if (showDivider) const Divider(height: 1, color: AppColors.border),
+        ],
       ),
     );
   }

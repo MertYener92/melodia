@@ -63,14 +63,15 @@ class _HomeShellState extends State<HomeShell> {
     _scheduleProUpsell();
   }
 
-  /// İSTENEN DAVRANIŞ: uygulama açıldıktan 5 saniye sonra, bu UYGULAMA
-  /// OTURUMU içinde daha önce hiç gösterilmediyse VE kullanıcı zaten Pro
-  /// değilse, PRO ekranı otomatik açılır. "Gösterildi" bilgisi kalıcı
-  /// olarak KAYDEDİLMEZ (bkz. ProScreenSessionGate) — sadece bellekte
-  /// tutulur, uygulama tamamen kapat-aç yapılınca sıfırlanır.
+  /// İSTENEN DAVRANIŞ: uygulama açıldıktan 9 saniye sonra (splash video
+  /// ~4sn + bu 9sn = kullanıcı ikona bastıktan sonra toplam ~13sn), bu
+  /// UYGULAMA OTURUMU içinde daha önce hiç gösterilmediyse VE kullanıcı
+  /// zaten Pro değilse, PRO ekranı otomatik açılır. "Gösterildi" bilgisi
+  /// kalıcı olarak KAYDEDİLMEZ (bkz. ProScreenSessionGate) — sadece
+  /// bellekte tutulur, uygulama tamamen kapat-aç yapılınca sıfırlanır.
   void _scheduleProUpsell() {
     if (ProScreenSessionGate.shownThisSession) return;
-    _proUpsellTimer = Timer(const Duration(seconds: 5), () async {
+    _proUpsellTimer = Timer(const Duration(seconds: 9), () async {
       if (!mounted || ProScreenSessionGate.shownThisSession) return;
 
       // Kullanıcı zaten Pro'ysa (aktif abonelik) upsell ekranını hiç

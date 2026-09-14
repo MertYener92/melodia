@@ -45,6 +45,13 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
   bool _purchasing = false;
   String? _error;
 
+  // GEÇİCİ TEŞHİS ARAÇLARI -- "sonsuz kayma" hatasının gerçek sebebini
+  // tahminle değil ÖLÇEREK bulmak için. Sorun çözülünce bu blok (ve
+  // build()'deki _DebugOverlay çağrısı) TAMAMEN kaldırılacak.
+  final _contentKey = GlobalKey();
+  final _scrollController = ScrollController();
+  double? _measuredContentHeight;
+
   @override
   void initState() {
     super.initState();
@@ -55,12 +62,24 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
     _subscriptionService.startListening();
     _statusSubscription = _subscriptionService.statusStream.listen(_onStatus);
     _loadProducts();
+    _scrollController.addListener(() {
+      if (mounted) setState(() {}); // teşhis panelini canlı güncelle
+    });
+    WidgetsBinding.instance.addPostFrameCallback(_measureContent);
+  }
+
+  void _measureContent([_]) {
+    final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && mounted) {
+      setState(() => _measuredContentHeight = box.size.height);
+    }
   }
 
   @override
   void dispose() {
     _statusSubscription?.cancel();
     _subscriptionService.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -82,6 +101,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
         _selected = yearly ?? weekly;
         _loading = false;
       });
+      WidgetsBinding.instance.addPostFrameCallback(_measureContent);
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -89,6 +109,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
         _error = l10n.productsLoadErrorWithDetail(e.toString());
         _loading = false;
       });
+      WidgetsBinding.instance.addPostFrameCallback(_measureContent);
     }
   }
 
@@ -165,35 +186,33 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final heroHeight = MediaQuery.of(context).size.height * 0.34;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final heroHeight = screenHeight * 0.34;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      // DÜZELTME (5. ve KESİN deneme): Önceki denemeler (Expanded, sonra
-      // CustomScrollView/Sliver, sonra sadece ClampingScrollPhysics) hep
-      // "üst seviye" bir mekanizma değiştiriyordu ama telefonda sorun
-      // sürdü. Bu sefer ChatGPT'nin verdiği kontrol listesi baz alınarak
-      // Sliver geometrisi (SliverToBoxAdapter) TAMAMEN kaldırıldı --
-      // yerine Flutter'ın EN BASİT, EN ÖNGÖRÜLEBİLİR "ekran boyu kadar ya
-      // da daha uzun" deseni kullanıldı: LayoutBuilder ile GERÇEK viewport
-      // yüksekliğini alıp, SingleChildScrollView'ın tek çocuğunu
-      // ConstrainedBox(minHeight: viewport) ile sarıyoruz + fiziksel
-      // esnek geri sekmeyi (bounce) ClampingScrollPhysics ile kapatıyoruz.
-      // Bu, kaydırılabilir alanın toplam yüksekliğinin MATEMATİKSEL OLARAK
-      // KESİN şekilde max(gerçek içerik, ekran boyu) olmasını garanti
-      // eder -- Sliver'ların kendi iç geometri hesabına, Expanded'ın
-      // esnemesine ya da CustomScrollView'ın maxScrollExtent hesabına hiç
-      // güvenmiyoruz. Kaydırma, içerik nereye kadar varsa TAM ORADA
-      // sert bir şekilde bitiyor; ötesine hiç geçilemiyor.
+      // DÜZELTME (6. ve KESİN deneme): Önceki denemeler (Expanded ->
+      // CustomScrollView/Sliver -> LayoutBuilder+ConstrainedBox) hep bir
+      // ÜST SEVİYE mekanizmayı değiştiriyordu ama telefonda sorun sürdü.
+      // Şüphelenilen son nokta: LayoutBuilder, bir Stack içinde GEVŞEK
+      // (loose) constraint alıyordu -- bu zincirde "maxHeight" değerinin
+      // beklenmedik şekilde bozulma ihtimaline karşı LayoutBuilder'ı
+      // TAMAMEN kaldırdık. Artık MediaQuery'nin mutlak, hiçbir ata
+      // widget'ın constraint zincirine bağlı OLMAYAN gerçek fiziksel ekran
+      // yüksekliğini (screenHeight) SingleChildScrollView'ın tek çocuğuna
+      // ConstrainedBox(minHeight: screenHeight) ile doğrudan veriyoruz +
+      // fiziksel esnek geri sekmeyi (bounce) ClampingScrollPhysics ile
+      // kapatıyoruz. Kaydırma, içerik nereye kadar varsa TAM ORADA sert
+      // bir şekilde bitiyor; ötesine hiç geçilemiyor.
       body: Stack(
         children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
+          SingleChildScrollView(
+            controller: _scrollController,
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: screenHeight),
+              child: Column(
+                    key: _contentKey,
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -341,9 +360,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                     ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
 
           // Kapatma butonu — kaydırılan alanın DIŞINDA, ayrı bir Stack
           // katmanında. Videonun üzerinde başlıyor ama kaydırma
@@ -354,7 +371,72 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
             right: 16,
             child: _GlassCloseButton(onTap: () => Navigator.of(context).pop(false)),
           ),
+
+          // GEÇİCİ TEŞHİS PANELİ -- sorun çözülünce kaldırılacak. Ekran
+          // görüntüsü olarak paylaşılabilsin diye gerçek sayıları canlı
+          // gösteriyor.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 12,
+            child: _DebugOverlay(
+              screenHeight: screenHeight,
+              heroHeight: heroHeight,
+              measuredContentHeight: _measuredContentHeight,
+              maxScrollExtent: _scrollController.hasClients
+                  ? _scrollController.position.maxScrollExtent
+                  : null,
+              currentScrollPixels: _scrollController.hasClients
+                  ? _scrollController.position.pixels
+                  : null,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// GEÇİCİ TEŞHİS WIDGET'I -- "sonsuz kayma" hatasının gerçek sebebini
+/// tahminle değil ölçerek bulmak için eklendi. Sorun kesin olarak
+/// çözülüp doğrulanınca bu class'ın TAMAMI (ve yukarıdaki çağrısı)
+/// kaldırılacak.
+class _DebugOverlay extends StatelessWidget {
+  const _DebugOverlay({
+    required this.screenHeight,
+    required this.heroHeight,
+    required this.measuredContentHeight,
+    required this.maxScrollExtent,
+    required this.currentScrollPixels,
+  });
+
+  final double screenHeight;
+  final double heroHeight;
+  final double? measuredContentHeight;
+  final double? maxScrollExtent;
+  final double? currentScrollPixels;
+
+  @override
+  Widget build(BuildContext context) {
+    String fmt(double? v) => v == null ? '—' : v.toStringAsFixed(1);
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.greenAccent, width: 1),
+      ),
+      child: Text(
+        'ekranH: ${fmt(screenHeight)}\n'
+        'videoH: ${fmt(heroHeight)}\n'
+        'icerikH: ${fmt(measuredContentHeight)}\n'
+        'maxScroll: ${fmt(maxScrollExtent)}\n'
+        'kaydirma: ${fmt(currentScrollPixels)}',
+        style: const TextStyle(
+          color: Colors.greenAccent,
+          fontSize: 11,
+          fontFamily: 'monospace',
+          height: 1.4,
+        ),
       ),
     );
   }
