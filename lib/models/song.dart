@@ -9,6 +9,13 @@ class Song {
   final String imageUrl;
   final double? duration;
 
+  /// YENİ: Şarkının hangi motorla üretildiği ('suno' | 'lyria'). Suno'nun
+  /// kendi API yanıtında bu alan yok -- generateAndWait tarafından,
+  /// zaten bilinen provider parametresinden sonradan eklenir (bkz.
+  /// taskId'nin eklenme şekliyle aynı desen). Kütüphanede küçük bir
+  /// motor etiketi göstermek için kullanılır.
+  final String provider;
+
   /// Şarkının üretildiği görev (job) ID'si. Karaoke/zaman damgalı söz
   /// verisini çekmek için gereklidir (taskId + audioId=id birlikte).
   /// Suno'nun /status yanıtında yer almaz, generateAndWait tarafından
@@ -24,9 +31,10 @@ class Song {
     required this.imageUrl,
     this.duration,
     this.taskId = '',
+    this.provider = 'suno',
   });
 
-  Song copyWith({String? taskId}) {
+  Song copyWith({String? taskId, String? provider}) {
     return Song(
       id: id,
       title: title,
@@ -36,6 +44,7 @@ class Song {
       imageUrl: imageUrl,
       duration: duration,
       taskId: taskId ?? this.taskId,
+      provider: provider ?? this.provider,
     );
   }
 
@@ -49,6 +58,7 @@ class Song {
       imageUrl: json['imageUrl']?.toString() ?? '',
       duration: (json['duration'] as num?)?.toDouble(),
       taskId: json['taskId']?.toString() ?? '',
+      provider: json['provider']?.toString() ?? 'suno',
     );
   }
 }

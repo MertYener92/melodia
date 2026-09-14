@@ -45,16 +45,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
   bool _purchasing = false;
   String? _error;
 
-  // GEÇİCİ TEŞHİS ARAÇLARI -- "sonsuz kayma" hatasının gerçek sebebini
-  // tahminle değil ÖLÇEREK bulmak için. Sorun çözülünce bu blok (ve
-  // build()'deki _DebugOverlay çağrısı) TAMAMEN kaldırılacak.
-  final _contentKey = GlobalKey();
-  final _heroKey = GlobalKey();
-  final _contentBoxKey = GlobalKey();
   final _scrollController = ScrollController();
-  double? _measuredContentHeight;
-  double? _measuredHeroHeight;
-  double? _measuredContentBoxHeight;
 
   @override
   void initState() {
@@ -66,23 +57,6 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
     _subscriptionService.startListening();
     _statusSubscription = _subscriptionService.statusStream.listen(_onStatus);
     _loadProducts();
-    _scrollController.addListener(() {
-      if (mounted) setState(() {}); // teşhis panelini canlı güncelle
-    });
-    WidgetsBinding.instance.addPostFrameCallback(_measureContent);
-  }
-
-  void _measureContent([_]) {
-    final box = _contentKey.currentContext?.findRenderObject() as RenderBox?;
-    final heroBox = _heroKey.currentContext?.findRenderObject() as RenderBox?;
-    final contentBox = _contentBoxKey.currentContext?.findRenderObject() as RenderBox?;
-    if (mounted) {
-      setState(() {
-        if (box != null) _measuredContentHeight = box.size.height;
-        if (heroBox != null) _measuredHeroHeight = heroBox.size.height;
-        if (contentBox != null) _measuredContentBoxHeight = contentBox.size.height;
-      });
-    }
   }
 
   @override
@@ -111,7 +85,6 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
         _selected = yearly ?? weekly;
         _loading = false;
       });
-      WidgetsBinding.instance.addPostFrameCallback(_measureContent);
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
@@ -119,7 +92,6 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
         _error = l10n.productsLoadErrorWithDetail(e.toString());
         _loading = false;
       });
-      WidgetsBinding.instance.addPostFrameCallback(_measureContent);
     }
   }
 
@@ -222,12 +194,10 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: screenHeight),
               child: Column(
-                    key: _contentKey,
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(
-                        key: _heroKey,
                         height: heroHeight,
                         width: double.infinity,
                         child: Stack(
@@ -260,7 +230,6 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
                         ),
                       ),
                       Container(
-                        key: _contentBoxKey,
                         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
                         padding: EdgeInsets.fromLTRB(
                           20,
@@ -396,80 +365,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
             right: 16,
             child: _GlassCloseButton(onTap: () => Navigator.of(context).pop(false)),
           ),
-
-          // GEÇİCİ TEŞHİS PANELİ -- sorun çözülünce kaldırılacak. Ekran
-          // görüntüsü olarak paylaşılabilsin diye gerçek sayıları canlı
-          // gösteriyor.
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
-            left: 12,
-            child: _DebugOverlay(
-              screenHeight: screenHeight,
-              heroHeight: heroHeight,
-              measuredContentHeight: _measuredContentHeight,
-              measuredHeroHeight: _measuredHeroHeight,
-              measuredContentBoxHeight: _measuredContentBoxHeight,
-              maxScrollExtent: _scrollController.hasClients
-                  ? _scrollController.position.maxScrollExtent
-                  : null,
-              currentScrollPixels: _scrollController.hasClients
-                  ? _scrollController.position.pixels
-                  : null,
-            ),
-          ),
         ],
-      ),
-    );
-  }
-}
-
-/// GEÇİCİ TEŞHİS WIDGET'I -- "sonsuz kayma" hatasının gerçek sebebini
-/// tahminle değil ölçerek bulmak için eklendi. Sorun kesin olarak
-/// çözülüp doğrulanınca bu class'ın TAMAMI (ve yukarıdaki çağrısı)
-/// kaldırılacak.
-class _DebugOverlay extends StatelessWidget {
-  const _DebugOverlay({
-    required this.screenHeight,
-    required this.heroHeight,
-    required this.measuredContentHeight,
-    required this.measuredHeroHeight,
-    required this.measuredContentBoxHeight,
-    required this.maxScrollExtent,
-    required this.currentScrollPixels,
-  });
-
-  final double screenHeight;
-  final double heroHeight;
-  final double? measuredContentHeight;
-  final double? measuredHeroHeight;
-  final double? measuredContentBoxHeight;
-  final double? maxScrollExtent;
-  final double? currentScrollPixels;
-
-  @override
-  Widget build(BuildContext context) {
-    String fmt(double? v) => v == null ? '—' : v.toStringAsFixed(1);
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.greenAccent, width: 1),
-      ),
-      child: Text(
-        'ekranH: ${fmt(screenHeight)}\n'
-        'videoH(hedef): ${fmt(heroHeight)}\n'
-        'videoH(olcum): ${fmt(measuredHeroHeight)}\n'
-        'icerikKutuH: ${fmt(measuredContentBoxHeight)}\n'
-        'toplamH: ${fmt(measuredContentHeight)}\n'
-        'maxScroll: ${fmt(maxScrollExtent)}\n'
-        'kaydirma: ${fmt(currentScrollPixels)}',
-        style: const TextStyle(
-          color: Colors.greenAccent,
-          fontSize: 11,
-          fontFamily: 'monospace',
-          height: 1.4,
-        ),
       ),
     );
   }

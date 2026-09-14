@@ -194,15 +194,24 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                     CreditsBadge(remaining: _remainingCredits, error: _quotaError),
                     const SizedBox(width: 8),
                     ProBadge(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          fullscreenDialog: true,
-                          builder: (_) => ProUpsellScreen(
-                            authService: widget.authService,
-                            apiService: widget.service,
-                          ),
-                        ),
-                      ),
+                      onTap: () => Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              fullscreenDialog: true,
+                              builder: (_) => ProUpsellScreen(
+                                authService: widget.authService,
+                                apiService: widget.service,
+                              ),
+                            ),
+                          )
+                          // DÜZELTME (kredi rozeti gecikmesi): satın alma
+                          // başarılı olduğunda ProUpsellScreen `pop(true)`
+                          // ile kapanıyordu ama bu sonuç HİÇ okunmuyordu --
+                          // rozet ancak ekran yeniden açılana/uygulama
+                          // yeniden başlatılana kadar eski (satın alma
+                          // öncesi) değeri gösteriyordu. Artık ekran her
+                          // kapandığında (iptal de olsa) kotayı tazeliyoruz.
+                          .then((_) => _loadQuota()),
                     ),
                   ],
                 ),

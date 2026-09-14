@@ -233,15 +233,21 @@ class _CreateScreenState extends State<CreateScreen> {
                   CreditsBadge(remaining: _remainingCredits, error: _quotaError),
                   const SizedBox(width: 8),
                   ProBadge(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        fullscreenDialog: true,
-                        builder: (_) => ProUpsellScreen(
-                          authService: widget.authService,
-                          apiService: widget.service,
-                        ),
-                      ),
-                    ),
+                    onTap: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            fullscreenDialog: true,
+                            builder: (_) => ProUpsellScreen(
+                              authService: widget.authService,
+                              apiService: widget.service,
+                            ),
+                          ),
+                        )
+                        // DÜZELTME (kredi rozeti gecikmesi): bkz.
+                        // ai_music_screen.dart'taki aynı düzeltme -- satın
+                        // alma sonrası rozet artık ekran kapanır kapanmaz
+                        // tazeleniyor, çıkış/giriş beklemiyor.
+                        .then((_) => _loadQuota()),
                   ),
                 ],
               ),

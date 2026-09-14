@@ -112,6 +112,7 @@ class LibrarySong {
         imageUrl: json['imageUrl']?.toString() ?? '',
         duration: (json['duration'] as num?)?.toDouble(),
         taskId: json['taskId']?.toString() ?? '',
+        provider: json['provider']?.toString() ?? 'suno',
       ),
       genre: json['genre']?.toString() ?? '',
       mood: json['mood']?.toString() ?? '',
@@ -208,22 +209,26 @@ class SongLibrary extends ChangeNotifier {
   /// YENİ: Şarkı üretimini ANINDA (bekletmeden) başlatır.
   ///
   /// Davranış:
-  ///   1) Listeye TEK bir placeholder ("generation card") eklenir ve
-  ///      hemen `notifyListeners()` çağrılır -- çağıran taraf bu
-  ///      Future'ı beklemeden (await ETMEDEN) hemen Şarkılarım ekranına
-  ///      geçebilir, kart zaten orada olur.
-  ///   2) Suno/Lyria durumu değiştikçe (onLyricsStart/onTick) AYNI
-  ///      kart yerinde güncellenir -- asla ikinci bir kart eklenmez
-  ///      (bkz. _updatePendingPhase: pendingId ile arama yapar,
-  ///      bulamazsa hiçbir şey yapmaz, YENİ eleman eklemez).
-  ///   3) Üretim bittiğinde placeholder, tamamlanmış gerçek şarkı(lar)la
-  ///      DEĞİŞTİRİLİR (aynı liste index'inde) ve backend'e kaydedilir.
-  ///      Suno tek istekten aynı taskId altında 2 klip döndürdüğü için
-  ///      burada 1 ya da 2 kart oluşabilir -- ama bu İKİ AYRI ÜRETİM
-  ///      DEĞİLDİR, aynı tek generation'ın çıktılarıdır (bkz. clipId
-  ///      bazlı duplicate koruması, her clipId yalnızca bir kez eklenir).
-  ///   4) Hata olursa kart "failed" durumuna geçer; kullanıcı isterse
-  ///      [removePending] ile kartı kapatabilir.
+  ///   1) Listeye placeholder ("generation card") eklenir ve hemen
+  ///      `notifyListeners()` çağrılır -- çağıran taraf bu Future'ı
+  ///      beklemeden (await ETMEDEN) hemen Şarkılarım ekranına geçebilir,
+  ///      kart(lar) zaten orada olur. Provider 'suno' ise BAŞTAN 2
+  ///      placeholder eklenir (SunoAPI.org'un tek istekten her zaman 2
+  ///      klip döndürdüğü bilindiği için); Lyria için her zaman 1.
+  ///   2) Suno/Lyria durumu değiştikçe (onLyricsStart/onTick) TÜM
+  ///      placeholder'lar birlikte güncellenir -- aynı tek job/taskId'nin
+  ///      parçası oldukları için ilerlemeleri ortak. Asla YENİ bir kart
+  ///      eklenmez (bkz. _updatePendingPhase: pendingId ile arama yapar,
+  ///      bulamazsa hiçbir şey yapmaz).
+  ///   3) Üretim bittiğinde, SADECE gerçekten dolu (id+audioUrl dolu) ve
+  ///      benzersiz (clipId daha önce kütüphanede yoksa) klipler
+  ///      placeholder'ların YERİNE geçer. Beklenen ama gelmeyen bir slot
+  ///      varsa (ör. Suno bu sefer 2 yerine 1 klip döndürdüyse) o
+  ///      placeholder kaldırılır -- boş/kırık kart asla gösterilmez. Bu
+  ///      birden fazla kart İKİ AYRI ÜRETİM DEĞİLDİR, aynı tek
+  ///      generation'ın çıktılarıdır.
+  ///   4) Hata olursa TÜM kart(lar) "failed" durumuna geçer; kullanıcı
+  ///      isterse [removePending] ile kapatabilir.
   ///
   /// SongLibrary, HomeShell tarafından tek bir örnek (singleton) olarak
   /// tutulduğu için kullanıcı üretim sırasında başka bir ekrana geçse
@@ -243,22 +248,42 @@ class SongLibrary extends ChangeNotifier {
     String provider = 'suno',
     String? lyricsLanguage,
   }) async {
-    final pendingId =
-        'gen_${DateTime.now().microsecondsSinceEpoch}_${_songs.length}';
+    final baseId = 'gen_${DateTime.now().microsecondsSinceEpoch}_${_songs.length}';
 
-    // Savunma amaçlı: aynı pendingId zaten listede varsa (pratikte
-    // mikrosaniye damgası nedeniyle imkansıza yakın) tekrar eklemek
-    // yerine hiçbir şey yapma.
-    if (_songs.any((s) => s.pendingId == pendingId)) return;
+    // YENİ: SADECE Suno için baştan 2 generation card gösteriyoruz --
+    // SunoAPI.org'un tek istekten aynı taskId altında 2 klip döndürdüğü
+    // bilindiği için (bkz. suno_api_service.dart), kullanıcı Suno'nun
+    // kendi uygulamasındaki gibi ikisinin de birlikte hazırlandığını
+    // görebiliyor. Lyria'nın davranışı DEĞİŞMEDİ -- her zaman tek kart.
+    final expectedCount = provider == 'suno' ? 2 : 1;
+    final pendingIds = [
+      for (var i = 0; i < expectedCount; i++) '${baseId}_$i',
+    ];
 
-    _songs.add(
-      LibrarySong.pending(
-        pendingId: pendingId,
-        genre: displayGenre,
-        mood: displayMood,
-      ),
-    );
+    // Savunma amaçlı: aynı pendingId'lerden biri zaten listede varsa
+    // (pratikte mikrosaniye damgası nedeniyle imkansıza yakın) tekrar
+    // eklemek yerine hiçbir şey yapma.
+    if (pendingIds.any((id) => _songs.any((s) => s.pendingId == id))) return;
+
+    for (final id in pendingIds) {
+      _songs.add(
+        LibrarySong.pending(
+          pendingId: id,
+          genre: displayGenre,
+          mood: displayMood,
+        ),
+      );
+    }
     notifyListeners();
+
+    // Tüm placeholder kartlar AYNI generation'ın (tek job/taskId) parçası
+    // olduğu için ilerleme durumları (söz/melodi/vokal/mix) birlikte
+    // güncellenir.
+    void updateAllPhases(GenerationPhase phase) {
+      for (final id in pendingIds) {
+        _updatePendingPhase(id, phase);
+      }
+    }
 
     try {
       // ÖNEMLİ: Bu TEK bir generateAndWait çağrısı -- yani TEK bir Suno/
@@ -280,14 +305,23 @@ class SongLibrary extends ChangeNotifier {
         providedLyrics: providedLyrics,
         provider: provider,
         lyricsLanguage: lyricsLanguage,
-        onLyricsStart: () =>
-            _updatePendingPhase(pendingId, GenerationPhase.lyrics),
-        onTick: (status, attempt) =>
-            _updatePendingPhase(pendingId, _phaseFor(status)),
+        onLyricsStart: () => updateAllPhases(GenerationPhase.lyrics),
+        onTick: (status, attempt) => updateAllPhases(_phaseFor(status)),
       );
 
-      if (songs.isEmpty) {
-        _failPending(pendingId, 'Şarkı üretilemedi (boş sonuç).');
+      // DOLULUK KONTROLÜ: Sadece gerçekten kullanılabilir (id VE audioUrl
+      // dolu) klipler "gelmiş" sayılır. Suno bu sefer beklenmedik şekilde
+      // sadece 1 (ya da hiç) dolu klip döndürürse, karşılığı olmayan
+      // placeholder(lar) aşağıda sessizce kaldırılır -- boş/kırık bir kart
+      // asla gösterilmez.
+      final populatedSongs = songs
+          .where((s) => s.id.isNotEmpty && s.audioUrl.isNotEmpty)
+          .toList();
+
+      if (populatedSongs.isEmpty) {
+        for (final id in pendingIds) {
+          _failPending(id, 'Şarkı üretilemedi (boş sonuç).');
+        }
         return;
       }
 
@@ -298,52 +332,58 @@ class SongLibrary extends ChangeNotifier {
       // bir şekilde iki kez tetiklendiyse, ya da aşağıdaki kaydetme arka
       // planda tekrarlandıysa) o klip TEKRAR EKLENMEZ -- her clipId
       // kütüphaneye yalnızca bir kez girer.
-      final newEntries = <LibrarySong>[
-        for (final song in songs)
+      final uniqueSongs = <Song>[
+        for (final song in populatedSongs)
           if (!_songs.any((s) => s.pendingId == null && s.song.id == song.id))
-            LibrarySong(
-              song: song,
-              genre: displayGenre,
-              mood: displayMood,
-              createdAt: createdAt,
-            ),
+            song,
       ];
 
-      final index = _songs.indexWhere((s) => s.pendingId == pendingId);
-      // Kullanıcı bu arada kartı silmiş olabilir (removePending) --
-      // o zaman şarkıları listeye geri EKLEMİYORUZ (kullanıcının "sil"
+      // Kullanıcı bu arada bazı kartları silmiş olabilir (removePending)
+      // -- o zaman o slotu listeye geri EKLEMİYORUZ (kullanıcının "sil"
       // kararına saygı), sadece arka planda kalıcı kütüphaneye kaydediyoruz.
-      if (index != -1) {
-        if (newEntries.isEmpty) {
-          // Bütün klipler zaten kütüphanede (duplicate) -- placeholder'ı
-          // olduğu gibi kaldır, yeni bir şey eklemeye gerek yok.
-          _songs.removeAt(index);
+      for (var i = 0; i < pendingIds.length; i++) {
+        final index = _songs.indexWhere((s) => s.pendingId == pendingIds[i]);
+        if (index == -1) continue;
+        if (i < uniqueSongs.length) {
+          // Bu placeholder, dolu ve benzersiz bir klip ile tamamlanıyor.
+          _songs[index] = LibrarySong(
+            song: uniqueSongs[i],
+            genre: displayGenre,
+            mood: displayMood,
+            createdAt: createdAt,
+          );
         } else {
-          // İlk klip, placeholder kartın YERİNE geçer (aynı satırda
-          // "tamamlanır"). Suno'dan gelen İKİNCİ klip varsa -- bu aynı
-          // generation'ın ikinci çıktısı, YENİ bir üretim DEĞİL -- listenin
-          // en üstüne (en yeni konuma) eklenir. İkisi de aynı taskId'yi
-          // taşıdığı için "iki ayrı üretim" değil, "bir üretimin iki
-          // çıktısı" olarak kalıyor; kullanıcıya kredi/UX açısından tek
-          // üretim gibi sunuluyor, sadece kütüphanede iki ayrı kart
-          // görünüyor.
-          _songs[index] = newEntries.first;
-          for (final extra in newEntries.skip(1)) {
-            _songs.add(extra);
-          }
+          // Bu slot için karşılığı olan (dolu/benzersiz) bir klip GELMEDİ
+          // -- ör. Suno bu sefer sadece 1 klip döndürdü, ya da ikinci klip
+          // duplicate çıktı. Kullanılmayan placeholder kaldırılır, boş
+          // kart asla gösterilmez.
+          _songs.removeAt(index);
         }
-        notifyListeners();
       }
+      // Beklenenden FAZLA benzersiz/dolu klip geldiyse (savunma amaçlı,
+      // normalde olmaz) kalanlar listenin en üstüne yeni kart olarak
+      // eklenir.
+      for (var i = pendingIds.length; i < uniqueSongs.length; i++) {
+        _songs.add(
+          LibrarySong(
+            song: uniqueSongs[i],
+            genre: displayGenre,
+            mood: displayMood,
+            createdAt: createdAt,
+          ),
+        );
+      }
+      notifyListeners();
 
       // Her klip backend'in kalıcı kütüphanesine AYRI AYRI kaydedilir
       // (ikisi de aynı taskId'yi taşır, ama farklı songId/clipId'leri
       // vardır) -- bu sadece metadata persist etmek içindir, kota BURADA
       // TEKRAR HARCANMAZ (kota zaten backend'de tek /generate isteği
       // başına bir kez düşülüyor, bkz. processMusicGeneration.js).
-      for (final entry in newEntries) {
+      for (final song in uniqueSongs) {
         service
             .saveSongToLibrary(
-              song: entry.song,
+              song: song,
               genre: displayGenre,
               mood: displayMood,
               createdAt: createdAt,
@@ -351,9 +391,13 @@ class SongLibrary extends ChangeNotifier {
             .catchError((_) {});
       }
     } on SunoApiException catch (e) {
-      _failPending(pendingId, e.message);
+      for (final id in pendingIds) {
+        _failPending(id, e.message);
+      }
     } catch (e) {
-      _failPending(pendingId, 'Beklenmeyen bir hata oluştu: $e');
+      for (final id in pendingIds) {
+        _failPending(id, 'Beklenmeyen bir hata oluştu: $e');
+      }
     }
   }
 
@@ -434,6 +478,7 @@ class SongLibrary extends ChangeNotifier {
         imageUrl: target.song.imageUrl,
         duration: target.song.duration,
         taskId: target.song.taskId,
+        provider: target.song.provider,
       ),
       genre: target.genre,
       mood: target.mood,

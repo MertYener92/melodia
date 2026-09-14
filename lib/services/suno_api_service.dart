@@ -308,6 +308,7 @@ class SunoApiService {
       'mood': mood,
       'isFavorite': isFavorite,
       'taskId': song.taskId,
+      'provider': song.provider,
       'createdAt': createdAt.toIso8601String(),
     });
 
@@ -500,7 +501,7 @@ class SunoApiService {
         // ATILMADAN, aynı tek generation'ın tüm çıktıları döndürülüyor.
         final resolvedTaskId = task.taskId ?? jobId;
         return task.songs
-            .map((song) => song.copyWith(taskId: resolvedTaskId))
+            .map((song) => song.copyWith(taskId: resolvedTaskId, provider: provider))
             .toList();
       }
       if (task.status.isFailed) {
