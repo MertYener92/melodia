@@ -161,6 +161,12 @@ class SunoApiService {
     int? durationSeconds,
     required String provider,
     String? lyricsLanguage,
+    // YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ): SongLibrary bu ID'yi
+    // AĞ İSTEĞİNDEN ÖNCE diske (flutter_secure_storage) yazıyor. Backend
+    // bunu jobId olarak kullanıp koşullu yazıyor -- aynı requestId ile
+    // ikinci bir çağrı (uygulama kapanıp açılsa, istek tekrarlansa bile)
+    // YENİ bir iş açmıyor/YENİ bir jeton düşmüyor, var olan işi döndürüyor.
+    required String requestId,
   }) async {
     final response = await _post('/generate', {
       'instrumental': instrumental,
@@ -178,6 +184,7 @@ class SunoApiService {
       // alanı kullanmıyor (kendi söz üretim adımı zaten doğru dilde
       // çalışıyor), sadece Lyria worker'ı okuyor.
       'lyricsLanguage': ?lyricsLanguage,
+      'requestId': requestId,
     });
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -426,6 +433,8 @@ class SunoApiService {
     // tespit ettiği 'tr'/'en'/'fr' gibi bir dil kodu, ya da Standart modda
     // olduğu gibi uygulamanın o anki arayüz dili). Suno bu alanı kullanmıyor.
     String? lyricsLanguage,
+    // YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ) — bkz. _requestMusic.
+    required String requestId,
   }) async {
     final style = (styleOverride != null && styleOverride.isNotEmpty)
         ? styleOverride
@@ -467,8 +476,36 @@ class SunoApiService {
       durationSeconds: durationSeconds,
       provider: provider,
       lyricsLanguage: lyricsLanguage,
+      requestId: requestId,
     );
 
+    return _pollUntilDone(jobId, provider: provider, pollInterval: pollInterval, timeout: timeout, onTick: onTick);
+  }
+
+  /// YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ): Uygulama kapanıp
+  /// açıldığında, diskte kalmış (daha önce ÖDENMİŞ, backend'de zaten
+  /// devam eden) bir job varsa BUNU çağır -- generateAndWait'i BAŞTAN
+  /// çağırma. generateAndWait yeni bir /generate isteği (ve dolayısıyla
+  /// backend'de requestId eşleşmezse teorik olarak yeni bir jeton
+  /// düşümü riski) taşır; resumeGeneration ise SADECE var olan jobId'yi
+  /// pollar, hiçbir yeni istek/jeton riski yoktur.
+  Future<List<Song>> resumeGeneration(
+    String jobId, {
+    String provider = 'suno',
+    Duration pollInterval = const Duration(seconds: 5),
+    Duration timeout = const Duration(minutes: 8),
+    void Function(TaskStatus status, int attempt)? onTick,
+  }) {
+    return _pollUntilDone(jobId, provider: provider, pollInterval: pollInterval, timeout: timeout, onTick: onTick);
+  }
+
+  Future<List<Song>> _pollUntilDone(
+    String jobId, {
+    required String provider,
+    required Duration pollInterval,
+    required Duration timeout,
+    void Function(TaskStatus status, int attempt)? onTick,
+  }) async {
     final deadline = DateTime.now().add(timeout);
     int attempt = 0;
 

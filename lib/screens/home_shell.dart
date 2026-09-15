@@ -59,6 +59,10 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     _library = SongLibrary(service: widget.service);
     _library.loadFromBackend();
+    // YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ): uygulama açılışında,
+    // yarım kalmış (daha önce ödenmiş) bir üretim varsa YENİ bir istek
+    // atmadan onu geri bulur -- bkz. song_library.dart.
+    _library.resumePendingGenerationIfAny();
     _player = PlayerController(service: widget.service);
     _scheduleProUpsell();
   }

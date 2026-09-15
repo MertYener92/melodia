@@ -1,6 +1,18 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import '../models/music_spec.dart';
+
+final _requestIdRandom = Random.secure();
+
+/// Her çağrı için benzersiz, kısa bir istek kimliği -- backend bunu
+/// idempotency anahtarı olarak kullanır (bkz. credit_ledger.py): ağ
+/// katmanı isteği tekrarlarsa (zaman aşımı sonrası retry gibi) ikinci
+/// deneme jeton TEKRAR düşürmez.
+String _newRequestId() {
+  final rand = _requestIdRandom.nextInt(1 << 32).toRadixString(16);
+  return '${DateTime.now().microsecondsSinceEpoch}_$rand';
+}
 
 /// AI Müzik sihirbazının doğal-dil cevaplarını backend'deki Bedrock
 /// (Claude) destekli `/music-spec` Lambda'sına gönderip, dönen
@@ -29,7 +41,11 @@ class MusicSpecService {
             'Content-Type': 'application/json',
             if (token != null) 'Authorization': 'Bearer $token',
           },
-          body: jsonEncode({'answers': answers, 'language': language}),
+          body: jsonEncode({
+            'answers': answers,
+            'language': language,
+            'requestId': _newRequestId(),
+          }),
         )
         .timeout(
           const Duration(seconds: 30),

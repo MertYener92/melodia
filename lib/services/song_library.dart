@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/song.dart';
 import 'suno_api_service.dart';
 
@@ -141,6 +143,15 @@ class SongLibrary extends ChangeNotifier {
 
   final SunoApiService service;
 
+  // YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ): auth_service.dart'ın
+  // zaten kullandığı flutter_secure_storage burada da kullanılıyor --
+  // yeni bir paket eklemeye gerek yok. Burada SADECE "devam eden, zaten
+  // ÖDENMİŞ bir üretim var mı" bilgisini tutuyoruz -- şarkının kendisi
+  // değil, sadece onu geri BULMAK için gereken minimum bilgi (jobId +
+  // ekranı yeniden çizmek için birkaç metadata alanı).
+  static const _storage = FlutterSecureStorage();
+  static const _pendingGenerationKey = 'melodia_pending_generation_v1';
+
   final List<LibrarySong> _songs = [];
   bool _loading = false;
   String? _loadError;
@@ -256,44 +267,35 @@ class SongLibrary extends ChangeNotifier {
     // kendi uygulamasındaki gibi ikisinin de birlikte hazırlandığını
     // görebiliyor. Lyria'nın davranışı DEĞİŞMEDİ -- her zaman tek kart.
     final expectedCount = provider == 'suno' ? 2 : 1;
-    final pendingIds = [
-      for (var i = 0; i < expectedCount; i++) '${baseId}_$i',
-    ];
+    final pendingIds = _addPendingPlaceholders(
+      baseId,
+      expectedCount,
+      displayGenre,
+      displayMood,
+    );
 
-    // Savunma amaçlı: aynı pendingId'lerden biri zaten listede varsa
-    // (pratikte mikrosaniye damgası nedeniyle imkansıza yakın) tekrar
-    // eklemek yerine hiçbir şey yapma.
-    if (pendingIds.any((id) => _songs.any((s) => s.pendingId == id))) return;
+    // DÜZELTME (ÇİFT JETON DÜŞME HATASI): requestId = baseId, AĞ
+    // İSTEĞİNDEN ÖNCE diske yazılıyor. Uygulama üretim bitmeden kapanıp
+    // açılırsa, HomeShell açılışta resumePendingGenerationIfAny()'yi
+    // çağırıp bu kaydı bulur ve YENİ bir /generate isteği (dolayısıyla
+    // YENİ bir jeton düşümü) ATMADAN sadece var olan işin sonucunu
+    // bekler -- kullanıcının "üretim kayboldu sanıp tekrar basması" (ve
+    // bunun ikinci kez ücretlendirilmesi) ihtimali ortadan kalkar.
+    final requestId = baseId;
+    await _writePendingGeneration({
+      'requestId': requestId,
+      'provider': provider,
+      'baseId': baseId,
+      'expectedCount': expectedCount,
+      'displayGenre': displayGenre,
+      'displayMood': displayMood,
+    });
 
-    for (final id in pendingIds) {
-      _songs.add(
-        LibrarySong.pending(
-          pendingId: id,
-          genre: displayGenre,
-          mood: displayMood,
-        ),
-      );
-    }
-    notifyListeners();
-
-    // Tüm placeholder kartlar AYNI generation'ın (tek job/taskId) parçası
-    // olduğu için ilerleme durumları (söz/melodi/vokal/mix) birlikte
-    // güncellenir.
-    void updateAllPhases(GenerationPhase phase) {
-      for (final id in pendingIds) {
-        _updatePendingPhase(id, phase);
-      }
-    }
-
-    try {
-      // ÖNEMLİ: Bu TEK bir generateAndWait çağrısı -- yani TEK bir Suno/
-      // Lyria API generation isteği. SunoAPI.org, tek bir istek için aynı
-      // taskId altında HER ZAMAN 2 klip döndürür; bu yüzden dönüş tipi
-      // artık List<Song> (Lyria için genelde 1, Suno için genelde 2
-      // eleman). İkinci klip için İKİNCİ bir istek ASLA atılmıyor -- ikisi
-      // de burada, aynı `songs` listesinde birlikte gelir. Kredi de
-      // backend'de bu tek isteğe karşılık zaten sadece bir kez düşülüyor.
-      final songs = await service.generateAndWait(
+    await _finishGeneration(
+      pendingIds: pendingIds,
+      displayGenre: displayGenre,
+      displayMood: displayMood,
+      run: () => service.generateAndWait(
         prompt,
         genre: genre,
         mood: mood,
@@ -305,9 +307,101 @@ class SongLibrary extends ChangeNotifier {
         providedLyrics: providedLyrics,
         provider: provider,
         lyricsLanguage: lyricsLanguage,
-        onLyricsStart: () => updateAllPhases(GenerationPhase.lyrics),
-        onTick: (status, attempt) => updateAllPhases(_phaseFor(status)),
+        requestId: requestId,
+        onLyricsStart: () => _updateAllPhases(pendingIds, GenerationPhase.lyrics),
+        onTick: (status, attempt) => _updateAllPhases(pendingIds, _phaseFor(status)),
+      ),
+    );
+  }
+
+  /// YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ): HomeShell tarafından
+  /// uygulama açılışında BİR KEZ çağrılır. Diskte yarım kalmış (daha önce
+  /// ÖDENMİŞ, backend'de hâlâ devam ediyor ya da zaten bitmiş olabilecek)
+  /// bir üretim varsa, YENİ bir istek/jeton harcamadan sadece onun
+  /// sonucunu bekleyip kullanıcıya gösterir. Kayıt yoksa hiçbir şey
+  /// yapmaz (no-op) -- normal açılışta ekstra bir maliyeti yoktur.
+  Future<void> resumePendingGenerationIfAny() async {
+    final pending = await _readPendingGeneration();
+    if (pending == null) return;
+
+    final requestId = pending['requestId']?.toString();
+    final baseId = pending['baseId']?.toString();
+    if (requestId == null || baseId == null) {
+      await _clearPendingGeneration();
+      return;
+    }
+
+    final provider = pending['provider']?.toString() ?? 'suno';
+    final expectedCount = (pending['expectedCount'] as num?)?.toInt() ?? 1;
+    final displayGenre = pending['displayGenre']?.toString() ?? '';
+    final displayMood = pending['displayMood']?.toString() ?? '';
+
+    final pendingIds = _addPendingPlaceholders(
+      baseId,
+      expectedCount,
+      displayGenre,
+      displayMood,
+    );
+
+    await _finishGeneration(
+      pendingIds: pendingIds,
+      displayGenre: displayGenre,
+      displayMood: displayMood,
+      run: () => service.resumeGeneration(
+        requestId,
+        provider: provider,
+        onTick: (status, attempt) => _updateAllPhases(pendingIds, _phaseFor(status)),
+      ),
+    );
+  }
+
+  /// pendingIds'e karşılık gelen placeholder ("generation card") kartları
+  /// listeye ekler -- zaten varsa (ör. resume sırasında hot-restart)
+  /// tekrar EKLEMEZ, idempotenttir. Her zaman TAM pendingIds listesini
+  /// döndürür (yeni eklensin ya da eklenmesin), çağıran taraf pollama/
+  /// sonuç-işleme için bunu kullanır.
+  List<String> _addPendingPlaceholders(
+    String baseId,
+    int expectedCount,
+    String displayGenre,
+    String displayMood,
+  ) {
+    final pendingIds = [for (var i = 0; i < expectedCount; i++) '${baseId}_$i'];
+    for (final id in pendingIds) {
+      if (_songs.any((s) => s.pendingId == id)) continue;
+      _songs.add(
+        LibrarySong.pending(pendingId: id, genre: displayGenre, mood: displayMood),
       );
+    }
+    notifyListeners();
+    return pendingIds;
+  }
+
+  void _updateAllPhases(List<String> pendingIds, GenerationPhase phase) {
+    for (final id in pendingIds) {
+      _updatePendingPhase(id, phase);
+    }
+  }
+
+  /// [startGeneration] ve [resumePendingGenerationIfAny] tarafından
+  /// paylaşılan ortak sonuç-işleme mantığı -- tek fark, üretimin NASIL
+  /// başlatıldığı ([run] closure'ı: ya YENİ bir /generate isteği, ya da
+  /// var olan bir job'un sadece pollanması).
+  Future<void> _finishGeneration({
+    required List<String> pendingIds,
+    required String displayGenre,
+    required String displayMood,
+    required Future<List<Song>> Function() run,
+  }) async {
+    try {
+      // ÖNEMLİ: Bu TEK bir üretim isteğine karşılık gelir -- yani TEK bir
+      // Suno/Lyria API generation isteği. SunoAPI.org, tek bir istek için
+      // aynı taskId altında HER ZAMAN 2 klip döndürür; bu yüzden dönüş
+      // tipi List<Song> (Lyria için genelde 1, Suno için genelde 2
+      // eleman). İkinci klip için İKİNCİ bir istek ASLA atılmıyor -- ikisi
+      // de burada, aynı `songs` listesinde birlikte gelir. Kredi de
+      // backend'de bu tek isteğe karşılık zaten sadece bir kez düşülüyor.
+      final songs = await run();
 
       // DOLULUK KONTROLÜ: Sadece gerçekten kullanılabilir (id VE audioUrl
       // dolu) klipler "gelmiş" sayılır. Suno bu sefer beklenmedik şekilde
@@ -322,6 +416,7 @@ class SongLibrary extends ChangeNotifier {
         for (final id in pendingIds) {
           _failPending(id, 'Şarkı üretilemedi (boş sonuç).');
         }
+        await _clearPendingGeneration();
         return;
       }
 
@@ -390,14 +485,49 @@ class SongLibrary extends ChangeNotifier {
             )
             .catchError((_) {});
       }
+
+      // Üretim (başarıyla) bitti -- diskteki "devam ediyor" kaydını
+      // temizle, aksi halde bir sonraki açılışta boş yere resume denenir.
+      await _clearPendingGeneration();
     } on SunoApiException catch (e) {
       for (final id in pendingIds) {
         _failPending(id, e.message);
       }
+      await _clearPendingGeneration();
     } catch (e) {
       for (final id in pendingIds) {
         _failPending(id, 'Beklenmeyen bir hata oluştu: $e');
       }
+      await _clearPendingGeneration();
+    }
+  }
+
+  Future<void> _writePendingGeneration(Map<String, dynamic> data) async {
+    try {
+      await _storage.write(key: _pendingGenerationKey, value: jsonEncode(data));
+    } catch (_) {
+      // Diske yazamazsak bile üretimi ENGELLEMİYORUZ -- sadece resume
+      // garantisi kaybolur, bu kritik değil (eski davranışa geriler).
+    }
+  }
+
+  Future<Map<String, dynamic>?> _readPendingGeneration() async {
+    try {
+      final raw = await _storage.read(key: _pendingGenerationKey);
+      if (raw == null) return null;
+      return jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearPendingGeneration() async {
+    try {
+      await _storage.delete(key: _pendingGenerationKey);
+    } catch (_) {
+      // Silinemezse bir sonraki açılışta gereksiz bir resume denemesi
+      // olur -- zararsız (backend zaten "ready"/"failed" döner, iş
+      // tekrar ücretlendirilmez), bu yüzden burada sessizce yutuyoruz.
     }
   }
 
