@@ -94,6 +94,8 @@ class SubscriptionService {
       throw Exception('Giriş yapılmamış — satın alma başlatılamadı.');
     }
 
+debugPrint('IAP DEBUG - userId: $userId');
+
     final PurchaseParam purchaseParam;
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
       // Sk2PurchaseParam -> StoreKit 2 (varsayılan, iOS 15+). Buradaki
