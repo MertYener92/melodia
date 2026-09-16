@@ -46,11 +46,21 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
   bool _purchasing = false;
   String? _error;
 
+  // YENİ: kapatma (X) ikonu artık ekran açılır açılmaz DEĞİL, 3 saniye
+  // sonra beliriyor -- otomatik açılışta da, "Pro'ya geç" ile elle
+  // açıldığında da AYNI davranış (ikisi de bu ekranı kullanıyor).
+  // Kullanıcı teklifi görmeden hemen kapatamasın diye.
+  bool _canClose = false;
+  Timer? _closeButtonTimer;
+
   final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _closeButtonTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _canClose = true);
+    });
     _subscriptionService = SubscriptionService(
       authService: widget.authService,
       apiService: widget.apiService,
@@ -79,6 +89,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
 
   @override
   void dispose() {
+    _closeButtonTimer?.cancel();
     _statusSubscription?.cancel();
     _subscriptionService.dispose();
     _scrollController.dispose();
@@ -383,10 +394,22 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
           // katmanında. Videonun üzerinde başlıyor ama kaydırma
           // içeriğinin bir parçası olmadığı için her zaman aynı yerde,
           // her zaman dokunulabilir kalıyor.
+          //
+          // YENİ: 3 saniye dolana kadar IgnorePointer + AnimatedOpacity
+          // ile hem görünmez hem dokunulamaz -- kullanıcı teklifi
+          // görmeden anında kapatamıyor, süre dolunca yumuşak bir
+          // geçişle beliriyor.
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
             right: 16,
-            child: _GlassCloseButton(onTap: () => Navigator.of(context).pop(false)),
+            child: IgnorePointer(
+              ignoring: !_canClose,
+              child: AnimatedOpacity(
+                opacity: _canClose ? 1 : 0,
+                duration: const Duration(milliseconds: 400),
+                child: _GlassCloseButton(onTap: () => Navigator.of(context).pop(false)),
+              ),
+            ),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../services/locale_controller.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/premium_back_button.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -168,15 +169,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // DÜZELTME ("ayarların olduğu kısım siyah kalmış" geri bildirimi):
+    // standart AppBar'ın kendi (temadan gelen, düz koyu) arka planı ile
+    // hemen altındaki backgroundGlow gradyanının üst rengi arasında
+    // görünür bir sınır/renk sıçraması oluşuyordu. my_songs_screen.dart
+    // ile BİREBİR aynı çözüm: standart AppBar KALDIRILDI, ekran kendi
+    // gradyanını ve geri butonunu yönetiyor, gradyan en tepeden
+    // (durum çubuğunun hemen altından) başlıyor.
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profileSettings)),
       body: Container(
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: SafeArea(
-          top: false,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: Row(
+                  children: [
+                    const PremiumBackButton(),
+                    const SizedBox(width: 12),
+                    Text(
+                      l10n.profileSettings,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               Container(
                 decoration: AppColors.glassCard(radius: 14),
                 child: Column(

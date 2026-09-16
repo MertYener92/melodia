@@ -67,7 +67,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
               return Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 20, 18),
                     child: Row(
                       children: [
                         const PremiumBackButton(),

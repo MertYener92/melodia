@@ -9,6 +9,7 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_multi_group.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/mode_cost_badge.dart';
 import '../widgets/provider_selector.dart';
 import 'my_songs_screen.dart';
 
@@ -836,6 +837,8 @@ class _MusicWizardScreenState extends State<MusicWizardScreen> {
           onChanged: _generating ? (_) {} : (v) => setState(() => _provider = v),
         ),
         const SizedBox(height: 14),
+        const ModeCostBadge(credits: 20, songCount: 2),
+        const SizedBox(height: 10),
         GradientButton(
           label: 'Şarkıyı Oluştur',
           icon: Icons.auto_awesome_rounded,

@@ -8,6 +8,7 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_group.dart';
 import '../widgets/gradient_button.dart';
+import '../widgets/mode_cost_badge.dart';
 import '../widgets/provider_selector.dart';
 import 'my_songs_screen.dart';
 
@@ -179,6 +180,8 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
                     : (v) => setState(() => _provider = v),
               ),
               const SizedBox(height: 28),
+              const ModeCostBadge(credits: 10, songCount: 2),
+              const SizedBox(height: 10),
               GradientButton(
                 label: l10n.createButton,
                 icon: Icons.auto_awesome,

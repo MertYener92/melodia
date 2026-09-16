@@ -167,6 +167,8 @@ class SunoApiService {
     // ikinci bir çağrı (uygulama kapanıp açılsa, istek tekrarlansa bile)
     // YENİ bir iş açmıyor/YENİ bir jeton düşmüyor, var olan işi döndürüyor.
     required String requestId,
+    // YENİ (JETON SİSTEMİ x10 GÜNCELLEMESİ) — bkz. generateAndWait.
+    String? mode,
   }) async {
     final response = await _post('/generate', {
       'instrumental': instrumental,
@@ -185,6 +187,10 @@ class SunoApiService {
       // çalışıyor), sadece Lyria worker'ı okuyor.
       'lyricsLanguage': ?lyricsLanguage,
       'requestId': requestId,
+      // YENİ (JETON SİSTEMİ x10 GÜNCELLEMESİ): backend bu değere göre
+      // 10 ya da 20 jeton rezerve ediyor -- bkz. creditPlans.js
+      // (songCreditCostForMode).
+      'mode': ?mode,
     });
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -435,6 +441,11 @@ class SunoApiService {
     String? lyricsLanguage,
     // YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ) — bkz. _requestMusic.
     required String requestId,
+    // YENİ (JETON SİSTEMİ x10 GÜNCELLEMESİ): backend artık üretim
+    // maliyetini bu değere göre hesaplıyor ('quick' | 'standard' |
+    // 'advanced' -- library_mode_filter.dart'taki DEĞERLERLE BİREBİR
+    // AYNI olmalı). Verilmezse backend 'standard' maliyetine düşer.
+    String? mode,
   }) async {
     final style = (styleOverride != null && styleOverride.isNotEmpty)
         ? styleOverride
@@ -477,6 +488,7 @@ class SunoApiService {
       provider: provider,
       lyricsLanguage: lyricsLanguage,
       requestId: requestId,
+      mode: mode,
     );
 
     return _pollUntilDone(jobId, provider: provider, pollInterval: pollInterval, timeout: timeout, onTick: onTick);

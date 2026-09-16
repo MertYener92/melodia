@@ -12,7 +12,9 @@ class PremiumBackButton extends StatelessWidget {
 
   final VoidCallback? onPressed;
 
-  static const double _size = 38;
+  // KÜÇÜLTÜLDÜ: önceki 38px boyut kütüphane ekranlarının başlığına göre
+  // çok iri duruyordu ("geri oku yuvarlağı çok büyük" geri bildirimi).
+  static const double _size = 30;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +37,7 @@ class PremiumBackButton extends StatelessWidget {
               child: Icon(
                 Icons.arrow_back_rounded,
                 color: AppColors.textPrimary,
-                size: 19,
+                size: 15,
               ),
             ),
           ),

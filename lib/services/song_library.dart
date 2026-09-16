@@ -370,6 +370,7 @@ class SongLibrary extends ChangeNotifier {
         provider: provider,
         lyricsLanguage: lyricsLanguage,
         requestId: requestId,
+        mode: mode,
         onLyricsStart: () => _updateAllPhases(pendingIds, GenerationPhase.lyrics),
         onTick: (status, attempt) => _updateAllPhases(pendingIds, _phaseFor(status)),
       ),
