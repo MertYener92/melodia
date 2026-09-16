@@ -25,6 +25,7 @@ class LibrarySong {
     this.pendingId,
     this.phase,
     this.errorMessage,
+    this.mode,
   });
 
   final Song song;
@@ -32,6 +33,15 @@ class LibrarySong {
   final String mood;
   final DateTime createdAt;
   bool isFavorite;
+
+  /// YENİ: Şarkının hangi üretim modunda oluşturulduğu -- 'quick'
+  /// (Hızlı), 'standard' (Standart), 'advanced' (Gelişmiş). Kütüphane
+  /// ekranlarındaki filtre çipleri (bkz. widgets/library_mode_filter.dart)
+  /// bu alana göre süzüyor. `null` = mod bilgisi yok (backend henüz bu
+  /// alanı desteklemediği için, sadece YEREL oturumda üretilen şarkılar
+  /// bu alanı taşır -- backend'den (loadFromBackend) yüklenen geçmiş
+  /// şarkılarda şimdilik null'dur, sadece "Tümü" filtresinde görünürler).
+  final String? mode;
 
   /// YENİ: Şarkı hâlâ üretiliyorsa benzersiz bir yerel kimlik taşır;
   /// üretim tamamlandığında bu kart tamamen normal bir [LibrarySong] ile
@@ -55,6 +65,7 @@ class LibrarySong {
     required String pendingId,
     required String genre,
     required String mood,
+    String? mode,
   }) {
     return LibrarySong(
       song: Song(
@@ -70,6 +81,7 @@ class LibrarySong {
       createdAt: DateTime.now(),
       pendingId: pendingId,
       phase: GenerationPhase.lyrics,
+      mode: mode,
     );
   }
 
@@ -82,6 +94,7 @@ class LibrarySong {
       isFavorite: isFavorite,
       pendingId: pendingId,
       phase: newPhase,
+      mode: mode,
     );
   }
 
@@ -95,6 +108,7 @@ class LibrarySong {
       pendingId: pendingId,
       phase: GenerationPhase.failed,
       errorMessage: message,
+      mode: mode,
     );
   }
 
@@ -121,6 +135,10 @@ class LibrarySong {
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       isFavorite: json['isFavorite'] == true,
+      // NOT: backend şu an bu alanı DÖNDÜRMÜYOR (mode, henüz backend'e
+      // eklenmedi) -- ileride eklenirse otomatik okunur, o zamana kadar
+      // her zaman null gelir (bkz. LibraryFilterMode.matches).
+      mode: json['mode']?.toString(),
     );
   }
 }
@@ -160,6 +178,43 @@ class SongLibrary extends ChangeNotifier {
   LibrarySong? get lastSong => _songs.isEmpty ? null : _songs.last;
   bool get isLoading => _loading;
   String? get loadError => _loadError;
+
+  // DÜZELTME (kredi rozeti bayatlığı): Kota artık her ekranın kendi
+  // State'inde AYRI AYRI (ve sadece Navigator.push().then() geri
+  // dönüşünde) tutulmuyor. CreateScreen/AiMusicScreen HomeShell'de
+  // IndexedStack içinde canlı tutulduğu için initState bir daha hiç
+  // çalışmıyordu; üstüne QuickCreateScreen/CreateFormScreen/
+  // MusicWizardScreen üretim başladığı ANDA pushAndRemoveUntil ile
+  // TÜM ara route'ları (dolayısıyla onların .then(_loadQuota)
+  // callback'lerini) kaldırıyordu -- üretim daha bitmeden, o ekranlar
+  // zaten yok oluyordu. Sonuç: rozet, üretim tamamlanıp kredi gerçekten
+  // düşene kadar hiç yenilenmiyor, ancak uygulama kapatılıp açıldığında
+  // (her şey initState'ten yeniden kurulduğunda) güncel değeri
+  // gösteriyordu. Artık kota, SongLibrary gibi tek bir singleton'da
+  // (HomeShell ömrü boyunca canlı, ChangeNotifier) tutuluyor ve üretim
+  // her bitişinde (başarılı ya da başarısız) burada tazeleniyor --
+  // ekranlar sadece bu singleton'ı dinliyor, kendi kopyalarını
+  // tutmuyorlar.
+  int? _remainingCredits;
+  String? _quotaError;
+
+  int? get remainingCredits => _remainingCredits;
+  String? get quotaError => _quotaError;
+
+  /// Kotayı backend'den tazeler ve dinleyicileri bilgilendirir.
+  /// Uygulama açılışında, her üretim bitişinde (başarı/hata fark etmez)
+  /// ve satın alma ekranı kapandığında çağrılır -- ekranların kendi
+  /// yerel kopyasını tutmasına gerek kalmaz.
+  Future<void> refreshQuota() async {
+    try {
+      final quota = await service.getQuota();
+      _remainingCredits = quota.remaining;
+      _quotaError = null;
+    } catch (e) {
+      _quotaError = e.toString();
+    }
+    notifyListeners();
+  }
 
   /// Uygulama açılışında bir kez çağrılır: kullanıcının backend'deki
   /// kalıcı kütüphanesini çeker.
@@ -258,6 +313,10 @@ class SongLibrary extends ChangeNotifier {
     String? providedLyrics,
     String provider = 'suno',
     String? lyricsLanguage,
+    // YENİ: kütüphane filtre çipleri (Hızlı/Standart/Gelişmiş) için --
+    // çağıran ekran (QuickCreateScreen/CreateFormScreen/MusicWizardScreen)
+    // kendi modunu geçirir.
+    String? mode,
   }) async {
     final baseId = 'gen_${DateTime.now().microsecondsSinceEpoch}_${_songs.length}';
 
@@ -272,6 +331,7 @@ class SongLibrary extends ChangeNotifier {
       expectedCount,
       displayGenre,
       displayMood,
+      mode: mode,
     );
 
     // DÜZELTME (ÇİFT JETON DÜŞME HATASI): requestId = baseId, AĞ
@@ -289,12 +349,14 @@ class SongLibrary extends ChangeNotifier {
       'expectedCount': expectedCount,
       'displayGenre': displayGenre,
       'displayMood': displayMood,
+      'mode': mode,
     });
 
     await _finishGeneration(
       pendingIds: pendingIds,
       displayGenre: displayGenre,
       displayMood: displayMood,
+      mode: mode,
       run: () => service.generateAndWait(
         prompt,
         genre: genre,
@@ -335,18 +397,21 @@ class SongLibrary extends ChangeNotifier {
     final expectedCount = (pending['expectedCount'] as num?)?.toInt() ?? 1;
     final displayGenre = pending['displayGenre']?.toString() ?? '';
     final displayMood = pending['displayMood']?.toString() ?? '';
+    final mode = pending['mode']?.toString();
 
     final pendingIds = _addPendingPlaceholders(
       baseId,
       expectedCount,
       displayGenre,
       displayMood,
+      mode: mode,
     );
 
     await _finishGeneration(
       pendingIds: pendingIds,
       displayGenre: displayGenre,
       displayMood: displayMood,
+      mode: mode,
       run: () => service.resumeGeneration(
         requestId,
         provider: provider,
@@ -364,13 +429,14 @@ class SongLibrary extends ChangeNotifier {
     String baseId,
     int expectedCount,
     String displayGenre,
-    String displayMood,
-  ) {
+    String displayMood, {
+    String? mode,
+  }) {
     final pendingIds = [for (var i = 0; i < expectedCount; i++) '${baseId}_$i'];
     for (final id in pendingIds) {
       if (_songs.any((s) => s.pendingId == id)) continue;
       _songs.add(
-        LibrarySong.pending(pendingId: id, genre: displayGenre, mood: displayMood),
+        LibrarySong.pending(pendingId: id, genre: displayGenre, mood: displayMood, mode: mode),
       );
     }
     notifyListeners();
@@ -392,6 +458,7 @@ class SongLibrary extends ChangeNotifier {
     required String displayGenre,
     required String displayMood,
     required Future<List<Song>> Function() run,
+    String? mode,
   }) async {
     try {
       // ÖNEMLİ: Bu TEK bir üretim isteğine karşılık gelir -- yani TEK bir
@@ -446,6 +513,7 @@ class SongLibrary extends ChangeNotifier {
             genre: displayGenre,
             mood: displayMood,
             createdAt: createdAt,
+            mode: mode,
           );
         } else {
           // Bu slot için karşılığı olan (dolu/benzersiz) bir klip GELMEDİ
@@ -465,6 +533,7 @@ class SongLibrary extends ChangeNotifier {
             genre: displayGenre,
             mood: displayMood,
             createdAt: createdAt,
+            mode: mode,
           ),
         );
       }
@@ -499,6 +568,13 @@ class SongLibrary extends ChangeNotifier {
         _failPending(id, 'Beklenmeyen bir hata oluştu: $e');
       }
       await _clearPendingGeneration();
+    } finally {
+      // DÜZELTME (kredi rozeti bayatlığı): üretim ister başarıyla ister
+      // hatayla bitsin, ekranlardaki rozetin (ve varsa Pro/kota bağlı
+      // diğer göstergelerin) hemen güncellenmesi için kota burada,
+      // TEK yerden tazelenir -- ekranların Navigator pop'una bağlı ayrı
+      // ayrı yenileme mantığına artık gerek yok.
+      await refreshQuota();
     }
   }
 

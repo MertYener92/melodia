@@ -100,6 +100,7 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
         durationSeconds: _lengthToSeconds[_length] ?? 90,
         provider: _provider,
         lyricsLanguage: Localizations.localeOf(context).languageCode,
+        mode: 'standard',
       ),
     );
 

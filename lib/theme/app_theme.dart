@@ -17,6 +17,13 @@ class AppColors {
   static const Color pink = Color(0xFFEC4899);
   static const Color purpleDeep = Color(0xFF6D28D9);
 
+  /// YENİ: Kütüphane filtre çiplerinin (Tümü/Hızlı/Standart/Gelişmiş)
+  /// SEÇİLİ durumundaki gradyanlı altın çerçevesi için iki tonlu geçiş
+  /// -- açık altından koyu altına.
+  static const LinearGradient goldGradient = LinearGradient(
+    colors: [Color(0xFFF3D27A), Color(0xFFC9A44C)],
+  );
+
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
@@ -28,6 +35,29 @@ class AppColors {
     end: Alignment.bottomCenter,
     colors: [Color(0xFF1A1030), background],
   );
+
+  /// YENİ: Kütüphane ekranları (Şarkılarım/Videolarım/Favorilerim/
+  /// İndirdiklerim) için "granit" dokulu, tepeden aşağı çok katmanlı
+  /// gradyan. Referans görseldeki kahverengi-siyah granit hissini,
+  /// programın KENDİ renk paletiyle (purple/purpleDeep -> background)
+  /// veriyor -- yeni bir renk eklemiyor, mevcut backgroundGlow'un üst
+  /// tonundan (0xFF1A1030) başlayıp aradan geçen ek koyu-mor katmanlarla
+  /// background'a (0xFF0A0A12) iniyor. Sadece bu 4 ekranda kullanılır --
+  /// backgroundGlow'un kendisi (uygulama genelinde ~15 yerde kullanılıyor)
+  /// DEĞİŞTİRİLMEDİ.
+  static const LinearGradient libraryGranite = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    stops: [0.0, 0.22, 0.46, 0.72, 1.0],
+    colors: [
+      Color(0xFF2B1F4A),
+      Color(0xFF1A1030),
+      Color(0xFF160D28),
+      Color(0xFF100A1E),
+      background,
+    ],
+  );
+
 
   static BoxDecoration glassCard({double radius = 24}) {
     return BoxDecoration(

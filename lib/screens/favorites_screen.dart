@@ -4,6 +4,8 @@ import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../theme/app_theme.dart';
+import '../widgets/library_mode_filter.dart';
+import '../widgets/premium_back_button.dart';
 import '../widgets/song_tile.dart';
 import 'video_library_screen.dart';
 
@@ -27,6 +29,11 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   late Future<List<Map<String, dynamic>>> _videoFuture = widget.videoService.fetchProjects();
+  // YENİ: Şarkılarım/Videolarım ekranlarıyla aynı mod filtresi --
+  // favori şarkılar bu alana göre süzülür (favori videolar şimdilik
+  // mod taşımadığı için sadece "Tümü"de görünür, bkz.
+  // video_library_screen.dart'taki not).
+  LibraryFilterMode _selectedMode = LibraryFilterMode.all;
 
   Future<void> _refresh() async {
     setState(() => _videoFuture = widget.videoService.fetchProjects());
@@ -36,34 +43,74 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // DEĞİŞTİ: Standart Scaffold AppBar KALDIRILDI -- Scaffold'un kendi
+    // arka planı (scaffoldBackgroundColor, düz siyah) AppBar'ın
+    // arkasından görünüyor, bu da gradyanın en tepede (durum çubuğunun
+    // hemen altında) BAŞLAMAMASINA, üstte siyah bir şerit kalmasına
+    // neden oluyordu. Artık Şarkılarım/Videolarım ekranlarıyla BİREBİR
+    // aynı desen: özel bir başlık satırı (PremiumBackButton + metin),
+    // gradyan içinde, en tepeden başlıyor.
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.libraryFavoritesTitle)),
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        decoration: const BoxDecoration(gradient: AppColors.libraryGranite),
         child: SafeArea(
-          top: false,
-          child: RefreshIndicator(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 20, 8),
+                child: Row(
+                  children: [
+                    const PremiumBackButton(),
+                    const SizedBox(width: 12),
+                    Text(
+                      l10n.libraryFavoritesTitle,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: RefreshIndicator(
             color: AppColors.pink,
             onRefresh: _refresh,
             child: ListenableBuilder(
               listenable: widget.songLibrary,
               builder: (context, _) {
-                final favoriteSongs =
+                var favoriteSongs =
                     widget.songLibrary.songs.where((s) => s.isFavorite).toList();
+                if (_selectedMode.value != null) {
+                  favoriteSongs = favoriteSongs
+                      .where((s) => _selectedMode.matches(s.mode))
+                      .toList();
+                }
 
                 return FutureBuilder<List<Map<String, dynamic>>>(
                   future: _videoFuture,
                   builder: (context, snapshot) {
-                    final favoriteVideos = (snapshot.data ?? [])
+                    var favoriteVideos = (snapshot.data ?? [])
                         .where((p) => p['isFavorite'] == true)
                         .toList();
+                    if (_selectedMode.value != null) {
+                      favoriteVideos = favoriteVideos
+                          .where((p) => _selectedMode.matches(p['mode']?.toString()))
+                          .toList();
+                    }
 
                     if (favoriteSongs.isEmpty &&
                         favoriteVideos.isEmpty &&
                         snapshot.connectionState == ConnectionState.done) {
                       return ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                         children: [
+                          LibraryModeFilter(
+                            selected: _selectedMode,
+                            onChanged: (mode) => setState(() => _selectedMode = mode),
+                          ),
+                          const SizedBox(height: 44),
                           Container(
                             width: 72,
                             height: 72,
@@ -96,6 +143,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
                       children: [
+                        LibraryModeFilter(
+                          selected: _selectedMode,
+                          onChanged: (mode) => setState(() => _selectedMode = mode),
+                        ),
+                        const SizedBox(height: 16),
                         if (favoriteSongs.isNotEmpty) ...[
                           Text(
                             l10n.sectionSongs,
@@ -135,6 +187,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               },
             ),
           ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -169,18 +224,18 @@ class _FavoriteVideoTile extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 76,
+                  height: 76,
                   decoration: BoxDecoration(
                     gradient: isReady ? AppColors.primaryGradient : null,
                     color: isReady ? null : AppColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
                     isReady ? Icons.play_arrow_rounded : Icons.hourglass_top_rounded,
                     color: isReady ? Colors.white : AppColors.textMuted,
-                    size: 26,
+                    size: 32,
                   ),
                 ),
                 const SizedBox(width: 14),

@@ -5,6 +5,8 @@ import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/generation_card.dart';
+import '../widgets/library_mode_filter.dart';
+import '../widgets/premium_back_button.dart';
 import '../widgets/song_tile.dart';
 
 class MySongsScreen extends StatefulWidget {
@@ -12,30 +14,20 @@ class MySongsScreen extends StatefulWidget {
     super.key,
     required this.library,
     required this.player,
-    this.initialFavoritesOnly = false,
   });
 
   final SongLibrary library;
   final PlayerController player;
-
-  /// "Favorilerim" kartından açıldığında true geçirilir; ekran doğrudan
-  /// favori filtresi açık şekilde başlar.
-  final bool initialFavoritesOnly;
 
   @override
   State<MySongsScreen> createState() => _MySongsScreenState();
 }
 
 class _MySongsScreenState extends State<MySongsScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  String _query = '';
-  late bool _favoritesOnly = widget.initialFavoritesOnly;
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  // DEĞİŞTİ: Metin tabanlı arama kutusu KALDIRILDI -- yerine referans
+  // tasarımdaki gibi yatay kaydırılabilir mod filtresi (Tümü/Hızlı/
+  // Standart/Gelişmiş) geldi. Bkz. widgets/library_mode_filter.dart.
+  LibraryFilterMode _selectedMode = LibraryFilterMode.all;
 
   @override
   Widget build(BuildContext context) {
@@ -48,30 +40,26 @@ class _MySongsScreenState extends State<MySongsScreen> {
     // ekranıyla (video_library_screen.dart) BİREBİR aynı desen: ekran
     // kendi Scaffold'unu ve gradyanını yönetiyor, gradyan en tepeden
     // (durum çubuğunun hemen altından) başlıyor, standart AppBar yok.
+    //
+    // DEĞİŞTİ: backgroundGlow yerine libraryGranite -- tepeden aşağı
+    // çok katmanlı, granit dokulu gradyan (bkz. theme/app_theme.dart).
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        decoration: const BoxDecoration(gradient: AppColors.libraryGranite),
         child: SafeArea(
           child: ListenableBuilder(
             listenable: Listenable.merge([widget.library, widget.player]),
             builder: (context, _) {
               var songs = widget.library.songs;
-              // DEĞİŞTİ: Devam eden üretim kartları (generation card)
-              // favori/arama filtrelerinden ETKİLENMEZ -- kullanıcı
-              // hangi filtrede olursa olsun üretimini takip edebilmeli.
-              if (_favoritesOnly) {
-                songs = songs
-                    .where((s) => s.isFavorite || s.pendingId != null)
-                    .toList();
-              }
-              if (_query.isNotEmpty) {
+              // DEĞİŞTİ: Favori-sadece filtresi (kalp butonu) KOMPLE
+              // KALDIRILDI -- artık sadece mod filtresi var. Devam eden
+              // üretim kartları (generation card) mod filtresinden
+              // ETKİLENMEZ -- kullanıcı hangi filtrede olursa olsun
+              // üretimini takip edebilmeli.
+              if (_selectedMode.value != null) {
                 songs = songs
                     .where(
-                      (s) =>
-                          s.pendingId != null ||
-                          s.song.title
-                              .toLowerCase()
-                              .contains(_query.toLowerCase()),
+                      (s) => s.pendingId != null || _selectedMode.matches(s.mode),
                     )
                     .toList();
               }
@@ -79,17 +67,11 @@ class _MySongsScreenState extends State<MySongsScreen> {
               return Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 20, 8),
                     child: Row(
                       children: [
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.arrow_back_rounded,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
+                        const PremiumBackButton(),
+                        const SizedBox(width: 12),
                         Text(
                           l10n.librarySongsTitle,
                           style: const TextStyle(
@@ -98,82 +80,58 @@ class _MySongsScreenState extends State<MySongsScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () =>
-                              setState(() => _favoritesOnly = !_favoritesOnly),
-                          icon: Icon(
-                            _favoritesOnly
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            color: _favoritesOnly
-                                ? AppColors.pink
-                                : AppColors.textMuted,
-                          ),
-                        ),
                       ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: l10n.searchSongsHint,
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: AppColors.textMuted,
-                        ),
+                  LibraryModeFilter(
+                    selected: _selectedMode,
+                    onChanged: (mode) => setState(() => _selectedMode = mode),
                   ),
-                  onChanged: (v) => setState(() => _query = v),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: songs.isEmpty
-                    ? Center(
-                        child: Text(
-                          l10n.noSongsFound,
-                          style: const TextStyle(color: AppColors.textMuted),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                        itemCount: songs.length,
-                        itemBuilder: (context, index) {
-                          final s = songs[index];
-                          // YENİ: Devam eden (ya da başarısız olmuş) bir
-                          // üretim için normal SongTile yerine
-                          // GenerationCard gösterilir -- ayrı bir
-                          // loading sayfası YOK, kart doğrudan bu
-                          // listenin içinde. Aynı pendingId için asla
-                          // ikinci bir kart oluşmaz (bkz. SongLibrary).
-                          if (s.pendingId != null) {
-                            return GenerationCard(
-                              key: ValueKey(s.pendingId),
-                              librarySong: s,
-                              onDismiss: s.isFailedGeneration
-                                  ? () => widget.library.removePending(s)
-                                  : null,
-                            );
-                          }
-                          return SongTile(
-                            librarySong: s,
-                            isPlaying:
-                                widget.player.current?.song.id ==
-                                    s.song.id &&
-                                widget.player.isPlaying,
-                            onTap: () => widget.player.playSong(s),
-                            onMore: () => _showActions(context, s),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          );
-        },
-      ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: songs.isEmpty
+                        ? Center(
+                            child: Text(
+                              l10n.noSongsFound,
+                              style: const TextStyle(color: AppColors.textMuted),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                            itemCount: songs.length,
+                            itemBuilder: (context, index) {
+                              final s = songs[index];
+                              // YENİ: Devam eden (ya da başarısız olmuş) bir
+                              // üretim için normal SongTile yerine
+                              // GenerationCard gösterilir -- ayrı bir
+                              // loading sayfası YOK, kart doğrudan bu
+                              // listenin içinde. Aynı pendingId için asla
+                              // ikinci bir kart oluşmaz (bkz. SongLibrary).
+                              if (s.pendingId != null) {
+                                return GenerationCard(
+                                  key: ValueKey(s.pendingId),
+                                  librarySong: s,
+                                  onDismiss: s.isFailedGeneration
+                                      ? () => widget.library.removePending(s)
+                                      : null,
+                                );
+                              }
+                              return SongTile(
+                                librarySong: s,
+                                isPlaying:
+                                    widget.player.current?.song.id ==
+                                        s.song.id &&
+                                    widget.player.isPlaying,
+                                onTap: () => widget.player.playSong(s),
+                                onMore: () => _showActions(context, s),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

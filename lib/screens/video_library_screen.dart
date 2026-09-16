@@ -10,6 +10,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import '../services/music_video_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/library_mode_filter.dart';
+import '../widgets/premium_back_button.dart';
 
 /// Başka ekranlardan (örn. Favorilerim) da tam ekran klip oynatıcıyı
 /// açabilmek için dışarıya açık yardımcı fonksiyon.
@@ -52,14 +54,15 @@ class VideoLibraryScreen extends StatefulWidget {
 
 class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
   late Future<List<Map<String, dynamic>>> _future = widget.videoService.fetchProjects();
-  final TextEditingController _searchController = TextEditingController();
-  String _query = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  // DEĞİŞTİ: Metin tabanlı arama kutusu KALDIRILDI -- yerine Şarkılarım
+  // ekranıyla aynı yatay kaydırılabilir mod filtresi geldi. NOT: video
+  // projeleri şu an bir üretim modu (Hızlı/Standart/Gelişmiş) TAŞIMIYOR
+  // -- video oluşturma tek akışlı olduğu için "mode" alanı hiçbir
+  // projede dolu değil, bu yüzden Hızlı/Standart/Gelişmiş seçildiğinde
+  // liste boş görünür; sadece "Tümü" videoları gösterir. Video üretim
+  // akışına da mod ayrımı eklenirse (backend + bu ekran) otomatik
+  // çalışır hale gelir.
+  LibraryFilterMode _selectedMode = LibraryFilterMode.all;
 
   Future<void> _refresh() async {
     setState(() => _future = widget.videoService.fetchProjects());
@@ -138,18 +141,16 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
       // aynı görsel dil -- büyük kalın başlık + arama kutusu. Geri
       // dönme oku ayrı bir satırda korunuyor.
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
+        decoration: const BoxDecoration(gradient: AppColors.libraryGranite),
         child: SafeArea(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(4, 4, 20, 0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 20, 8),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-                    ),
+                    const PremiumBackButton(),
+                    const SizedBox(width: 12),
                     const Text(
                       'Videolarım',
                       style: TextStyle(
@@ -161,17 +162,9 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextField(
-                  controller: _searchController,
-                  style: const TextStyle(color: AppColors.textPrimary),
-                  decoration: const InputDecoration(
-                    hintText: 'Search videos...',
-                    prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
-                  ),
-                  onChanged: (v) => setState(() => _query = v),
-                ),
+              LibraryModeFilter(
+                selected: _selectedMode,
+                onChanged: (mode) => setState(() => _selectedMode = mode),
               ),
               const SizedBox(height: 12),
               Expanded(child: _buildContent()),
@@ -211,12 +204,11 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
             }
 
             var projects = snapshot.data ?? [];
-            // YENİ: başlığa göre arama filtresi -- Şarkılarım'daki gibi.
-            if (_query.isNotEmpty) {
+            // DEĞİŞTİ: metin araması yerine mod filtresi -- bkz. sınıf
+            // yorumundaki not (videolar şu an mod taşımıyor).
+            if (_selectedMode.value != null) {
               projects = projects
-                  .where((p) => (p['songTitle']?.toString() ?? '')
-                      .toLowerCase()
-                      .contains(_query.toLowerCase()))
+                  .where((p) => _selectedMode.matches(p['mode']?.toString()))
                   .toList();
             }
 
@@ -244,10 +236,10 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          _query.isNotEmpty ? 'No videos found' : 'Henüz klip oluşturmadın',
+                          _selectedMode.value != null ? 'No videos found' : 'Henüz klip oluşturmadın',
                           style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
                         ),
-                        if (_query.isEmpty) ...[
+                        if (_selectedMode.value == null) ...[
                           const SizedBox(height: 6),
                           const Text(
                             'Bir şarkı aç, oynatıcıdaki klip ikonuna bas.',
@@ -336,18 +328,18 @@ class _LibraryTile extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 76,
+                  height: 76,
                   decoration: BoxDecoration(
                     gradient: isReady ? AppColors.primaryGradient : null,
                     color: isReady ? null : AppColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
                     isReady ? Icons.play_arrow_rounded : Icons.hourglass_top_rounded,
                     color: isReady ? Colors.white : AppColors.textMuted,
-                    size: 26,
+                    size: 32,
                   ),
                 ),
                 const SizedBox(width: 14),

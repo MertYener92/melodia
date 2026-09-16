@@ -9,6 +9,8 @@ import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/pro_screen_session_gate.dart';
 import '../services/song_library.dart';
+import '../services/subscription_products_cache.dart';
+import '../services/subscription_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
@@ -65,6 +67,14 @@ class _HomeShellState extends State<HomeShell> {
     _library.resumePendingGenerationIfAny();
     _player = PlayerController(service: widget.service);
     _scheduleProUpsell();
+    // YENİ (Pro ekranı yükleme kayması düzeltmesi): PRO ekranı en erken
+    // 9sn sonra otomatik açılabiliyor -- bu süreyi, Apple'dan ürün
+    // bilgilerini ARKA PLANDA önceden çekmek için kullanıyoruz. Ekran
+    // gerçekten açıldığında (SubscriptionProductsCache doluysa) hiçbir
+    // yükleme göstergesi görünmeden doğrudan fiyatlarla açılır.
+    SubscriptionProductsCache.prefetch(
+      SubscriptionService(authService: widget.authService, apiService: widget.service),
+    );
   }
 
   /// İSTENEN DAVRANIŞ: uygulama açıldıktan 9 saniye sonra (splash video

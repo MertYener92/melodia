@@ -41,27 +41,18 @@ class AiMusicScreen extends StatefulWidget {
 }
 
 class _AiMusicScreenState extends State<AiMusicScreen> {
-  int? _remainingCredits;
-  String? _quotaError;
-
   @override
   void initState() {
     super.initState();
-    _loadQuota();
-  }
-
-  Future<void> _loadQuota() async {
-    try {
-      final quota = await widget.service.getQuota();
-      if (!mounted) return;
-      setState(() {
-        _remainingCredits = quota.remaining;
-        _quotaError = null;
-      });
-    } catch (e) {
-      debugPrint('[AiMusicScreen] getQuota() başarısız: $e');
-      if (!mounted) return;
-      setState(() => _quotaError = e.toString());
+    // DÜZELTME (kredi rozeti bayatlığı): bkz. create_screen.dart'taki
+    // aynı düzeltme. Kota artık widget.library (SongLibrary) singleton'ında
+    // merkezi olarak tutuluyor ve her üretim bitişinde orada tazeleniyor;
+    // bu ekran sadece dinliyor. Üretim akışı (QuickCreateScreen /
+    // CreateFormScreen / MusicWizardScreen) zaten pushAndRemoveUntil ile
+    // bu ekranı route yığınından kaldırdığı için eskiden buradaki
+    // .then(_loadQuota) hiç tetiklenmiyordu.
+    if (widget.library.remainingCredits == null) {
+      widget.library.refreshQuota();
     }
   }
 
@@ -131,7 +122,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         player: widget.player,
                       ),
                     ),
-                  ).then((_) => _loadQuota()),
+                  ).then((_) => widget.library.refreshQuota()),
                 ),
                 const SizedBox(height: 14),
                 _ModeCard(
@@ -150,7 +141,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         player: widget.player,
                       ),
                     ),
-                  ).then((_) => _loadQuota()),
+                  ).then((_) => widget.library.refreshQuota()),
                 ),
                 const SizedBox(height: 14),
                 _ModeCard(
@@ -170,7 +161,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                         player: widget.player,
                       ),
                     ),
-                  ).then((_) => _loadQuota()),
+                  ).then((_) => widget.library.refreshQuota()),
                 ),
               ],
             ),
@@ -191,7 +182,13 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CreditsBadge(remaining: _remainingCredits, error: _quotaError),
+                    ListenableBuilder(
+                      listenable: widget.library,
+                      builder: (context, _) => CreditsBadge(
+                        remaining: widget.library.remainingCredits,
+                        error: widget.library.quotaError,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     ProBadge(
                       onTap: () => Navigator.of(context)
@@ -211,7 +208,7 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                           // yeniden başlatılana kadar eski (satın alma
                           // öncesi) değeri gösteriyordu. Artık ekran her
                           // kapandığında (iptal de olsa) kotayı tazeliyoruz.
-                          .then((_) => _loadQuota()),
+                          .then((_) => widget.library.refreshQuota()),
                     ),
                   ],
                 ),

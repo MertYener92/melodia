@@ -110,6 +110,7 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
           titleOverride: spec.title,
           provider: _provider,
           lyricsLanguage: spec.lyricalLanguage,
+          mode: 'quick',
         ),
       );
 

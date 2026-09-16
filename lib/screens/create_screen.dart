@@ -49,44 +49,23 @@ class _CreateScreenState extends State<CreateScreen> {
   VideoPlayerController? _controller;
   bool _videoReady = false;
   bool _videoFailed = false;
-  int? _remainingCredits;
-  String? _quotaError;
 
   @override
   void initState() {
     super.initState();
     _initVideo();
-    _loadQuota();
-  }
-
-  Future<void> _loadQuota() async {
-    try {
-      final quota = await widget.service.getQuota();
-      if (!mounted) return;
-      setState(() {
-        _remainingCredits = quota.remaining;
-        _quotaError = null;
-      });
-    } catch (e) {
-      // İlk deneme (ör. token henüz hazır değilken) başarısız olursa
-      // kısa bir bekleme sonrası bir kez daha dener. GEÇİCİ: gerçek hata
-      // hem debug konsoluna basılıyor hem de CreditsBadge'in dokunulabilir
-      // uyarı haline aktarılıyor.
-      debugPrint('[CreateScreen] getQuota() 1. deneme başarısız: $e');
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return;
-      try {
-        final quota = await widget.service.getQuota();
-        if (!mounted) return;
-        setState(() {
-          _remainingCredits = quota.remaining;
-          _quotaError = null;
-        });
-      } catch (e2) {
-        debugPrint('[CreateScreen] getQuota() 2. deneme de başarısız: $e2');
-        if (!mounted) return;
-        setState(() => _quotaError = e2.toString());
-      }
+    // DÜZELTME (kredi rozeti bayatlığı): Kota artık bu State'te AYRI
+    // tutulmuyor -- widget.library (SongLibrary) tek bir singleton
+    // ChangeNotifier olarak HomeShell ömrü boyunca canlı ve kotayı da
+    // kendi içinde tutuyor (bkz. SongLibrary.refreshQuota). Bu ekran
+    // IndexedStack içinde canlı kaldığı (initState bir daha çalışmadığı)
+    // için önceki yerel-state yaklaşımı, üretim bittiğinde rozeti asla
+    // güncellemiyordu -- ilk açılışta bir kez çekip sonra hep aynı eski
+    // değeri gösteriyordu. Artık sadece ListenableBuilder ile dinliyoruz,
+    // tazeleme SongLibrary'de merkezi olarak yapılıyor. Yine de ilk
+    // açılışta (HomeShell henüz tazelemediyse) bir kez tetikliyoruz.
+    if (widget.library.remainingCredits == null) {
+      widget.library.refreshQuota();
     }
   }
 
@@ -143,7 +122,7 @@ class _CreateScreenState extends State<CreateScreen> {
           authService: widget.authService,
         ),
       ),
-    ).then((_) => _loadQuota());
+    );
   }
 
   @override
@@ -230,7 +209,13 @@ class _CreateScreenState extends State<CreateScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CreditsBadge(remaining: _remainingCredits, error: _quotaError),
+                  ListenableBuilder(
+                    listenable: widget.library,
+                    builder: (context, _) => CreditsBadge(
+                      remaining: widget.library.remainingCredits,
+                      error: widget.library.quotaError,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   ProBadge(
                     onTap: () => Navigator.of(context)
@@ -243,11 +228,11 @@ class _CreateScreenState extends State<CreateScreen> {
                             ),
                           ),
                         )
-                        // DÜZELTME (kredi rozeti gecikmesi): bkz.
-                        // ai_music_screen.dart'taki aynı düzeltme -- satın
-                        // alma sonrası rozet artık ekran kapanır kapanmaz
-                        // tazeleniyor, çıkış/giriş beklemiyor.
-                        .then((_) => _loadQuota()),
+                        // Satın alma bu ekranın dışında (ProUpsellScreen)
+                        // gerçekleşiyor, SongLibrary'nin üretim-bitişi
+                        // tazelemesinden geçmiyor -- burada hâlâ ekran
+                        // kapanınca elle tazeliyoruz.
+                        .then((_) => widget.library.refreshQuota()),
                   ),
                 ],
               ),

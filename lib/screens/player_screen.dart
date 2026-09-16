@@ -487,7 +487,18 @@ class _LyricsSheet extends StatefulWidget {
 class _LyricsSheetState extends State<_LyricsSheet> {
   late final Future<List<AlignedWord>> _future = _load();
 
+  /// DÜZELTME: Karaoke zaman-damgalı sözler backend'de SADECE Suno için
+  /// var (lyricsTimestamps.js -> Suno'nun /get-timestamped-lyrics API'si)
+  /// -- Lyria (Google) için eşdeğer bir API bu uygulamaya entegre değil.
+  /// Önceden bu kontrol yapılmıyordu, Lyria şarkıları için de Suno'ya
+  /// özel bu isteği atıp (başarısız olup) genel/yanıltıcı bir "henüz
+  /// mevcut değil" mesajı gösteriyordu. Artık Lyria şarkıları için
+  /// GEREKSİZ AĞ İSTEĞİ ATILMIYOR, kullanıcıya net bir sebep gösteriliyor.
+  bool get _isUnsupportedProvider =>
+      (widget.song.provider as String?)?.toLowerCase() == 'lyria';
+
   Future<List<AlignedWord>> _load() {
+    if (_isUnsupportedProvider) return Future.value(const []);
     final taskId = widget.song.taskId as String;
     final audioId = widget.song.id as String;
     if (taskId.isEmpty) return Future.value(const []);
@@ -542,13 +553,15 @@ class _LyricsSheetState extends State<_LyricsSheet> {
 
                     final words = snapshot.data ?? const [];
                     if (words.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
                           child: Text(
-                            'Bu şarkı için karaoke sözleri henüz mevcut değil.',
+                            _isUnsupportedProvider
+                                ? 'Lyria ile üretilen şarkılar için karaoke sözleri şu an desteklenmiyor.'
+                                : 'Bu şarkı için karaoke sözleri henüz mevcut değil.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.textMuted),
+                            style: const TextStyle(color: AppColors.textMuted),
                           ),
                         ),
                       );

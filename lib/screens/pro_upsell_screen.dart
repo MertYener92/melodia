@@ -6,6 +6,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 
 import '../services/auth_service.dart';
+import '../services/subscription_products_cache.dart';
 import '../services/subscription_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
@@ -56,7 +57,24 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
     );
     _subscriptionService.startListening();
     _statusSubscription = _subscriptionService.statusStream.listen(_onStatus);
-    _loadProducts();
+    // DÜZELTME (yükleme kayması): HomeShell açılır açılmaz arka planda
+    // önceden çekilmiş ürünler varsa (bkz. SubscriptionProductsCache),
+    // burada YENİDEN ağ isteği atmadan doğrudan onları kullanıyoruz --
+    // ekran ilk çizildiği andan itibaren _loading HİÇ true olmuyor,
+    // fiyat kartları anında görünüyor. Önbellek henüz dolmadıysa
+    // (nadir -- kullanıcı ekranı 9sn dolmadan çok hızlı açtıysa) eski
+    // davranışa (ağdan çekip yükleme göstergesi) düşülür.
+    final cached = SubscriptionProductsCache.products;
+    if (cached != null) {
+      final weekly = cached.where((p) => p.id.contains('weekly')).firstOrNull;
+      final yearly = cached.where((p) => p.id.contains('yearly')).firstOrNull;
+      _weekly = weekly;
+      _yearly = yearly;
+      _selected = yearly ?? weekly;
+      _loading = false;
+    } else {
+      _loadProducts();
+    }
   }
 
   @override
@@ -85,6 +103,11 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
         _selected = yearly ?? weekly;
         _loading = false;
       });
+      // YENİ: Bu ekran ağdan çekmek ZORUNDA kaldıysa (önbellek boştu),
+      // sonucu önbelleğe de yazıyoruz -- ekran başka bir tetikleyiciden
+      // (ai_music_screen.dart, create_screen.dart, ai_video_screen.dart)
+      // tekrar açılırsa artık o da yükleme göstermeden açılır.
+      SubscriptionProductsCache.products = products;
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;

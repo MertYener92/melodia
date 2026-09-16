@@ -23,14 +23,16 @@ class KaraokeLyricsView extends StatefulWidget {
 class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
   final ScrollController _scrollController = ScrollController();
   late List<List<AlignedWord>> _lines;
+  // DEĞİŞTİ (satır kayması düzeltmesi): her satır için gerçek widget
+  // konumunu okuyabilmek üzere bir GlobalKey -- bkz. _autoScrollIfNeeded.
+  late List<GlobalKey> _lineKeys;
   int _lastScrolledLine = -1;
-
-  static const double _estimatedLineHeight = 46;
 
   @override
   void initState() {
     super.initState();
     _lines = _buildLines(widget.words);
+    _lineKeys = List.generate(_lines.length, (_) => GlobalKey());
   }
 
   @override
@@ -38,6 +40,7 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.words, widget.words)) {
       _lines = _buildLines(widget.words);
+      _lineKeys = List.generate(_lines.length, (_) => GlobalKey());
       _lastScrolledLine = -1;
     }
   }
@@ -94,13 +97,29 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
 
   void _autoScrollIfNeeded(int activeLine) {
     if (activeLine < 0 || activeLine == _lastScrolledLine) return;
-    if (!_scrollController.hasClients) return;
-
     _lastScrolledLine = activeLine;
-    final target = (activeLine * _estimatedLineHeight - 90)
-        .clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(
-      target,
+
+    // DÜZELTME (satır kayması): önceden burada satır indeksi x SABİT/
+    // TAHMİNİ bir yükseklik (_estimatedLineHeight = 46) ile hedef kaydırma
+    // konumu HESAPLANIYORDU. Ama satırlar GERÇEKTE değişken yükseklikte --
+    // kelime sayısına göre sarabiliyor (Wrap), aktif satırın yazı boyutu
+    // diğerlerinden büyük (18 vs 15). Tahmini yükseklik ile gerçek yükseklik
+    // arasındaki fark satır satır BİRİKİYOR, birkaç satır (bildirilen: 7-8
+    // satır) sonra hedef konum artık gerçek konumdan tamamen sapmış oluyor
+    // -- aktif satır ekranın üstünde "takılı" kalıyor.
+    //
+    // ÇÖZÜM: Artık her satırın GERÇEK, render edilmiş konumunu bilen
+    // Scrollable.ensureVisible kullanılıyor -- tahmin YOK, hesap YOK,
+    // satırların gerçek yüksekliği ne olursa olsun her zaman doğru.
+    final key = _lineKeys[activeLine];
+    final targetContext = key.currentContext;
+    if (targetContext == null) return;
+    Scrollable.ensureVisible(
+      targetContext,
+      // alignment: 0.0 = üste yapıştır, 1.0 = alta yapıştır. 0.32,
+      // aktif satırı ekranın üst-orta bölgesinde tutuyor (önceki
+      // "-90" ofsetin niyetiyle aynı).
+      alignment: 0.32,
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOut,
     );
@@ -125,12 +144,17 @@ class _KaraokeLyricsViewState extends State<KaraokeLyricsView> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.symmetric(vertical: 24),
+      // YENİ: hedef satırın Scrollable.ensureVisible çağrılırken HENÜZ
+      // inşa edilmemiş (lazy-build) olma ihtimalini azaltmak için --
+      // ekranın bir miktar üstü/altı da önceden çiziliyor.
+      cacheExtent: 600,
       itemCount: _lines.length,
       itemBuilder: (context, index) {
         final line = _lines[index];
         final isActiveLine = index == activeLine;
 
         return Padding(
+          key: _lineKeys[index],
           padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 20),
           child: Wrap(
             alignment: WrapAlignment.center,
