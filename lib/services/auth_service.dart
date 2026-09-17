@@ -53,6 +53,24 @@ class AuthService {
     }
   }
 
+  /// YENİ (profil ekranı): idToken içindeki 'email' claim'i -- Cognito
+  /// UsernameAttributes zaten [email] olduğu için (hem Apple hem
+  /// e-posta/şifre girişinde) bu claim her zaman mevcuttur.
+  String? get email {
+    final token = _idToken;
+    if (token == null) return null;
+    final parts = token.split('.');
+    if (parts.length != 3) return null;
+    try {
+      final normalized = base64Url.normalize(parts[1]);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      return map['email']?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Yeni kullanıcı kaydı oluşturur (email doğrulama kodu gönderilir).
   Future<void> signUp(String email, String password) async {
     final response = await http.post(

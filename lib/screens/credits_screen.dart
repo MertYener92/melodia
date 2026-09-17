@@ -4,27 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../services/auth_service.dart';
-import '../services/subscription_service.dart';
+import '../services/credit_purchase_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 
-class PaywallScreen extends StatefulWidget {
-  const PaywallScreen({
-    super.key,
-    required this.authService,
-    required this.apiService,
-  });
+/// Tüketilebilir kredi paketi satın alma ekranı. paywall_screen.dart
+/// (abonelik) ile AYNI desen -- tek fark: burada seçilen ürün "consumable"
+/// akışıyla satın alınıyor ve başarı sonrası bonusCredits bakiyesi
+/// güncelleniyor (abonelikte olduğu gibi plan değişmiyor).
+class CreditsScreen extends StatefulWidget {
+  const CreditsScreen({super.key, required this.authService, required this.apiService});
 
   final AuthService authService;
   final SunoApiService apiService;
 
   @override
-  State<PaywallScreen> createState() => _PaywallScreenState();
+  State<CreditsScreen> createState() => _CreditsScreenState();
 }
 
-class _PaywallScreenState extends State<PaywallScreen> {
-  late final SubscriptionService _subscriptionService;
-  StreamSubscription<SubscriptionPurchaseStatus>? _statusSubscription;
+class _CreditsScreenState extends State<CreditsScreen> {
+  late final CreditPurchaseService _purchaseService;
+  StreamSubscription<CreditPurchaseStatus>? _statusSubscription;
 
   List<ProductDetails> _products = [];
   ProductDetails? _selected;
@@ -35,19 +35,19 @@ class _PaywallScreenState extends State<PaywallScreen> {
   @override
   void initState() {
     super.initState();
-    _subscriptionService = SubscriptionService(
+    _purchaseService = CreditPurchaseService(
       authService: widget.authService,
       apiService: widget.apiService,
     );
-    _subscriptionService.startListening();
-    _statusSubscription = _subscriptionService.statusStream.listen(_onStatus);
+    _purchaseService.startListening();
+    _statusSubscription = _purchaseService.statusStream.listen(_onStatus);
     _loadProducts();
   }
 
   @override
   void dispose() {
     _statusSubscription?.cancel();
-    _subscriptionService.dispose();
+    _purchaseService.dispose();
     super.dispose();
   }
 
@@ -57,25 +57,25 @@ class _PaywallScreenState extends State<PaywallScreen> {
       _error = null;
     });
     try {
-      final products = await _subscriptionService.loadProducts();
+      final products = await _purchaseService.loadProducts();
       setState(() {
         _products = products;
-        // Varsayılan seçili: monthly (en dengeli seçenek)
+        // Varsayılan seçili: 1000 (en dengeli seçenek)
         _selected = products.firstWhere(
-          (p) => p.id.contains('monthly'),
+          (p) => p.id.contains('1000'),
           orElse: () => products.first,
         );
         _loading = false;
       });
     } catch (e) {
       setState(() {
-        _error = 'Ürünler yüklenemedi: $e';
+        _error = 'Kredi paketleri yüklenemedi: $e';
         _loading = false;
       });
     }
   }
 
-  void _onStatus(SubscriptionPurchaseStatus status) {
+  void _onStatus(CreditPurchaseStatus status) {
     if (!mounted) return;
     if (status.isPending) {
       setState(() => _purchasing = true);
@@ -83,7 +83,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
       setState(() => _purchasing = false);
       Navigator.of(context).pop(true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aboneliğin aktif! Pro\'ya hoş geldin.')),
+        SnackBar(
+          content: Text(
+            status.bonusCredits != null
+                ? 'Krediler eklendi! Toplam bakiyen: ${status.bonusCredits}'
+                : 'Krediler hesabına eklendi.',
+          ),
+        ),
       );
     } else if (status.isError) {
       setState(() {
@@ -93,7 +99,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
   }
 
-  Future<void> _subscribe() async {
+  Future<void> _purchase() async {
     final product = _selected;
     if (product == null) return;
     setState(() {
@@ -101,7 +107,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       _error = null;
     });
     try {
-      await _subscriptionService.buy(product);
+      await _purchaseService.buy(product);
       // Sonuç statusStream üzerinden _onStatus'a gelecek.
     } catch (e) {
       setState(() {
@@ -111,31 +117,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
     }
   }
 
-  Future<void> _restore() async {
-    setState(() {
-      _purchasing = true;
-      _error = null;
-    });
-    try {
-      await _subscriptionService.restorePurchases();
-    } catch (e) {
-      setState(() {
-        _purchasing = false;
-        _error = 'Geri yükleme başarısız: $e';
-      });
-    }
-  }
-
-  String _labelFor(String productId) {
-    if (productId.contains('weekly')) return 'Haftalık';
-    if (productId.contains('yearly')) return 'Yıllık';
-    return 'Aylık';
-  }
-
-  String _subtitleFor(String productId) {
-    if (productId.contains('weekly')) return '250 jeton, haftalık faturalandırılır';
-    if (productId.contains('yearly')) return '250 jeton/ay (yılda 3.000), yıllık faturalandırılır';
-    return '1.000 jeton, aylık faturalandırılır';
+  String _creditsLabelFor(String productId) {
+    if (productId.contains('.500')) return '500 Jeton';
+    if (productId.contains('.1000')) return '1.000 Jeton';
+    if (productId.contains('.3000')) return '3.000 Jeton';
+    if (productId.contains('.5000')) return '5.000 Jeton';
+    return productId;
   }
 
   @override
@@ -143,14 +130,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Melodia Pro'),
+        title: const Text('Kredi Al'),
         backgroundColor: Colors.transparent,
       ),
       body: SafeArea(
         child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.purple),
-              )
+            ? const Center(child: CircularProgressIndicator(color: AppColors.purple))
             : ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                 children: [
@@ -162,16 +147,12 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         gradient: AppColors.primaryGradient,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.workspace_premium,
-                        color: Colors.white,
-                        size: 32,
-                      ),
+                      child: const Icon(Icons.diamond_rounded, color: Colors.white, size: 32),
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Melodia Pro',
+                    'Ekstra Jeton',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -181,12 +162,10 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Sınırsız yaratıcılık için aylık jeton havuzuna sahip ol',
+                    'Süresi dolmayan, tek seferlik jeton paketleri — abonelik jeton '
+                    'havuzuna ek olarak kullanılır',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
                   const SizedBox(height: 28),
                   if (_error != null)
@@ -197,16 +176,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                         decoration: BoxDecoration(
                           color: Colors.red.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.4),
-                          ),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
                         ),
                         child: Text(
                           _error!,
-                          style: const TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 13,
-                          ),
+                          style: const TextStyle(color: Colors.redAccent, fontSize: 13),
                         ),
                       ),
                     ),
@@ -216,43 +190,27 @@ class _PaywallScreenState extends State<PaywallScreen> {
                       onTap: () => setState(() => _selected = product),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: AppColors.surface.withValues(alpha: 0.7),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: isSelected
-                                ? AppColors.purple
-                                : AppColors.border,
+                            color: isSelected ? AppColors.purple : AppColors.border,
                             width: isSelected ? 2 : 1,
                           ),
                         ),
                         child: Row(
                           children: [
+                            const Icon(Icons.diamond_rounded, color: Color(0xFFF4B740), size: 20),
+                            const SizedBox(width: 10),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _labelFor(product.id),
-                                    style: const TextStyle(
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _subtitleFor(product.id),
-                                    style: const TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                _creditsLabelFor(product.id),
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
                               ),
                             ),
                             Text(
@@ -273,50 +231,27 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: (_purchasing || _selected == null)
-                          ? null
-                          : _subscribe,
+                      onPressed: (_purchasing || _selected == null) ? null : _purchase,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.purple,
-                        disabledBackgroundColor: AppColors.purple.withValues(
-                          alpha: 0.4,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
+                        disabledBackgroundColor: AppColors.purple.withValues(alpha: 0.4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       child: _purchasing
                           ? const SizedBox(
                               width: 22,
                               height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                           : const Text(
-                              'Devam et',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              'Satın Al',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                             ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: TextButton(
-                      onPressed: _purchasing ? null : _restore,
-                      child: const Text(
-                        'Satın alımları geri yükle',
-                        style: TextStyle(color: AppColors.textSecondary),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Abonelik otomatik yenilenir, istediğin zaman '
-                    'App Store ayarlarından iptal edebilirsin.',
+                    'Krediler süresiz kullanılabilir, iade edilemez.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textMuted, fontSize: 11),
                   ),

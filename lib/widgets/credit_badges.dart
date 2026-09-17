@@ -12,14 +12,19 @@ import '../theme/app_theme.dart';
 /// rozeti gösterir — dokununca tam hata mesajını diyalogda açar, böylece
 /// konsola bakmadan ekran görüntüsüyle paylaşılabilir.
 class CreditsBadge extends StatelessWidget {
-  const CreditsBadge({super.key, required this.remaining, this.error});
+  const CreditsBadge({super.key, required this.remaining, this.bonusCredits = 0, this.error});
 
   final int? remaining;
+  // YENİ (kredi paketleri): periyodik havuzdan AYRI, satın alınmış ekstra
+  // bakiye -- toplam kullanılabilir jetonu göstermek için remaining'e
+  // eklenir.
+  final int bonusCredits;
   final String? error;
 
   @override
   Widget build(BuildContext context) {
     if (remaining != null) {
+      final total = remaining! + bonusCredits;
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
@@ -33,7 +38,7 @@ class CreditsBadge extends StatelessWidget {
             const Icon(Icons.diamond_rounded, color: Color(0xFFF4B740), size: 13),
             const SizedBox(width: 5),
             Text(
-              '$remaining',
+              '$total',
               style: const TextStyle(
                 color: AppColors.textPrimary,
                 fontSize: 12,
@@ -79,31 +84,40 @@ class CreditsBadge extends StatelessWidget {
   }
 }
 
-/// Sağ üst köşede jeton rozetinin yanında görünen sabit "Pro" rozeti.
-/// [onTap] verilirse rozet dokunulabilir olur (ör. Pro'ya geçiş ekranını
-/// açmak için) — verilmezse eskisi gibi tamamen dekoratif kalır.
+/// Sağ üst köşede jeton rozetinin yanında görünen rozet. Pro OLMAYAN
+/// kullanıcıya sabit "Pro" rozetini (Pro'ya geçiş ekranını açar), Pro
+/// OLAN kullanıcıya ise "Kredi Al" rozetini (kredi paketi satın alma
+/// ekranını açar) gösterir -- ikisi hiçbir zaman aynı anda görünmez,
+/// çünkü Pro kullanıcıya tekrar "Pro'ya geç" demenin anlamı yok.
 class ProBadge extends StatelessWidget {
-  const ProBadge({super.key, this.onTap});
+  const ProBadge({super.key, this.onTap, this.isPro = false});
 
   final VoidCallback? onTap;
+  final bool isPro;
 
   @override
   Widget build(BuildContext context) {
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        gradient: isPro ? null : AppColors.primaryGradient,
+        color: isPro ? AppColors.surfaceElevated : null,
         borderRadius: BorderRadius.circular(999),
+        border: isPro ? Border.all(color: const Color(0xFFF4B740), width: 1) : null,
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.star_rounded, color: Colors.white, size: 14),
-          SizedBox(width: 4),
+          Icon(
+            isPro ? Icons.add_circle_rounded : Icons.star_rounded,
+            color: isPro ? const Color(0xFFF4B740) : Colors.white,
+            size: 14,
+          ),
+          const SizedBox(width: 4),
           Text(
-            'Pro',
+            isPro ? 'Kredi Al' : 'Pro',
             style: TextStyle(
-              color: Colors.white,
+              color: isPro ? AppColors.textPrimary : Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),

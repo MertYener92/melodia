@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
 import '../widgets/gradient_button.dart';
 import 'ai_music_screen.dart';
+import 'credits_screen.dart';
 import 'pro_upsell_screen.dart';
 
 /// "AI Müzik" sekmesinin ilk açılış ekranı: assets/videos/create_hero.mp4'ü
@@ -213,26 +214,36 @@ class _CreateScreenState extends State<CreateScreen> {
                     listenable: widget.library,
                     builder: (context, _) => CreditsBadge(
                       remaining: widget.library.remainingCredits,
+                      bonusCredits: widget.library.bonusCredits,
                       error: widget.library.quotaError,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ProBadge(
-                    onTap: () => Navigator.of(context)
-                        .push(
-                          MaterialPageRoute(
-                            fullscreenDialog: true,
-                            builder: (_) => ProUpsellScreen(
-                              authService: widget.authService,
-                              apiService: widget.service,
+                  ListenableBuilder(
+                    listenable: widget.library,
+                    builder: (context, _) => ProBadge(
+                      isPro: widget.library.isPro,
+                      onTap: () => Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              fullscreenDialog: true,
+                              builder: (_) => widget.library.isPro
+                                  ? CreditsScreen(
+                                      authService: widget.authService,
+                                      apiService: widget.service,
+                                    )
+                                  : ProUpsellScreen(
+                                      authService: widget.authService,
+                                      apiService: widget.service,
+                                    ),
                             ),
-                          ),
-                        )
-                        // Satın alma bu ekranın dışında (ProUpsellScreen)
-                        // gerçekleşiyor, SongLibrary'nin üretim-bitişi
-                        // tazelemesinden geçmiyor -- burada hâlâ ekran
-                        // kapanınca elle tazeliyoruz.
-                        .then((_) => widget.library.refreshQuota()),
+                          )
+                          // Satın alma bu ekranın dışında (ProUpsellScreen)
+                          // gerçekleşiyor, SongLibrary'nin üretim-bitişi
+                          // tazelemesinden geçmiyor -- burada hâlâ ekran
+                          // kapanınca elle tazeliyoruz.
+                          .then((_) => widget.library.refreshQuota()),
+                    ),
                   ),
                 ],
               ),

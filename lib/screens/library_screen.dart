@@ -104,6 +104,14 @@ class _LibraryHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // DÜZELTME: plak görselinin arkasındaki koyu gradyan katmanı
+    // ("siyah konteyner" geri bildirimi) TAMAMEN kaldırıldı -- artık
+    // sadece görsel görünüyor. Okunabilirlik için (bir arka plan kutusu
+    // yerine) metinlere ince bir gölge eklendi. Alıntı metni kaldırıldı,
+    // "YARAT · KEŞFET · SAKLA" etiketi artık görselin en altında, ortalı.
+    const textShadow = [
+      Shadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 1)),
+    ];
     return Container(
       height: 270,
       decoration: BoxDecoration(
@@ -119,26 +127,8 @@ class _LibraryHero extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Üstte başlığın, altta alıntı/etiketin okunabilmesi için
-            // yukarı ve aşağı doğru koyulaşan gradient — orta kısımda
-            // plak görseli net kalıyor.
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  stops: [0.0, 0.28, 0.62, 1.0],
-                  colors: [
-                    Color(0xCC0A0A12),
-                    Color(0x330A0A12),
-                    Color(0x550A0A12),
-                    Color(0xEE0A0A12),
-                  ],
-                ),
-              ),
-            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -148,59 +138,37 @@ class _LibraryHero extends StatelessWidget {
                       color: AppColors.textPrimary,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
+                      shadows: textShadow,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     l10n.libraryHeroSubtitle,
                     style: TextStyle(
-                      color: AppColors.textPrimary.withValues(alpha: 0.75),
+                      color: AppColors.textPrimary.withValues(alpha: 0.9),
                       fontSize: 14,
+                      shadows: textShadow,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '“',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          height: 0.6,
-                        ),
-                      ),
-                      Text(
-                        l10n.libraryQuote,
-                        textAlign: TextAlign.left,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontStyle: FontStyle.italic,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        width: 40,
-                        height: 1.5,
-                        color: Colors.white.withValues(alpha: 0.4),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        l10n.libraryTagline,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2.2,
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 18,
+              child: Center(
+                child: Text(
+                  l10n.libraryTagline,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 2.2,
+                    shadows: textShadow,
+                  ),
+                ),
               ),
             ),
           ],

@@ -258,7 +258,15 @@ class SunoApiService {
   }
 
   /// Uygulama açılışında "kalan hakkınız: X/Y" göstermek için.
-  Future<({int used, int limit, int remaining, String plan})> getQuota() async {
+  Future<({
+    int used,
+    int limit,
+    int remaining,
+    String plan,
+    int bonusCredits,
+    String? createdAt,
+    String? planExpiresAt,
+  })> getQuota() async {
     final response = await _get('/quota', {});
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
@@ -269,6 +277,13 @@ class SunoApiService {
       limit: (body['limit'] as num?)?.toInt() ?? 0,
       remaining: (body['remaining'] as num?)?.toInt() ?? 0,
       plan: body['plan']?.toString() ?? 'free',
+      // YENİ (kredi paketleri): süresi dolmayan, satın alınmış ekstra
+      // bakiye -- periyodik havuzdan (remaining) AYRI.
+      bonusCredits: (body['bonusCredits'] as num?)?.toInt() ?? 0,
+      // YENİ (profil ekranı): bu değişiklikten önce oluşturulmuş
+      // hesaplarda null olabilir -- Flutter tarafı bu durumu ele almalı.
+      createdAt: body['createdAt']?.toString(),
+      planExpiresAt: body['planExpiresAt']?.toString(),
     );
   }
 
@@ -294,6 +309,23 @@ class SunoApiService {
     );
   }
 
+  /// YENİ (JETON SİSTEMİ x10 GÜNCELLEMESİ — kredi paketleri): tüketilebilir
+  /// bir kredi paketi satın alındığında Apple'ın imzaladığı makbuzu
+  /// backend'e (verifyCreditPurchase.js) gönderip bonusCredits bakiyesine
+  /// eklenmesini sağlar. verifySubscription ile AYNI güvenlik deseni.
+  Future<int> verifyCreditPurchase(String signedTransactionInfo) async {
+    final response = await _post('/credits/verify-purchase', {
+      'signedTransactionInfo': signedTransactionInfo,
+    });
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw SunoApiException(
+        body['message']?.toString() ?? body['error']?.toString() ?? 'Kredi paketi doğrulanamadı.',
+      );
+    }
+    return (body['bonusCredits'] as num?)?.toInt() ?? 0;
+  }
+
   /// Üretilen bir şarkıyı kullanıcının kalıcı kütüphanesine kaydeder
   /// (backend'deki DynamoDB'ye). Kota harcamaz.
   ///
@@ -302,12 +334,36 @@ class SunoApiService {
   /// kopyalıyor ve DB'ye sadece bir S3 key yazıyor. Buradan
   /// "audioUrl"i göndermemiz hâlâ gerekli (backend'in indirebilmesi
   /// için kaynak URL), ama artık kalıcı olarak saklanmıyor.
+  /// YENİ (kütüphane favori kalıcılığı): saveSongToLibrary'i (tam
+  /// PutCommand, ses dosyasını S3'e yeniden kopylar) TEKRAR çağırmak
+  /// yerine, sadece isFavorite alanını güncelleyen hafif bir PATCH.
+  Future<void> setFavorite(String songId, bool isFavorite) async {
+    final response = await http
+        .patch(
+          Uri.parse('$baseUrl/songs/$songId'),
+          headers: _headers,
+          body: jsonEncode({'isFavorite': isFavorite}),
+        )
+        .timeout(
+          const Duration(seconds: 15),
+          onTimeout: () => throw SunoApiException('Sunucuya bağlanılamadı (zaman aşımı).'),
+        );
+    if (response.statusCode != 200) {
+      throw SunoApiException('Favori durumu güncellenemedi.');
+    }
+  }
+
   Future<void> saveSongToLibrary({
     required Song song,
     required String genre,
     required String mood,
     required DateTime createdAt,
     bool isFavorite = false,
+    // YENİ (kütüphane sekmesi hatası düzeltmesi): önceden hiç
+    // gönderilmiyordu -- şarkı hangi modda (Hızlı/Standart/Gelişmiş)
+    // üretildiyse kaydedilmiyordu, bu yüzden uygulama yeniden
+    // başlatıldığında şarkılar sadece "Tümü" sekmesinde görünüyordu.
+    String? mode,
   }) async {
     final response = await _post('/songs', {
       'songId': song.id,
@@ -323,6 +379,7 @@ class SunoApiService {
       'taskId': song.taskId,
       'provider': song.provider,
       'createdAt': createdAt.toIso8601String(),
+      'mode': ?mode,
     });
 
     if (response.statusCode != 200) {

@@ -162,6 +162,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 librarySong: s,
                                 isPlaying: widget.player.current?.song.id == s.song.id && widget.player.isPlaying,
                                 onTap: () => widget.player.playSong(s),
+                                onToggleFavorite: () => widget.songLibrary.toggleFavorite(s),
                               )),
                           const SizedBox(height: 16),
                         ],

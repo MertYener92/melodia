@@ -8,6 +8,7 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
 import 'create_form_screen.dart';
+import 'credits_screen.dart';
 import 'music_wizard_screen.dart';
 import 'pro_upsell_screen.dart';
 import 'quick_create_screen.dart';
@@ -186,29 +187,39 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                       listenable: widget.library,
                       builder: (context, _) => CreditsBadge(
                         remaining: widget.library.remainingCredits,
+                        bonusCredits: widget.library.bonusCredits,
                         error: widget.library.quotaError,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ProBadge(
-                      onTap: () => Navigator.of(context)
-                          .push(
-                            MaterialPageRoute(
-                              fullscreenDialog: true,
-                              builder: (_) => ProUpsellScreen(
-                                authService: widget.authService,
-                                apiService: widget.service,
+                    ListenableBuilder(
+                      listenable: widget.library,
+                      builder: (context, _) => ProBadge(
+                        isPro: widget.library.isPro,
+                        onTap: () => Navigator.of(context)
+                            .push(
+                              MaterialPageRoute(
+                                fullscreenDialog: true,
+                                builder: (_) => widget.library.isPro
+                                    ? CreditsScreen(
+                                        authService: widget.authService,
+                                        apiService: widget.service,
+                                      )
+                                    : ProUpsellScreen(
+                                        authService: widget.authService,
+                                        apiService: widget.service,
+                                      ),
                               ),
-                            ),
-                          )
-                          // DÜZELTME (kredi rozeti gecikmesi): satın alma
-                          // başarılı olduğunda ProUpsellScreen `pop(true)`
-                          // ile kapanıyordu ama bu sonuç HİÇ okunmuyordu --
-                          // rozet ancak ekran yeniden açılana/uygulama
-                          // yeniden başlatılana kadar eski (satın alma
-                          // öncesi) değeri gösteriyordu. Artık ekran her
-                          // kapandığında (iptal de olsa) kotayı tazeliyoruz.
-                          .then((_) => widget.library.refreshQuota()),
+                            )
+                            // DÜZELTME (kredi rozeti gecikmesi): satın alma
+                            // başarılı olduğunda ProUpsellScreen `pop(true)`
+                            // ile kapanıyordu ama bu sonuç HİÇ okunmuyordu --
+                            // rozet ancak ekran yeniden açılana/uygulama
+                            // yeniden başlatılana kadar eski (satın alma
+                            // öncesi) değeri gösteriyordu. Artık ekran her
+                            // kapandığında (iptal de olsa) kotayı tazeliyoruz.
+                            .then((_) => widget.library.refreshQuota()),
+                      ),
                     ),
                   ],
                 ),

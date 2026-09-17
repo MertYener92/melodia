@@ -178,6 +178,7 @@ class _HomeShellState extends State<HomeShell> {
         service: widget.musicVideoService,
         authService: widget.authService,
         apiService: widget.service,
+        library: _library,
       ),
       LibraryScreen(
         songLibrary: _library,

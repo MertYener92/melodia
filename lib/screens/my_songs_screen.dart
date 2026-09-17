@@ -124,6 +124,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
                                     widget.player.isPlaying,
                                 onTap: () => widget.player.playSong(s),
                                 onMore: () => _showActions(context, s),
+                                onToggleFavorite: () => widget.library.toggleFavorite(s),
                               );
                             },
                           ),

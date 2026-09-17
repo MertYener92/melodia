@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/music_video_service.dart';
+import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
+import 'credits_screen.dart';
 import 'pro_upsell_screen.dart';
 
 /// GEÇİCİ: "My Songs" sekmesinin yerini alan yeni "AI Video" sekmesi.
@@ -20,6 +22,7 @@ class AiVideoScreen extends StatelessWidget {
     required this.service,
     required this.authService,
     required this.apiService,
+    required this.library,
   });
 
   // NOT: service şu an bu ekranda kullanılmıyor (jeton rozeti kaldırıldı),
@@ -31,6 +34,11 @@ class AiVideoScreen extends StatelessWidget {
   /// Pro rozetine dokununca [ProUpsellScreen]'i açabilmek için.
   final AuthService authService;
   final SunoApiService apiService;
+  // YENİ ("Kredi Al" rozeti): rozetin Pro mu "Kredi Al" mı göstereceğine
+  // karar vermek için -- müzik jeton havuzuyla ilgisiz olsa da Pro
+  // durumu ORTAK (video bu havuzu kullanmasa da kullanıcı hâlâ Pro
+  // abonesi olabilir).
+  final SongLibrary library;
 
   @override
   Widget build(BuildContext context) {
@@ -76,13 +84,16 @@ class AiVideoScreen extends StatelessWidget {
             alignment: Alignment.topRight,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: ProBadge(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    fullscreenDialog: true,
-                    builder: (_) => ProUpsellScreen(
-                      authService: authService,
-                      apiService: apiService,
+              child: ListenableBuilder(
+                listenable: library,
+                builder: (context, _) => ProBadge(
+                  isPro: library.isPro,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      fullscreenDialog: true,
+                      builder: (_) => library.isPro
+                          ? CreditsScreen(authService: authService, apiService: apiService)
+                          : ProUpsellScreen(authService: authService, apiService: apiService),
                     ),
                   ),
                 ),

@@ -197,9 +197,25 @@ class SongLibrary extends ChangeNotifier {
   // tutmuyorlar.
   int? _remainingCredits;
   String? _quotaError;
+  // YENİ (kredi paketleri + "Kredi Al" rozeti): önceden getQuota()'nın
+  // döndürdüğü plan/bonusCredits hiç saklanmıyordu -- sadece remaining
+  // kullanılıyordu. Artık ikisi de saklanıyor: plan, rozetin "Pro" mu
+  // "Kredi Al" mı göstereceğine karar vermek için; bonusCredits,
+  // kullanıcının toplam kullanılabilir jetonunu (remaining + bonusCredits)
+  // doğru göstermek için.
+  String? _plan;
+  int _bonusCredits = 0;
+  // YENİ (profil ekranı): hesap oluşturulma ve plan yenilenme tarihleri.
+  String? _createdAt;
+  String? _planExpiresAt;
 
   int? get remainingCredits => _remainingCredits;
   String? get quotaError => _quotaError;
+  String? get plan => _plan;
+  int get bonusCredits => _bonusCredits;
+  bool get isPro => (_plan ?? '').startsWith('pro_');
+  String? get memberSince => _createdAt;
+  String? get planExpiresAt => _planExpiresAt;
 
   /// Kotayı backend'den tazeler ve dinleyicileri bilgilendirir.
   /// Uygulama açılışında, her üretim bitişinde (başarı/hata fark etmez)
@@ -209,6 +225,10 @@ class SongLibrary extends ChangeNotifier {
     try {
       final quota = await service.getQuota();
       _remainingCredits = quota.remaining;
+      _plan = quota.plan;
+      _bonusCredits = quota.bonusCredits;
+      _createdAt = quota.createdAt;
+      _planExpiresAt = quota.planExpiresAt;
       _quotaError = null;
     } catch (e) {
       _quotaError = e.toString();
@@ -268,6 +288,7 @@ class SongLibrary extends ChangeNotifier {
           mood: song.mood,
           createdAt: song.createdAt,
           isFavorite: song.isFavorite,
+          mode: song.mode,
         )
         .catchError((_) {});
   }
@@ -552,6 +573,7 @@ class SongLibrary extends ChangeNotifier {
               genre: displayGenre,
               mood: displayMood,
               createdAt: createdAt,
+              mode: mode,
             )
             .catchError((_) {});
       }
@@ -647,11 +669,21 @@ class SongLibrary extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleFavorite(LibrarySong song) {
-    song.isFavorite = !song.isFavorite;
+  /// DÜZELTME: önceden SADECE bellekte tutuluyordu (uygulama kapanınca
+  /// kayboluyordu) -- artık backend'e de kalıcı olarak yazılıyor.
+  /// remove() ile AYNI iyimser (optimistic) desen: önce yerel durumu
+  /// değiştir + bildir, arka planda backend'e gönder, başarısız olursa
+  /// eski duruma geri al.
+  Future<void> toggleFavorite(LibrarySong song) async {
+    final previous = song.isFavorite;
+    song.isFavorite = !previous;
     notifyListeners();
-    // NOT: Favori durumu şu an backend'e senkronize edilmiyor
-    // (gelecek bir iyileştirme olarak eklenebilir).
+    try {
+      await service.setFavorite(song.song.id, song.isFavorite);
+    } catch (_) {
+      song.isFavorite = previous;
+      notifyListeners();
+    }
   }
 
   /// DEĞİŞTİ: Önceden sadece yerel listeden çıkarıyordu -- uygulama

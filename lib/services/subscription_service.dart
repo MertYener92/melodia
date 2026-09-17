@@ -20,9 +20,13 @@ class SubscriptionService {
   final SunoApiService apiService;
 
   // App Store Connect'te oluşturulan gerçek product ID'ler.
+  // DÜZELTME: orijinal "com.melodia.app.pro.monthly" App Store
+  // Connect'te silinmiş ve Apple'ın kalıcı ID rezervasyonu yüzünden
+  // yeniden oluşturulamadığı için ".monthly2" ile değiştirildi --
+  // backend'deki planMapping.js ile AYNI ID.
   static const Set<String> productIds = {
     'com.melodia.app.pro.weekly',
-    'com.melodia.app.pro.monthly',
+    'com.melodia.app.pro.monthly2',
     'com.melodia.app.pro.yearly',
   };
 

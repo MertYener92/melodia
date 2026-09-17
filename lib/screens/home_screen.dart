@@ -50,6 +50,7 @@ class HomeScreen extends StatelessWidget {
                         player.current?.song.id == s.song.id &&
                         player.isPlaying,
                     onTap: () => player.playSong(s),
+                    onToggleFavorite: () => library.toggleFavorite(s),
                   ),
                 ),
             ],
