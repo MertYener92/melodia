@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../services/locale_controller.dart';
+import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/premium_back_button.dart';
+import '../widgets/screen_header.dart';
+import '../widgets/settings_section.dart';
+import 'account_info_screen.dart';
+import 'credits_screen.dart';
+import 'paywall_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -12,12 +18,14 @@ class SettingsScreen extends StatefulWidget {
     required this.service,
     required this.authService,
     required this.localeController,
+    required this.library,
     required this.onAccountDeleted,
   });
 
   final SunoApiService service;
   final AuthService authService;
   final LocaleController localeController;
+  final SongLibrary library;
 
   /// Hesap başarıyla silindikten sonra çağrılır — uygulamanın üst
   /// seviyesinde (main.dart) oturumu kapatıp login ekranına dönmek için.
@@ -166,6 +174,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _comingSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.settingsComingSoon)),
+    );
+  }
+
+  Future<void> _shareApp() async {
+    await SharePlus.instance.share(
+      ShareParams(text: AppLocalizations.of(context)!.settingsShareMessage),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -183,59 +203,143 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: Row(
-                  children: [
-                    const PremiumBackButton(),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.profileSettings,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+              ScreenHeader(title: l10n.profileSettings),
+              SettingsSectionTitle(l10n.settingsSectionSettings),
+              SettingsCard(
+                children: [
+                  SettingsRow(
+                    icon: Icons.language_rounded,
+                    label: l10n.settingsDisplayLanguage,
+                    onTap: _openLanguagePicker,
+                  ),
+                  SettingsRow(
+                    icon: Icons.favorite_rounded,
+                    label: l10n.settingsHomepagePreference,
+                    onTap: _comingSoon,
+                  ),
+                ],
               ),
-              Container(
-                decoration: AppColors.glassCard(radius: 14),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.language_rounded, color: AppColors.textSecondary),
-                      title: Text(l10n.settingsLanguage, style: const TextStyle(color: AppColors.textPrimary)),
-                      trailing: Text(
-                        _languageNames[widget.localeController.effectiveLanguageCode] ?? '',
-                        style: const TextStyle(color: AppColors.textMuted),
+              SettingsSectionTitle(l10n.settingsSectionSupport),
+              SettingsCard(
+                children: [
+                  SettingsRow(
+                    icon: Icons.mail_rounded,
+                    label: l10n.settingsEmailSupport,
+                    onTap: _comingSoon,
+                  ),
+                  SettingsRow(
+                    icon: Icons.question_mark_rounded,
+                    label: l10n.settingsHelpCenter,
+                    onTap: _comingSoon,
+                  ),
+                  SettingsRow(
+                    icon: Icons.apps_rounded,
+                    label: l10n.settingsRequestFeature,
+                    onTap: _comingSoon,
+                  ),
+                  SettingsRow(
+                    icon: Icons.upload_rounded,
+                    label: l10n.settingsUploadVoice,
+                    onTap: _comingSoon,
+                  ),
+                ],
+              ),
+              SettingsSectionTitle(l10n.settingsSectionAbout),
+              SettingsCard(
+                children: [
+                  SettingsRow(
+                    icon: Icons.share_rounded,
+                    label: l10n.settingsShareWithFriends,
+                    onTap: _shareApp,
+                  ),
+                  SettingsRow(
+                    icon: Icons.star_rounded,
+                    label: l10n.settingsRateIt,
+                    onTap: _comingSoon,
+                  ),
+                  SettingsRow(
+                    icon: Icons.gpp_maybe_rounded,
+                    label: l10n.settingsTermsPrivacy,
+                    onTap: _comingSoon,
+                  ),
+                  SettingsRow(
+                    icon: Icons.copyright_rounded,
+                    label: l10n.settingsCopyrightRemoval,
+                    onTap: _comingSoon,
+                  ),
+                  SettingsRow(
+                    icon: Icons.info_rounded,
+                    label: l10n.settingsAboutUs,
+                    onTap: _comingSoon,
+                  ),
+                ],
+              ),
+              SettingsSectionTitle(l10n.settingsSectionAccount),
+              SettingsCard(
+                children: [
+                  SettingsRow(
+                    icon: Icons.person_rounded,
+                    label: l10n.settingsAccountInfo,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AccountInfoScreen(
+                          authService: widget.authService,
+                          library: widget.library,
+                        ),
                       ),
-                      onTap: _openLanguagePicker,
                     ),
-                    const Divider(height: 1, color: AppColors.border),
-                    ListTile(
-                      leading: const Icon(Icons.logout_rounded, color: AppColors.textSecondary),
-                      title: Text(l10n.actionLogout, style: const TextStyle(color: AppColors.textPrimary)),
+                  ),
+                  // Ayrı bir "ödeme geçmişi/fatura" ekranı yok -- Apple bunu
+                  // App Store'un abonelik ekranında tutuyor; en yakın
+                  // karşılık PaywallScreen.
+                  SettingsRow(
+                    icon: Icons.credit_card_rounded,
+                    label: l10n.settingsSubscription,
+                    onTap: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PaywallScreen(
+                            authService: widget.authService,
+                            apiService: widget.service,
+                          ),
+                        ),
+                      );
+                      widget.library.refreshQuota();
+                    },
+                  ),
+                  // Jeton satırı eskiden profildeki "Kalan Jeton" kartı
+                  // gibi SADECE Pro kullanıcılarda görünür.
+                  if (widget.library.isPro)
+                    SettingsRow(
+                      icon: Icons.account_balance_wallet_rounded,
+                      label: l10n.settingsCredits,
                       onTap: () async {
-                        await widget.authService.signOut();
-                        if (!context.mounted) return;
-                        // DÜZELTME: Bu ekran (Ayarlar) Navigator'da üste
-                        // itilmiş (pushed) bir route. Oturum durumu
-                        // değişip _AppRoot LoginScreen'e geçse bile, bu
-                        // route Navigator yığınının EN ÜSTÜNDE kaldığı
-                        // sürece görünüm değişmiyordu -- kullanıcı "geri"
-                        // basıp bu route'u kapatana kadar hiçbir şey olmuş
-                        // gibi görünmüyordu. Önce bu route'u (ve varsa
-                        // üzerine gelmiş başka route'ları) kapatıp en alt
-                        // route'a dönüyoruz, SONRA oturumu kapatıyoruz --
-                        // böylece LoginScreen hemen görünür.
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                        widget.onAccountDeleted();
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            fullscreenDialog: true,
+                            builder: (_) => CreditsScreen(
+                              authService: widget.authService,
+                              apiService: widget.service,
+                            ),
+                          ),
+                        );
+                        widget.library.refreshQuota();
                       },
                     ),
-                  ],
-                ),
+                  SettingsRow(
+                    icon: Icons.logout_rounded,
+                    label: l10n.actionLogout,
+                    onTap: () async {
+                      await widget.authService.signOut();
+                      if (!context.mounted) return;
+                      // Ayarlar pushed bir route: önce en alt route'a dön,
+                      // sonra oturum kapanışını bildir (LoginScreen hemen
+                      // görünsün).
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      widget.onAccountDeleted();
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 28),
               Text(

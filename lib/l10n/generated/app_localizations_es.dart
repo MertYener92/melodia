@@ -419,4 +419,149 @@ class AppLocalizationsEs extends AppLocalizations {
   String loginConfirmCodeSentTo(String email) {
     return 'Ingresa el código de 6 dígitos enviado a $email.';
   }
+
+  @override
+  String get settingsSectionSettings => 'Ajustes';
+
+  @override
+  String get settingsSectionSupport => 'Soporte';
+
+  @override
+  String get settingsSectionAbout => 'Acerca de';
+
+  @override
+  String get settingsSectionAccount => 'Cuenta';
+
+  @override
+  String get settingsDisplayLanguage => 'Idioma de la Interfaz';
+
+  @override
+  String get settingsHomepagePreference => 'Preferencia de Inicio';
+
+  @override
+  String get settingsEmailSupport => 'Soporte por Correo';
+
+  @override
+  String get settingsHelpCenter => 'Centro de Ayuda';
+
+  @override
+  String get settingsRequestFeature => 'Solicitar una Función';
+
+  @override
+  String get settingsUploadVoice => 'Subir Voz';
+
+  @override
+  String get settingsShareWithFriends => 'Compartir con Amigos';
+
+  @override
+  String get settingsRateIt => 'Calificar';
+
+  @override
+  String get settingsTermsPrivacy => 'Términos y Privacidad';
+
+  @override
+  String get settingsCopyrightRemoval =>
+      'Solicitud de Retiro por Derechos de Autor';
+
+  @override
+  String get settingsAboutUs => 'Sobre Nosotros';
+
+  @override
+  String get settingsComingSoon => 'Próximamente';
+
+  @override
+  String get settingsShareMessage =>
+      'Descubre Melodia: ¡crea tus propias canciones con IA!';
+
+  @override
+  String get profileEditProfile => 'Editar Perfil';
+
+  @override
+  String get profileCompleteTitle => 'Completa tu Perfil';
+
+  @override
+  String get profileNoSongsYet => 'Aún no hay canciones publicadas';
+
+  @override
+  String get profileBrowseSongs => 'Explora tus canciones';
+
+  @override
+  String get profileStepTitle0 => '¿Cómo debemos llamarte?';
+
+  @override
+  String get profileStepSubtitle0 => 'Define tu nombre visible';
+
+  @override
+  String get profileStepTitle1 => 'Elige una foto de perfil';
+
+  @override
+  String get profileStepSubtitle1 => 'Dale un rostro a tu perfil';
+
+  @override
+  String get profileStepTitle2 => '¿Qué géneros musicales te gustan?';
+
+  @override
+  String get profileStepSubtitle2 => 'Elige de 1 a 5 géneros favoritos';
+
+  @override
+  String get profileStepTitle3 => '¿Qué quieres crear en Melodia?';
+
+  @override
+  String get profileStepSubtitle3 => 'Personalicemos tus recomendaciones';
+
+  @override
+  String get settingsAccountInfo => 'Información de la Cuenta';
+
+  @override
+  String get settingsSubscription => 'Suscripción y Pagos';
+
+  @override
+  String get settingsCredits => 'Créditos';
+
+  @override
+  String profileStepOf(int step) {
+    return 'Paso $step de 4';
+  }
+
+  @override
+  String get settingsSectionMembership => 'Suscripción';
+
+  @override
+  String get settingsSectionUsage => 'Uso';
+
+  @override
+  String get accountUserId => 'ID de Usuario';
+
+  @override
+  String get accountName => 'Nombre';
+
+  @override
+  String get accountEmail => 'Correo';
+
+  @override
+  String get accountMemberSince => 'Miembro Desde';
+
+  @override
+  String get accountCurrentPlan => 'Plan Actual';
+
+  @override
+  String get accountTotalSongs => 'Canciones Creadas';
+
+  @override
+  String get accountIdCopied => 'ID de usuario copiado';
+
+  @override
+  String get accountUnknown => 'Desconocido';
+
+  @override
+  String get planFree => 'Plan Gratuito';
+
+  @override
+  String get planProWeekly => 'Pro • Semanal';
+
+  @override
+  String get planProMonthly => 'Pro • Mensual';
+
+  @override
+  String get planProYearly => 'Pro • Anual';
 }

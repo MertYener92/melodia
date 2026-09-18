@@ -5,7 +5,7 @@ import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../theme/app_theme.dart';
 import '../widgets/library_mode_filter.dart';
-import '../widgets/premium_back_button.dart';
+import '../widgets/screen_header.dart';
 import '../widgets/song_tile.dart';
 import 'video_library_screen.dart';
 
@@ -57,21 +57,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 20, 18),
-                child: Row(
-                  children: [
-                    const PremiumBackButton(),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.libraryFavoritesTitle,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                child: ScreenHeader(title: l10n.libraryFavoritesTitle),
               ),
               Expanded(
                 child: RefreshIndicator(

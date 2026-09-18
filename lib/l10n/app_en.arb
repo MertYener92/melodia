@@ -279,5 +279,198 @@
       }
     },
     "description": "Placeholder string for loginConfirmCodeSentTo"
+  },
+  "settingsSectionSettings": "Settings",
+  "@settingsSectionSettings": {
+    "description": "Settings screen: settingsSectionSettings"
+  },
+  "settingsSectionSupport": "Support",
+  "@settingsSectionSupport": {
+    "description": "Settings screen: settingsSectionSupport"
+  },
+  "settingsSectionAbout": "About",
+  "@settingsSectionAbout": {
+    "description": "Settings screen: settingsSectionAbout"
+  },
+  "settingsSectionAccount": "Account",
+  "@settingsSectionAccount": {
+    "description": "Settings screen: settingsSectionAccount"
+  },
+  "settingsDisplayLanguage": "Display Language",
+  "@settingsDisplayLanguage": {
+    "description": "Settings screen: settingsDisplayLanguage"
+  },
+  "settingsHomepagePreference": "Homepage Preference",
+  "@settingsHomepagePreference": {
+    "description": "Settings screen: settingsHomepagePreference"
+  },
+  "settingsEmailSupport": "Email Support",
+  "@settingsEmailSupport": {
+    "description": "Settings screen: settingsEmailSupport"
+  },
+  "settingsHelpCenter": "Help Center",
+  "@settingsHelpCenter": {
+    "description": "Settings screen: settingsHelpCenter"
+  },
+  "settingsRequestFeature": "Request a Feature",
+  "@settingsRequestFeature": {
+    "description": "Settings screen: settingsRequestFeature"
+  },
+  "settingsUploadVoice": "Upload Voice",
+  "@settingsUploadVoice": {
+    "description": "Settings screen: settingsUploadVoice"
+  },
+  "settingsShareWithFriends": "Share with Friends",
+  "@settingsShareWithFriends": {
+    "description": "Settings screen: settingsShareWithFriends"
+  },
+  "settingsRateIt": "Rate It",
+  "@settingsRateIt": {
+    "description": "Settings screen: settingsRateIt"
+  },
+  "settingsTermsPrivacy": "Terms and Privacy",
+  "@settingsTermsPrivacy": {
+    "description": "Settings screen: settingsTermsPrivacy"
+  },
+  "settingsCopyrightRemoval": "Copyright Removal Request",
+  "@settingsCopyrightRemoval": {
+    "description": "Settings screen: settingsCopyrightRemoval"
+  },
+  "settingsAboutUs": "About Us",
+  "@settingsAboutUs": {
+    "description": "Settings screen: settingsAboutUs"
+  },
+  "settingsComingSoon": "Coming soon",
+  "@settingsComingSoon": {
+    "description": "Settings screen: settingsComingSoon"
+  },
+  "settingsShareMessage": "Check out Melodia — create your own songs with AI!",
+  "@settingsShareMessage": {
+    "description": "Settings screen: settingsShareMessage"
+  },
+  "profileEditProfile": "Edit Profile",
+  "@profileEditProfile": {
+    "description": "Profile/settings: profileEditProfile"
+  },
+  "profileCompleteTitle": "Complete Your Profile",
+  "@profileCompleteTitle": {
+    "description": "Profile/settings: profileCompleteTitle"
+  },
+  "profileNoSongsYet": "No songs published yet",
+  "@profileNoSongsYet": {
+    "description": "Profile/settings: profileNoSongsYet"
+  },
+  "profileBrowseSongs": "Browse your songs",
+  "@profileBrowseSongs": {
+    "description": "Profile/settings: profileBrowseSongs"
+  },
+  "profileStepTitle0": "What should we call you?",
+  "@profileStepTitle0": {
+    "description": "Profile/settings: profileStepTitle0"
+  },
+  "profileStepSubtitle0": "Set your display name",
+  "@profileStepSubtitle0": {
+    "description": "Profile/settings: profileStepSubtitle0"
+  },
+  "profileStepTitle1": "Choose a profile photo",
+  "@profileStepTitle1": {
+    "description": "Profile/settings: profileStepTitle1"
+  },
+  "profileStepSubtitle1": "Give your profile a face",
+  "@profileStepSubtitle1": {
+    "description": "Profile/settings: profileStepSubtitle1"
+  },
+  "profileStepTitle2": "Which music genres do you like?",
+  "@profileStepTitle2": {
+    "description": "Profile/settings: profileStepTitle2"
+  },
+  "profileStepSubtitle2": "Pick your 1-5 favorite genres",
+  "@profileStepSubtitle2": {
+    "description": "Profile/settings: profileStepSubtitle2"
+  },
+  "profileStepTitle3": "What do you want to create on Melodia?",
+  "@profileStepTitle3": {
+    "description": "Profile/settings: profileStepTitle3"
+  },
+  "profileStepSubtitle3": "Let's shape your personal recommendations",
+  "@profileStepSubtitle3": {
+    "description": "Profile/settings: profileStepSubtitle3"
+  },
+  "settingsAccountInfo": "Account Information",
+  "@settingsAccountInfo": {
+    "description": "Profile/settings: settingsAccountInfo"
+  },
+  "settingsSubscription": "Subscription & Payment",
+  "@settingsSubscription": {
+    "description": "Profile/settings: settingsSubscription"
+  },
+  "settingsCredits": "Credits",
+  "@settingsCredits": {
+    "description": "Profile/settings: settingsCredits"
+  },
+  "profileStepOf": "Step {step} of 4",
+  "@profileStepOf": {
+    "description": "Profile completion step label",
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsSectionMembership": "Membership",
+  "@settingsSectionMembership": {
+    "description": "Account info: settingsSectionMembership"
+  },
+  "settingsSectionUsage": "Usage",
+  "@settingsSectionUsage": {
+    "description": "Account info: settingsSectionUsage"
+  },
+  "accountUserId": "User ID",
+  "@accountUserId": {
+    "description": "Account info: accountUserId"
+  },
+  "accountName": "Name",
+  "@accountName": {
+    "description": "Account info: accountName"
+  },
+  "accountEmail": "Email",
+  "@accountEmail": {
+    "description": "Account info: accountEmail"
+  },
+  "accountMemberSince": "Member Since",
+  "@accountMemberSince": {
+    "description": "Account info: accountMemberSince"
+  },
+  "accountCurrentPlan": "Current Plan",
+  "@accountCurrentPlan": {
+    "description": "Account info: accountCurrentPlan"
+  },
+  "accountTotalSongs": "Total Songs Created",
+  "@accountTotalSongs": {
+    "description": "Account info: accountTotalSongs"
+  },
+  "accountIdCopied": "User ID copied",
+  "@accountIdCopied": {
+    "description": "Account info: accountIdCopied"
+  },
+  "accountUnknown": "Unknown",
+  "@accountUnknown": {
+    "description": "Account info: accountUnknown"
+  },
+  "planFree": "Free Plan",
+  "@planFree": {
+    "description": "Account info: planFree"
+  },
+  "planProWeekly": "Pro • Weekly",
+  "@planProWeekly": {
+    "description": "Account info: planProWeekly"
+  },
+  "planProMonthly": "Pro • Monthly",
+  "@planProMonthly": {
+    "description": "Account info: planProMonthly"
+  },
+  "planProYearly": "Pro • Yearly",
+  "@planProYearly": {
+    "description": "Account info: planProYearly"
   }
 }

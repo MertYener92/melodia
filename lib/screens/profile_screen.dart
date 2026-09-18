@@ -2,26 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../services/locale_controller.dart';
+import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/gradient_border_painter.dart';
-import 'account_info_screen.dart';
-import 'credits_screen.dart';
-import 'paywall_screen.dart';
+import '../widgets/empty_songs_state.dart';
+import '../widgets/profile_completion_card.dart';
+import '../widgets/song_list_item.dart';
+import 'profile_completion_flow_screen.dart';
 import 'settings_screen.dart';
 
-/// DEĞİŞTİ (tam yeniden tasarım): kullanıcının verdiği referans görsele
-/// BİREBİR göre yeniden yapıldı -- üstte başlık+ayarlar, avatar+plan
-/// rozeti+üyelik tarihi, iki istatistik kartı, "Kalan Jeton" kartı
-/// (Kredi Al butonuyla), "Planın" kartı (Planı Yönet butonuyla,
-/// özellik ikonları), ve alt menü listesi.
+/// Profil ekranı: en üstte mor-pembe tonlarından siyaha akan bir başlık
+/// alanı (sağ üstte Ayarlar ikonu, avatar + isim + ID, "Edit Profile"
+/// butonu), altında "Complete Your Profile" ve kullanıcının şarkıları.
 ///
-/// NOT (görselle tek fark): referans görselde ikinci istatistik kartı
-/// "Favorites" -- daha önceki bir konuşmada bunun yerine "Videos"
-/// istenmişti ama bu turda "görseldeki gibi birebir" istendiği için
-/// BİREBİR Favorites olarak bırakıldı. Video sayısına geçmek istenirse
-/// tek satırlık bir değişiklik.
+/// Hesap bilgileri, abonelik/ödeme, yardım ve hakkında satırları bu
+/// ekrandan KALDIRILDI -- hepsi Ayarlar ekranında (bkz. settings_screen.dart).
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     super.key,
@@ -30,12 +26,19 @@ class ProfileScreen extends StatefulWidget {
     required this.authService,
     required this.localeController,
     required this.onLoggedOut,
+    required this.player,
+    required this.onNavigateToCreate,
   });
 
   final SongLibrary library;
   final SunoApiService service;
   final AuthService authService;
   final LocaleController localeController;
+  final PlayerController player;
+
+  /// Songs bölümü boşken buton HomeShell'e "0. sekmeye (CreateScreen)
+  /// geç" der (bkz. home_shell.dart _goToTab).
+  final VoidCallback onNavigateToCreate;
 
   /// Çıkış yapıldığında ya da hesap silindiğinde çağrılır (main.dart'a
   /// kadar bubbling yaparak login ekranına dönmeyi sağlar).
@@ -49,19 +52,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // Ekran her açıldığında en taze plan/jeton/üyelik bilgisini çek --
-    // SongLibrary zaten bu veriyi tutuyor (bkz. refreshQuota), burada
-    // sadece kesinlikle güncel olduğundan emin oluyoruz.
     widget.library.refreshQuota();
   }
 
   String get _displayName {
+    // Kullanıcı bir görünen ad belirlediyse onu kullan; e-postadan
+    // türetme SADECE bu alan boşken devreye giren bir fallback.
+    final override = widget.library.displayNameOverride;
+    if (override != null && override.trim().isNotEmpty) return override.trim();
+
     final email = widget.authService.email;
     if (email == null || email.isEmpty) return 'Kullanıcı';
-    // NOT: Cognito/Apple'da ayrı bir "ad soyad" alanı tutulmuyor (sadece
-    // e-posta) -- e-postanın @ öncesi kısmından, kabaca okunabilir bir
-    // görünen ad türetiliyor. Gerçek bir "ad" alanı istenirse bu, ayrı
-    // bir backend + profil düzenleme ekranı gerektirir.
     final localPart = email.split('@').first;
     final cleaned = localPart.replaceAll(RegExp(r'[._]+'), ' ').trim();
     if (cleaned.isEmpty) return 'Kullanıcı';
@@ -71,612 +72,259 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .join(' ');
   }
 
-  String _planLabelFor(String plan) {
-    switch (plan) {
-      case 'pro_weekly':
-        return 'Pro • Haftalık Plan';
-      case 'pro_monthly':
-        return 'Pro • Aylık Plan';
-      case 'pro_yearly':
-        return 'Pro • Yıllık Plan';
-      default:
-        return 'Ücretsiz Plan';
-    }
+  /// Kullanıcı ID'si: Cognito 'sub' UUID'sinin tire'siz ilk 10 karakteri.
+  String? get _userHandle {
+    final id = widget.authService.userId;
+    if (id == null || id.isEmpty) return null;
+    final compact = id.replaceAll('-', '');
+    return '@${compact.length > 10 ? compact.substring(0, 10) : compact}';
   }
 
-  String _planTitleFor(String plan) {
-    switch (plan) {
-      case 'pro_weekly':
-        return 'Pro - Haftalık';
-      case 'pro_monthly':
-        return 'Pro - Aylık';
-      case 'pro_yearly':
-        return 'Pro - Yıllık';
-      default:
-        return 'Ücretsiz';
-    }
+  void _openProfileCompletion() {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => ProfileCompletionFlowScreen(
+              library: widget.library,
+              service: widget.service,
+              initialStep: widget.library.profileStep,
+            ),
+          ),
+        )
+        .then((_) => setState(() {}));
   }
 
-  String? _formatDate(String? iso) {
-    if (iso == null || iso.isEmpty) return null;
-    final date = DateTime.tryParse(iso);
-    if (date == null) return null;
-    const months = [
-      'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
-      'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(
+          service: widget.service,
+          authService: widget.authService,
+          localeController: widget.localeController,
+          library: widget.library,
+          onAccountDeleted: widget.onLoggedOut,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return SafeArea(
-      child: ListenableBuilder(
-        listenable: widget.library,
-        builder: (context, _) {
-          final plan = widget.library.plan ?? 'free';
-          final isPro = widget.library.isPro;
-          final remaining = widget.library.remainingCredits;
-          final bonus = widget.library.bonusCredits;
-          // "limit"i /quota'nın kendisi döndürmüyor (sadece remaining) --
-          // ekranda "kullanılan/limit" göstermek için remaining ile
-          // birlikte quotaError olmadığını bildiğimiz anda elimizdeki
-          // TEK güvenilir sayı remaining -- bu yüzden "X jeton kaldı"
-          // şeklinde, referans görseldeki "475/500" yerine daha basit
-          // ama HER ZAMAN doğru bir gösterim kullanılıyor.
-          final memberSince = _formatDate(widget.library.memberSince);
-          final renewsOn = _formatDate(widget.library.planExpiresAt);
+    return ListenableBuilder(
+      listenable: Listenable.merge([widget.library, widget.player]),
+      builder: (context, _) {
+        final avatarUrl = widget.library.avatarUrl;
+        final handle = _userHandle;
+        final completedSongs =
+            widget.library.songs.where((s) => s.pendingId == null).toList();
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            children: [
-              // ---- Başlık + Ayarlar ----
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        // Gradyan durum çubuğunun altına da uzansın diye ekran SafeArea
+        // İÇİNDE DEĞİL; üst boşluğu burada elle ekliyoruz.
+        return ColoredBox(
+          color: AppColors.background,
+          child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                MediaQuery.of(context).padding.top + 8,
+                16,
+                22,
+              ),
+              // Marka moru/pembesi KORUNDU ama doygunluğu ve parlaklığı
+              // düşürüldü (önceki açık lila göz yoruyordu): pembeye çalan
+              // koyu mürdüm -> koyu mor -> siyah. Renk, "Profili Düzenle"
+              // butonunun hemen altında tamamen sönüyor.
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF6E4668),
+                    Color(0xFF4A3059),
+                    Color(0xFF221A33),
+                    AppColors.background,
+                  ],
+                  stops: [0.0, 0.34, 0.68, 1.0],
+                ),
+              ),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Profilin',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: GestureDetector(
+                      onTap: _openSettings,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        // Gradyan koyulaştığı için siyah yerine düşük
+                        // opaklıkta beyaz -- karanlık zeminde okunur kalıyor.
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          shape: BoxShape.circle,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Yarat. Hayal Et. Her Yerde Dinle.',
-                          style: TextStyle(
-                            color: AppColors.textSecondary.withValues(alpha: 0.9),
-                            fontSize: 13,
-                          ),
+                        child: const Icon(
+                          Icons.settings_outlined,
+                          color: Colors.white,
+                          size: 21,
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => SettingsScreen(
-                          service: widget.service,
-                          authService: widget.authService,
-                          localeController: widget.localeController,
-                          onAccountDeleted: widget.onLoggedOut,
+                  const SizedBox(height: 26),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _openProfileCompletion,
+                        child: Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.surfaceElevated,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.55),
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipOval(
+                            child: avatarUrl != null
+                                ? Image.network(
+                                    avatarUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => const Icon(
+                                      Icons.person_rounded,
+                                      color: Colors.white,
+                                      size: 38,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.person_rounded,
+                                    color: Colors.white,
+                                    size: 38,
+                                  ),
+                          ),
                         ),
                       ),
-                    ),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: AppFonts.display,
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (handle != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                handle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.settings_outlined,
-                        color: AppColors.textSecondary,
-                        size: 20,
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  GestureDetector(
+                    onTap: _openProfileCompletion,
+                    child: Container(
+                      height: 46,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(23),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.edit_rounded, color: Colors.white, size: 17),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.profileEditProfile,
+                            style: const TextStyle(
+                              fontFamily: AppFonts.rounded,
+                              fontFamilyFallback: AppFonts.roundedFallback,
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-
-              // ---- Avatar + isim + plan rozeti + üyelik tarihi ----
-              Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 100,
-                      height: 100,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CustomPaint(
-                            size: const Size(100, 100),
-                            painter: const GradientBorderPainter(
-                              gradient: AppColors.goldGradient,
-                              borderRadius: 50,
-                              strokeWidth: 2.2,
-                            ),
-                          ),
-                          Container(
-                            width: 84,
-                            height: 84,
-                            decoration: const BoxDecoration(
-                              gradient: AppColors.primaryGradient,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 40,
-                            ),
-                          ),
-                        ],
-                      ),
+            ),
+            Padding(
+              // Alt sekme çubuğu (extendBody) içeriğin üstüne binmesin.
+              padding: EdgeInsets.fromLTRB(
+                16,
+                18,
+                16,
+                24 + MediaQuery.of(context).padding.bottom,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profil tamamlanınca (profileCompleted) kart bir daha
+                  // görünmez -- backend adım 4'te bunu otomatik true yazar.
+                  if (!widget.library.profileCompleted) ...[
+                    ProfileCompletionCard(
+                      step: widget.library.profileStep,
+                      onTap: _openProfileCompletion,
                     ),
-                    // NOT: fotoğraf yükleme/düzenleme özelliği henüz YOK --
-                    // bu ikon referans görseldeki gibi duruyor ama şimdilik
-                    // dokununca hiçbir şey yapmıyor (ileride profil fotoğrafı
-                    // eklenince buraya bağlanacak).
-                    Positioned(
-                      bottom: 2,
-                      right: 2,
-                      child: Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceElevated,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.background, width: 2),
-                        ),
-                        child: const Icon(Icons.edit, color: AppColors.textSecondary, size: 13),
-                      ),
-                    ),
+                    const SizedBox(height: 28),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  _displayName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                  Text(
+                    l10n.profileSongs,
+                    style: const TextStyle(
+                      fontFamily: AppFonts.display,
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                  decoration: BoxDecoration(
-                    gradient: isPro ? AppColors.goldGradient : null,
-                    color: isPro ? null : AppColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(999),
-                    border: isPro ? null : Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isPro) ...[
-                        const Icon(Icons.workspace_premium_rounded, size: 13, color: Colors.black87),
-                        const SizedBox(width: 5),
-                      ],
-                      Text(
-                        _planLabelFor(plan),
-                        style: TextStyle(
-                          color: isPro ? Colors.black.withValues(alpha: 0.85) : AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
-                        ),
+                  const SizedBox(height: 16),
+                  // Devam eden/başarısız üretimler (pendingId != null)
+                  // burada gösterilmez, onlar Şarkılarım sekmesinde.
+                  if (completedSongs.isEmpty)
+                    EmptySongsState(onCreatePressed: widget.onNavigateToCreate)
+                  else
+                    for (var i = 0; i < completedSongs.length; i++) ...[
+                      if (i > 0) const Divider(height: 1, color: AppColors.border),
+                      SongListItem(
+                        librarySong: completedSongs[i],
+                        isPlaying: widget.player.current?.song.id ==
+                                completedSongs[i].song.id &&
+                            widget.player.isPlaying,
+                        onTap: () => widget.player.playSong(completedSongs[i]),
                       ),
                     ],
-                  ),
-                ),
+                ],
               ),
-              if (memberSince != null) ...[
-                const SizedBox(height: 6),
-                Center(
-                  child: Text(
-                    'Üyelik: $memberSince',
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-
-              // ---- Kalan Jeton kartı ----
-              // DÜZELTME: free plan kullanıcısında bu kart TAMAMEN
-              // gizleniyor (önceden "—" gibi anlamsız bir değer
-              // gösteriyordu) -- sadece Pro kullanıcılarda görünür.
-              if (isPro) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: AppColors.glassCard(radius: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.purple.withValues(alpha: 0.18),
-                              shape: BoxShape.circle,
-                            ),
-                            // DÜZELTME: dolar ikonu yerine bakiye/cüzdan
-                            // tarzı bir ikon.
-                            child: const Icon(Icons.account_balance_wallet_rounded, color: AppColors.purple, size: 19),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Kalan Jeton',
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  fullscreenDialog: true,
-                                  builder: (_) => CreditsScreen(
-                                    authService: widget.authService,
-                                    apiService: widget.service,
-                                  ),
-                                ),
-                              );
-                              widget.library.refreshQuota();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.add_shopping_cart_rounded, color: Colors.white, size: 14),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Kredi Al',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        remaining != null ? '${remaining + bonus}' : '—',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (bonus > 0) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '$remaining abonelik + $bonus satın alınan jeton',
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5),
-                        ),
-                      ],
-                      if (renewsOn != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          'Yenilenme: $renewsOn',
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ---- Plan kartı ----
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: AppColors.glassCard(radius: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            gradient: AppColors.goldGradient,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.workspace_premium_rounded, color: Colors.black87, size: 20),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Planın',
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _planTitleFor(plan),
-                                style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () async {
-                            await Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => PaywallScreen(
-                                  authService: widget.authService,
-                                  apiService: widget.service,
-                                ),
-                              ),
-                            );
-                            widget.library.refreshQuota();
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceElevated,
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Planı Yönet',
-                                  style: TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                SizedBox(width: 2),
-                                Icon(Icons.chevron_right, color: AppColors.textMuted, size: 16),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isPro ? 'Tüm özelliklere tam erişim' : 'Sınırlı özellikler — Pro\'ya geç',
-                      style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                    ),
-                    const SizedBox(height: 16),
-                    // NOT: bu 3 özellik pazarlama amaçlı, referans görselle
-                    // BİREBİR -- "Ses Klonlama" (Voice Cloning) henüz
-                    // GERÇEKTEN inşa edilmedi (proje backlog'unda), bu
-                    // satır şimdilik özlem/gelecek vaadi olarak duruyor.
-                    // DÜZELTME: "Sınırsız Üretim" kaldırıldı (dar
-                    // ekranlarda satıra sığmayıp taşıyordu), kalan 3
-                    // ortalanmış şekilde diziliyor.
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        _FeatureChip(
-                          // DÜZELTME: Unicode sembol (♫) fontlara göre çok
-                          // ince/tutarsız görünüyordu -- gerçek bir Material
-                          // ikonuna (library_music, zaten çift-nota şeklinde
-                          // çizilmiş bir ikon) geçildi, cihazdan bağımsız
-                          // her zaman aynı, kalın görünür.
-                          icon: Icon(Icons.library_music_rounded, color: AppColors.purple, size: 16),
-                          label: 'Yüksek\nKalite Ses',
-                        ),
-                        SizedBox(width: 18),
-                        _FeatureChip(
-                          icon: Icon(Icons.movie_creation_rounded, color: AppColors.purple, size: 15),
-                          label: 'AI Video\nÜretimi',
-                        ),
-                        SizedBox(width: 18),
-                        _FeatureChip(
-                          icon: Icon(Icons.graphic_eq_rounded, color: AppColors.purple, size: 15),
-                          label: 'Ses\nKlonlama',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ---- Menü listesi (TEK kart, aralarında ince ayırıcı) ----
-              // DÜZELTME: önceden her satır AYRI bir glassCard kutusuydu
-              // (görünür boşluklarla) -- referans görselde tek, sürekli
-              // bir kart var, satırlar sadece ince bir çizgiyle ayrılıyor.
-              Container(
-                decoration: AppColors.glassCard(radius: 16),
-                // ClipRRect: içindeki ListTile'ların dokunma efekti
-                // (InkWell) dış kartın yuvarlak köşelerinin dışına
-                // taşmasın diye -- tüm sütun TEK seferde kırpılıyor,
-                // her satırı ayrı ayrı işlemeye gerek yok.
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Column(
-                    children: [
-                    _MenuTile(
-                      icon: Icons.person_outline,
-                      label: 'Hesap Bilgileri',
-                      subtitle: 'E-posta, şifre ve kişisel bilgiler',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AccountInfoScreen(
-                            authService: widget.authService,
-                            library: widget.library,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const _MenuDivider(),
-                    _MenuTile(
-                      icon: Icons.credit_card_outlined,
-                      label: 'Abonelik ve Ödeme',
-                      subtitle: 'Plan detayları, ödeme geçmişi, faturalar',
-                      // NOT: ayrı bir "ödeme geçmişi/fatura" ekranı YOK --
-                      // Apple zaten bunu App Store'un kendi abonelik
-                      // yönetim ekranında tutuyor, bu yüzden en yakın
-                      // karşılığı olan PaywallScreen'e yönlendiriliyor.
-                      onTap: () async {
-                        await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => PaywallScreen(
-                              authService: widget.authService,
-                              apiService: widget.service,
-                            ),
-                          ),
-                        );
-                        widget.library.refreshQuota();
-                      },
-                    ),
-                    const _MenuDivider(),
-                    _MenuTile(
-                      icon: Icons.settings_outlined,
-                      label: l10n.profileSettings,
-                      subtitle: 'Uygulama tercihleri, bildirimler, dil',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => SettingsScreen(
-                            service: widget.service,
-                            authService: widget.authService,
-                            localeController: widget.localeController,
-                            onAccountDeleted: widget.onLoggedOut,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const _MenuDivider(),
-                    _MenuTile(
-                      icon: Icons.help_outline,
-                      label: l10n.profileHelpSupport,
-                      subtitle: 'SSS, bize ulaşın, sorun bildirin',
-                      // NOT: ayrı bir destek ekranı YOK -- dokununca
-                      // şimdilik hiçbir şey açılmıyor.
-                    ),
-                    const _MenuDivider(),
-                    _MenuTile(
-                      icon: Icons.info_outline,
-                      label: l10n.profileAboutApp,
-                      subtitle: 'Sürüm 1.0.0',
-                      // NOT: sürüm numarası şimdilik sabit yazılı --
-                      // pubspec.yaml ile senkron tutmak istenirse
-                      // package_info_plus paketiyle dinamik okunabilir.
-                    ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// DÜZELTME: ikon-üstte/yazı-altta dikey düzen yerine, referans görsele
-/// göre ikon (solda, renkli daire içinde) + iki satırlık yazı (sağda,
-/// sola hizalı) yatay düzen.
-class _FeatureChip extends StatelessWidget {
-  const _FeatureChip({required this.icon, required this.label});
-  final Widget icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppColors.purple.withValues(alpha: 0.18),
-            shape: BoxShape.circle,
+            ),
+          ],
           ),
-          alignment: Alignment.center,
-          child: icon,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 11.5,
-            height: 1.25,
-          ),
-        ),
-      ],
+        );
+      },
     );
-  }
-}
-
-class _MenuTile extends StatelessWidget {
-  const _MenuTile({
-    required this.icon,
-    required this.label,
-    this.subtitle,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String? subtitle;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.textSecondary),
-      title: Text(label, style: const TextStyle(color: AppColors.textPrimary)),
-      subtitle: subtitle != null
-          ? Text(subtitle!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
-          : null,
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted),
-      onTap: onTap ?? () {},
-    );
-  }
-}
-
-/// Menü kartındaki satırlar arasında ince ayırıcı çizgi -- referans
-/// görseldeki gibi, ikonun hizasından değil baştan başlıyor.
-class _MenuDivider extends StatelessWidget {
-  const _MenuDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Divider(height: 1, thickness: 1, color: AppColors.border);
   }
 }

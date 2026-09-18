@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
-import '../widgets/premium_back_button.dart';
+import '../widgets/screen_header.dart';
 
 /// "İndirdiklerim" ekranı — ŞİMDİLİK PLACEHOLDER.
 /// Kullanıcının cihazına indirdiği dosyaların gerçek takibi henüz
@@ -25,21 +25,8 @@ class DownloadsScreen extends StatelessWidget {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 20, 18),
-                child: Row(
-                  children: [
-                    const PremiumBackButton(),
-                    const SizedBox(width: 12),
-                    Text(
-                      l10n.libraryDownloadsTitle,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                child: ScreenHeader(title: l10n.libraryDownloadsTitle),
               ),
               Expanded(
                 child: Center(

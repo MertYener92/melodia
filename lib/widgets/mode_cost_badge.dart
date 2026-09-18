@@ -20,7 +20,7 @@ class ModeCostBadge extends StatelessWidget {
         const Icon(Icons.diamond_rounded, color: Color(0xFFF4B740), size: 13),
         const SizedBox(width: 5),
         Text(
-          '$credits Jeton',
+          '$credits Kredi',
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 12,
