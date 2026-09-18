@@ -11,7 +11,7 @@ import 'package:video_player/video_player.dart';
 import '../services/music_video_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/library_mode_filter.dart';
-import '../widgets/premium_back_button.dart';
+import '../widgets/screen_header.dart';
 
 /// Başka ekranlardan (örn. Favorilerim) da tam ekran klip oynatıcıyı
 /// açabilmek için dışarıya açık yardımcı fonksiyon.
@@ -146,21 +146,8 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 20, 18),
-                child: Row(
-                  children: [
-                    const PremiumBackButton(),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Videolarım',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                child: ScreenHeader(title: 'Videolarım'),
               ),
               LibraryModeFilter(
                 selected: _selectedMode,
@@ -645,7 +632,7 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
                     children: [
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                        icon: const Icon(AppIcons.back, color: Colors.white, size: 20),
                       ),
                     ],
                   ),
@@ -872,7 +859,7 @@ class _ChewieCustomControlsState extends State<_ChewieCustomControls> {
                       left: 8,
                       child: IconButton(
                         onPressed: chewieController.exitFullScreen,
-                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                        icon: const Icon(AppIcons.back, color: Colors.white, size: 22),
                       ),
                     )
                   else

@@ -1,46 +1,27 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import 'gradient_border_painter.dart';
 
-/// Kütüphane ekranlarının (Şarkılarım/Videolarım/Favorilerim/
-/// İndirdiklerim) üst kısmındaki geri butonu -- önceden çıplak, sade
-/// bir ok ikonuydu ("çok sade/basit duruyor" geri bildirimi üzerine),
-/// artık altınımsı, renk geçişli bir halka içinde, dairesel "premium"
-/// bir görünüm taşıyor.
+/// Uygulamanın tüm geri butonu: sade, ince bir "<" ok. Yanındaki başlık
+/// (varsa) çağıran ekranın satırında durur. Sınırsız/dairesiz -- tek
+/// tanım burada, AppBar'lı ekranlar da aynı ikonu temadan alır
+/// (bkz. AppTheme.dark -> actionIconTheme).
 class PremiumBackButton extends StatelessWidget {
   const PremiumBackButton({super.key, this.onPressed});
 
   final VoidCallback? onPressed;
 
-  // KÜÇÜLTÜLDÜ: önceki 38px boyut kütüphane ekranlarının başlığına göre
-  // çok iri duruyordu ("geri oku yuvarlağı çok büyük" geri bildirimi).
-  static const double _size = 30;
-
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onPressed ?? () => Navigator.of(context).maybePop(),
-        child: SizedBox(
-          width: _size,
-          height: _size,
-          child: CustomPaint(
-            painter: const GradientBorderPainter(
-              gradient: AppColors.goldGradient,
-              borderRadius: _size / 2,
-              strokeWidth: 1.4,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_back_rounded,
-                color: AppColors.textPrimary,
-                size: 15,
-              ),
-            ),
-          ),
+    return InkResponse(
+      onTap: onPressed ?? () => Navigator.of(context).maybePop(),
+      radius: 22,
+      child: const SizedBox(
+        width: 32,
+        height: 32,
+        child: Icon(
+          AppIcons.back,
+          color: AppColors.textPrimary,
+          size: 20,
         ),
       ),
     );

@@ -410,4 +410,148 @@ class AppLocalizationsTr extends AppLocalizations {
   String loginConfirmCodeSentTo(String email) {
     return '$email adresine gönderilen 6 haneli kodu girin.';
   }
+
+  @override
+  String get settingsSectionSettings => 'Ayarlar';
+
+  @override
+  String get settingsSectionSupport => 'Destek';
+
+  @override
+  String get settingsSectionAbout => 'Hakkında';
+
+  @override
+  String get settingsSectionAccount => 'Hesap';
+
+  @override
+  String get settingsDisplayLanguage => 'Görüntüleme Dili';
+
+  @override
+  String get settingsHomepagePreference => 'Ana Sayfa Tercihi';
+
+  @override
+  String get settingsEmailSupport => 'E-posta Desteği';
+
+  @override
+  String get settingsHelpCenter => 'Yardım Merkezi';
+
+  @override
+  String get settingsRequestFeature => 'Özellik İste';
+
+  @override
+  String get settingsUploadVoice => 'Ses Yükle';
+
+  @override
+  String get settingsShareWithFriends => 'Arkadaşlarla Paylaş';
+
+  @override
+  String get settingsRateIt => 'Uygulamayı Puanla';
+
+  @override
+  String get settingsTermsPrivacy => 'Şartlar ve Gizlilik';
+
+  @override
+  String get settingsCopyrightRemoval => 'Telif Hakkı Kaldırma Talebi';
+
+  @override
+  String get settingsAboutUs => 'Hakkımızda';
+
+  @override
+  String get settingsComingSoon => 'Yakında';
+
+  @override
+  String get settingsShareMessage =>
+      'Melodia\'ya göz at — yapay zekayla kendi şarkılarını oluştur!';
+
+  @override
+  String get profileEditProfile => 'Profili Düzenle';
+
+  @override
+  String get profileCompleteTitle => 'Profilini Tamamla';
+
+  @override
+  String get profileNoSongsYet => 'Henüz yayınlanmış şarkı yok';
+
+  @override
+  String get profileBrowseSongs => 'Şarkılarına göz at';
+
+  @override
+  String get profileStepTitle0 => 'Sana nasıl hitap edelim?';
+
+  @override
+  String get profileStepSubtitle0 => 'Görünen adını belirle';
+
+  @override
+  String get profileStepTitle1 => 'Bir profil fotoğrafı seç';
+
+  @override
+  String get profileStepSubtitle1 => 'Profiline bir yüz ver';
+
+  @override
+  String get profileStepTitle2 => 'Hangi müzik türlerini seviyorsun?';
+
+  @override
+  String get profileStepSubtitle2 => 'En sevdiğin 1-5 türü seç';
+
+  @override
+  String get profileStepTitle3 => 'Melodia\'da ne oluşturmak istiyorsun?';
+
+  @override
+  String get profileStepSubtitle3 => 'Sana özel önerileri şekillendirelim';
+
+  @override
+  String get settingsAccountInfo => 'Hesap Bilgileri';
+
+  @override
+  String get settingsSubscription => 'Abonelik ve Ödeme';
+
+  @override
+  String get settingsCredits => 'Kredi';
+
+  @override
+  String profileStepOf(int step) {
+    return 'Adım $step / 4';
+  }
+
+  @override
+  String get settingsSectionMembership => 'Üyelik';
+
+  @override
+  String get settingsSectionUsage => 'Kullanım';
+
+  @override
+  String get accountUserId => 'Kullanıcı ID';
+
+  @override
+  String get accountName => 'İsim';
+
+  @override
+  String get accountEmail => 'E-posta';
+
+  @override
+  String get accountMemberSince => 'Üyelik Başlangıcı';
+
+  @override
+  String get accountCurrentPlan => 'Mevcut Plan';
+
+  @override
+  String get accountTotalSongs => 'Toplam Üretilen Şarkı';
+
+  @override
+  String get accountIdCopied => 'Kullanıcı ID kopyalandı';
+
+  @override
+  String get accountUnknown => 'Bilinmiyor';
+
+  @override
+  String get planFree => 'Ücretsiz Plan';
+
+  @override
+  String get planProWeekly => 'Pro • Haftalık';
+
+  @override
+  String get planProMonthly => 'Pro • Aylık';
+
+  @override
+  String get planProYearly => 'Pro • Yıllık';
 }

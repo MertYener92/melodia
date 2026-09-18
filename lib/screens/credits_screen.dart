@@ -117,11 +117,22 @@ class _CreditsScreenState extends State<CreditsScreen> {
     }
   }
 
+  /// DÜZELTME: önceden `contains('.500')` ilk sırada kontrol ediliyordu --
+  /// ".5000" ile biten ürün ID'si de ".500" İÇERDİĞİ için 5.000'lik paket
+  /// ekranda "500 Kredi" görünüyordu. Artık ID'nin SONU eşleştiriliyor,
+  /// büyükten küçüğe sıralama da gerekmiyor.
   String _creditsLabelFor(String productId) {
-    if (productId.contains('.500')) return '500 Jeton';
-    if (productId.contains('.1000')) return '1.000 Jeton';
-    if (productId.contains('.3000')) return '3.000 Jeton';
-    if (productId.contains('.5000')) return '5.000 Jeton';
+    const labels = {
+      '5000': '5.000 Kredi',
+      '3000': '3.000 Kredi',
+      '1000': '1.000 Kredi',
+      '500': '500 Kredi',
+    };
+    for (final entry in labels.entries) {
+      if (productId.endsWith('.${entry.key}') || productId.endsWith(entry.key)) {
+        return entry.value;
+      }
+    }
     return productId;
   }
 
@@ -152,7 +163,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Ekstra Jeton',
+                    'Ekstra Kredi',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -162,7 +173,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Süresi dolmayan, tek seferlik jeton paketleri — abonelik jeton '
+                    'Süresi dolmayan, tek seferlik kredi paketleri — abonelik kredi '
                     'havuzuna ek olarak kullanılır',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textSecondary, fontSize: 14),

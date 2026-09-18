@@ -80,9 +80,9 @@ class _AiMusicScreenState extends State<AiMusicScreen> {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(
-                        Icons.chevron_left_rounded,
+                        AppIcons.back,
                         color: AppColors.textPrimary,
-                        size: 28,
+                        size: 20,
                       ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),

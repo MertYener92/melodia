@@ -31,7 +31,7 @@ class MusicVideoService {
     );
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode != 200) {
-      throw MusicVideoException(body['error']?.toString() ?? 'Jeton bakiyesi alınamadı.');
+      throw MusicVideoException(body['error']?.toString() ?? 'Kredi bakiyesi alınamadı.');
     }
     return (body['balance'] as num?)?.toInt() ?? 0;
   }

@@ -413,4 +413,149 @@ class AppLocalizationsEn extends AppLocalizations {
   String loginConfirmCodeSentTo(String email) {
     return 'Enter the 6-digit code sent to $email.';
   }
+
+  @override
+  String get settingsSectionSettings => 'Settings';
+
+  @override
+  String get settingsSectionSupport => 'Support';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get settingsSectionAccount => 'Account';
+
+  @override
+  String get settingsDisplayLanguage => 'Display Language';
+
+  @override
+  String get settingsHomepagePreference => 'Homepage Preference';
+
+  @override
+  String get settingsEmailSupport => 'Email Support';
+
+  @override
+  String get settingsHelpCenter => 'Help Center';
+
+  @override
+  String get settingsRequestFeature => 'Request a Feature';
+
+  @override
+  String get settingsUploadVoice => 'Upload Voice';
+
+  @override
+  String get settingsShareWithFriends => 'Share with Friends';
+
+  @override
+  String get settingsRateIt => 'Rate It';
+
+  @override
+  String get settingsTermsPrivacy => 'Terms and Privacy';
+
+  @override
+  String get settingsCopyrightRemoval => 'Copyright Removal Request';
+
+  @override
+  String get settingsAboutUs => 'About Us';
+
+  @override
+  String get settingsComingSoon => 'Coming soon';
+
+  @override
+  String get settingsShareMessage =>
+      'Check out Melodia — create your own songs with AI!';
+
+  @override
+  String get profileEditProfile => 'Edit Profile';
+
+  @override
+  String get profileCompleteTitle => 'Complete Your Profile';
+
+  @override
+  String get profileNoSongsYet => 'No songs published yet';
+
+  @override
+  String get profileBrowseSongs => 'Browse your songs';
+
+  @override
+  String get profileStepTitle0 => 'What should we call you?';
+
+  @override
+  String get profileStepSubtitle0 => 'Set your display name';
+
+  @override
+  String get profileStepTitle1 => 'Choose a profile photo';
+
+  @override
+  String get profileStepSubtitle1 => 'Give your profile a face';
+
+  @override
+  String get profileStepTitle2 => 'Which music genres do you like?';
+
+  @override
+  String get profileStepSubtitle2 => 'Pick your 1-5 favorite genres';
+
+  @override
+  String get profileStepTitle3 => 'What do you want to create on Melodia?';
+
+  @override
+  String get profileStepSubtitle3 =>
+      'Let\'s shape your personal recommendations';
+
+  @override
+  String get settingsAccountInfo => 'Account Information';
+
+  @override
+  String get settingsSubscription => 'Subscription & Payment';
+
+  @override
+  String get settingsCredits => 'Credits';
+
+  @override
+  String profileStepOf(int step) {
+    return 'Step $step of 4';
+  }
+
+  @override
+  String get settingsSectionMembership => 'Membership';
+
+  @override
+  String get settingsSectionUsage => 'Usage';
+
+  @override
+  String get accountUserId => 'User ID';
+
+  @override
+  String get accountName => 'Name';
+
+  @override
+  String get accountEmail => 'Email';
+
+  @override
+  String get accountMemberSince => 'Member Since';
+
+  @override
+  String get accountCurrentPlan => 'Current Plan';
+
+  @override
+  String get accountTotalSongs => 'Total Songs Created';
+
+  @override
+  String get accountIdCopied => 'User ID copied';
+
+  @override
+  String get accountUnknown => 'Unknown';
+
+  @override
+  String get planFree => 'Free Plan';
+
+  @override
+  String get planProWeekly => 'Pro • Weekly';
+
+  @override
+  String get planProMonthly => 'Pro • Monthly';
+
+  @override
+  String get planProYearly => 'Pro • Yearly';
 }

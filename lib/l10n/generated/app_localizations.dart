@@ -807,6 +807,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the 6-digit code sent to {email}.'**
   String loginConfirmCodeSentTo(String email);
+
+  /// Settings screen: settingsSectionSettings
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsSectionSettings;
+
+  /// Settings screen: settingsSectionSupport
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get settingsSectionSupport;
+
+  /// Settings screen: settingsSectionAbout
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsSectionAbout;
+
+  /// Settings screen: settingsSectionAccount
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsSectionAccount;
+
+  /// Settings screen: settingsDisplayLanguage
+  ///
+  /// In en, this message translates to:
+  /// **'Display Language'**
+  String get settingsDisplayLanguage;
+
+  /// Settings screen: settingsHomepagePreference
+  ///
+  /// In en, this message translates to:
+  /// **'Homepage Preference'**
+  String get settingsHomepagePreference;
+
+  /// Settings screen: settingsEmailSupport
+  ///
+  /// In en, this message translates to:
+  /// **'Email Support'**
+  String get settingsEmailSupport;
+
+  /// Settings screen: settingsHelpCenter
+  ///
+  /// In en, this message translates to:
+  /// **'Help Center'**
+  String get settingsHelpCenter;
+
+  /// Settings screen: settingsRequestFeature
+  ///
+  /// In en, this message translates to:
+  /// **'Request a Feature'**
+  String get settingsRequestFeature;
+
+  /// Settings screen: settingsUploadVoice
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Voice'**
+  String get settingsUploadVoice;
+
+  /// Settings screen: settingsShareWithFriends
+  ///
+  /// In en, this message translates to:
+  /// **'Share with Friends'**
+  String get settingsShareWithFriends;
+
+  /// Settings screen: settingsRateIt
+  ///
+  /// In en, this message translates to:
+  /// **'Rate It'**
+  String get settingsRateIt;
+
+  /// Settings screen: settingsTermsPrivacy
+  ///
+  /// In en, this message translates to:
+  /// **'Terms and Privacy'**
+  String get settingsTermsPrivacy;
+
+  /// Settings screen: settingsCopyrightRemoval
+  ///
+  /// In en, this message translates to:
+  /// **'Copyright Removal Request'**
+  String get settingsCopyrightRemoval;
+
+  /// Settings screen: settingsAboutUs
+  ///
+  /// In en, this message translates to:
+  /// **'About Us'**
+  String get settingsAboutUs;
+
+  /// Settings screen: settingsComingSoon
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get settingsComingSoon;
+
+  /// Settings screen: settingsShareMessage
+  ///
+  /// In en, this message translates to:
+  /// **'Check out Melodia — create your own songs with AI!'**
+  String get settingsShareMessage;
+
+  /// Profile/settings: profileEditProfile
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get profileEditProfile;
+
+  /// Profile/settings: profileCompleteTitle
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Your Profile'**
+  String get profileCompleteTitle;
+
+  /// Profile/settings: profileNoSongsYet
+  ///
+  /// In en, this message translates to:
+  /// **'No songs published yet'**
+  String get profileNoSongsYet;
+
+  /// Profile/settings: profileBrowseSongs
+  ///
+  /// In en, this message translates to:
+  /// **'Browse your songs'**
+  String get profileBrowseSongs;
+
+  /// Profile/settings: profileStepTitle0
+  ///
+  /// In en, this message translates to:
+  /// **'What should we call you?'**
+  String get profileStepTitle0;
+
+  /// Profile/settings: profileStepSubtitle0
+  ///
+  /// In en, this message translates to:
+  /// **'Set your display name'**
+  String get profileStepSubtitle0;
+
+  /// Profile/settings: profileStepTitle1
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a profile photo'**
+  String get profileStepTitle1;
+
+  /// Profile/settings: profileStepSubtitle1
+  ///
+  /// In en, this message translates to:
+  /// **'Give your profile a face'**
+  String get profileStepSubtitle1;
+
+  /// Profile/settings: profileStepTitle2
+  ///
+  /// In en, this message translates to:
+  /// **'Which music genres do you like?'**
+  String get profileStepTitle2;
+
+  /// Profile/settings: profileStepSubtitle2
+  ///
+  /// In en, this message translates to:
+  /// **'Pick your 1-5 favorite genres'**
+  String get profileStepSubtitle2;
+
+  /// Profile/settings: profileStepTitle3
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to create on Melodia?'**
+  String get profileStepTitle3;
+
+  /// Profile/settings: profileStepSubtitle3
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s shape your personal recommendations'**
+  String get profileStepSubtitle3;
+
+  /// Profile/settings: settingsAccountInfo
+  ///
+  /// In en, this message translates to:
+  /// **'Account Information'**
+  String get settingsAccountInfo;
+
+  /// Profile/settings: settingsSubscription
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription & Payment'**
+  String get settingsSubscription;
+
+  /// Profile/settings: settingsCredits
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get settingsCredits;
+
+  /// Profile completion step label
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of 4'**
+  String profileStepOf(int step);
+
+  /// Account info: settingsSectionMembership
+  ///
+  /// In en, this message translates to:
+  /// **'Membership'**
+  String get settingsSectionMembership;
+
+  /// Account info: settingsSectionUsage
+  ///
+  /// In en, this message translates to:
+  /// **'Usage'**
+  String get settingsSectionUsage;
+
+  /// Account info: accountUserId
+  ///
+  /// In en, this message translates to:
+  /// **'User ID'**
+  String get accountUserId;
+
+  /// Account info: accountName
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get accountName;
+
+  /// Account info: accountEmail
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get accountEmail;
+
+  /// Account info: accountMemberSince
+  ///
+  /// In en, this message translates to:
+  /// **'Member Since'**
+  String get accountMemberSince;
+
+  /// Account info: accountCurrentPlan
+  ///
+  /// In en, this message translates to:
+  /// **'Current Plan'**
+  String get accountCurrentPlan;
+
+  /// Account info: accountTotalSongs
+  ///
+  /// In en, this message translates to:
+  /// **'Total Songs Created'**
+  String get accountTotalSongs;
+
+  /// Account info: accountIdCopied
+  ///
+  /// In en, this message translates to:
+  /// **'User ID copied'**
+  String get accountIdCopied;
+
+  /// Account info: accountUnknown
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get accountUnknown;
+
+  /// Account info: planFree
+  ///
+  /// In en, this message translates to:
+  /// **'Free Plan'**
+  String get planFree;
+
+  /// Account info: planProWeekly
+  ///
+  /// In en, this message translates to:
+  /// **'Pro • Weekly'**
+  String get planProWeekly;
+
+  /// Account info: planProMonthly
+  ///
+  /// In en, this message translates to:
+  /// **'Pro • Monthly'**
+  String get planProMonthly;
+
+  /// Account info: planProYearly
+  ///
+  /// In en, this message translates to:
+  /// **'Pro • Yearly'**
+  String get planProYearly;
 }
 
 class _AppLocalizationsDelegate

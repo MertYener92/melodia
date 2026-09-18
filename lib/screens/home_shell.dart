@@ -191,6 +191,8 @@ class _HomeShellState extends State<HomeShell> {
         authService: widget.authService,
         localeController: widget.localeController,
         onLoggedOut: widget.onLoggedOut,
+        player: _player,
+        onNavigateToCreate: () => _goToTab(0),
       ),
     ];
 

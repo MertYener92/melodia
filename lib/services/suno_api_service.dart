@@ -18,6 +18,7 @@ class SunoApiService {
   SunoApiService({
     required this.baseUrl,
     required this.idTokenProvider,
+    this.onUnauthorized,
     this.model = 'V5_5',
   });
 
@@ -27,6 +28,14 @@ class SunoApiService {
 
   /// Her istekte güncel Cognito idToken'ını döndüren fonksiyon.
   final String? Function() idTokenProvider;
+
+  /// YENİ (401 düzeltmesi): Cognito idToken'ı ~1 saat sonra süresi
+  /// doluyordu ve HİÇBİR YERDE tazelenmiyordu -- uygulama açılışından bir
+  /// saat sonra backend'e giden her istek API Gateway'de 401 ile
+  /// reddediliyor, istek Lambda'ya hiç ulaşmıyordu. Bu callback 401
+  /// alındığında oturumu tazeler; true dönerse istek BİR KEZ yeniden
+  /// denenir (bkz. [_send]).
+  final Future<bool> Function()? onUnauthorized;
 
   final String model;
 
@@ -38,31 +47,46 @@ class SunoApiService {
     };
   }
 
+  /// İsteği gönderir; 401 dönerse [onUnauthorized] ile oturumu tazeleyip
+  /// BİR KEZ yeniden dener. [_headers] her çağrıda token'ı yeniden
+  /// okuduğu için ikinci deneme otomatik olarak taze token'ı kullanır.
+  Future<http.Response> _send(Future<http.Response> Function() request) async {
+    final response = await request();
+    if (response.statusCode != 401 || onUnauthorized == null) return response;
+    final refreshed = await onUnauthorized!();
+    if (!refreshed) return response;
+    return request();
+  }
+
   Future<http.Response> _post(String path, Map<String, dynamic> body) {
-    return http
-        .post(Uri.parse('$baseUrl$path'), headers: _headers, body: jsonEncode(body))
-        .timeout(
-          const Duration(seconds: 35),
-          onTimeout: () => throw SunoApiException(
-            'Sunucuya bağlanılamadı (zaman aşımı). '
-            'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+    return _send(
+      () => http
+          .post(Uri.parse('$baseUrl$path'), headers: _headers, body: jsonEncode(body))
+          .timeout(
+            const Duration(seconds: 35),
+            onTimeout: () => throw SunoApiException(
+              'Sunucuya bağlanılamadı (zaman aşımı). '
+              'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+            ),
           ),
-        );
+    );
   }
 
   Future<http.Response> _get(String path, Map<String, String> query) {
-    return http
-        .get(
-          Uri.parse('$baseUrl$path').replace(queryParameters: query),
-          headers: _headers,
-        )
-        .timeout(
-          const Duration(seconds: 35),
-          onTimeout: () => throw SunoApiException(
-            'Sunucuya bağlanılamadı (zaman aşımı). '
-            'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+    return _send(
+      () => http
+          .get(
+            Uri.parse('$baseUrl$path').replace(queryParameters: query),
+            headers: _headers,
+          )
+          .timeout(
+            const Duration(seconds: 35),
+            onTimeout: () => throw SunoApiException(
+              'Sunucuya bağlanılamadı (zaman aşımı). '
+              'İnternet bağlantınızı kontrol edip tekrar deneyin.',
+            ),
           ),
-        );
+    );
   }
 
   // ---------------------------------------------------------------------
@@ -258,6 +282,12 @@ class SunoApiService {
   }
 
   /// Uygulama açılışında "kalan hakkınız: X/Y" göstermek için.
+  ///
+  /// YENİ (Complete Your Profile akışı): backend artık /quota yanıtına
+  /// profil alanlarını da (displayName, avatarUrl, favoriteGenres,
+  /// moodPreference, creationGoal, profileStep, profileCompleted) ekliyor
+  /// -- ayrı bir /profile GET endpoint'i açmaya gerek kalmadı, zaten her
+  /// ekran açılışında çağrılan tek bir istekle birlikte geliyor.
   Future<({
     int used,
     int limit,
@@ -266,6 +296,13 @@ class SunoApiService {
     int bonusCredits,
     String? createdAt,
     String? planExpiresAt,
+    String? displayName,
+    String? avatarUrl,
+    List<String> favoriteGenres,
+    String? moodPreference,
+    String? creationGoal,
+    int profileStep,
+    bool profileCompleted,
   })> getQuota() async {
     final response = await _get('/quota', {});
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -284,7 +321,86 @@ class SunoApiService {
       // hesaplarda null olabilir -- Flutter tarafı bu durumu ele almalı.
       createdAt: body['createdAt']?.toString(),
       planExpiresAt: body['planExpiresAt']?.toString(),
+      displayName: body['displayName']?.toString(),
+      avatarUrl: body['avatarUrl']?.toString(),
+      favoriteGenres: (body['favoriteGenres'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      moodPreference: body['moodPreference']?.toString(),
+      creationGoal: body['creationGoal']?.toString(),
+      profileStep: (body['profileStep'] as num?)?.toInt() ?? 0,
+      profileCompleted: body['profileCompleted'] == true,
     );
+  }
+
+  /// YENİ (Complete Your Profile akışı): profilin bir bölümünü kısmi
+  /// olarak günceller. Her adım (isim/avatar/tür/mood) kendi alanını tek
+  /// başına gönderir -- kullanıcı akışın ortasında çıksa bile önceki
+  /// adımlarda kaydedilen veri kalıcı olarak durur (bkz. updateProfile.js).
+  Future<void> updateProfile({
+    String? displayName,
+    String? avatarKey,
+    List<String>? favoriteGenres,
+    String? moodPreference,
+    String? creationGoal,
+    int? profileStep,
+  }) async {
+    final response = await _post('/profile', {
+      'displayName': ?displayName,
+      'avatarKey': ?avatarKey,
+      'favoriteGenres': ?favoriteGenres,
+      'moodPreference': ?moodPreference,
+      'creationGoal': ?creationGoal,
+      'profileStep': ?profileStep,
+    });
+    if (response.statusCode != 200) {
+      // Genel bir metin yerine sunucunun gerçek hatasını yüzeye çıkar --
+      // 401/403/500 ayrımı olmadan sorunu teşhis etmek imkansızdı.
+      String detail = 'HTTP ${response.statusCode}';
+      try {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final error = body['error'] ?? body['message'];
+        if (error != null) detail = error.toString();
+      } catch (_) {
+        // Gövde JSON değilse (ör. API Gateway'in düz 401'i) kod yeterli.
+      }
+      throw SunoApiException('Profil kaydedilemedi ($detail).');
+    }
+  }
+
+  /// YENİ (avatar yükleme): backend'den S3'e doğrudan yükleme için
+  /// kısa ömürlü bir presigned URL ister, döner: (uploadUrl, key).
+  /// `key`, yükleme bittikten sonra [updateProfile]'a `avatarKey` olarak
+  /// gönderilmelidir.
+  Future<({String uploadUrl, String key})> getAvatarUploadUrl() async {
+    final response = await _post('/profile/avatar-upload-url', {});
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw SunoApiException('Yükleme linki alınamadı.');
+    }
+    return (
+      uploadUrl: body['uploadUrl'] as String,
+      key: body['key'] as String,
+    );
+  }
+
+  /// YENİ (avatar yükleme): seçilen fotoğrafı, [getAvatarUploadUrl]'dan
+  /// alınan presigned URL'e DOĞRUDAN (backend'e uğramadan) S3 PUT ile
+  /// yükler.
+  Future<void> uploadAvatarBytes(String uploadUrl, List<int> bytes) async {
+    final response = await http
+        .put(
+          Uri.parse(uploadUrl),
+          headers: {'Content-Type': 'image/jpeg'},
+          body: bytes,
+        )
+        .timeout(
+          const Duration(seconds: 30),
+          onTimeout: () => throw SunoApiException('Fotoğraf yüklenemedi (zaman aşımı).'),
+        );
+    if (response.statusCode != 200) {
+      throw SunoApiException('Fotoğraf yüklenemedi.');
+    }
   }
 
   /// Apple'dan alınan imzalı satın alma makbuzunu (StoreKit 2'nin

@@ -209,6 +209,17 @@ class SongLibrary extends ChangeNotifier {
   String? _createdAt;
   String? _planExpiresAt;
 
+  // YENİ (Complete Your Profile akışı): /quota ile birlikte gelen profil
+  // alanları -- ayrı bir controller AÇMADAN, kota ile aynı yerde (tek
+  // singleton, tek refresh) tutuluyor.
+  String? _displayNameOverride;
+  String? _avatarUrl;
+  List<String> _favoriteGenres = const [];
+  String? _moodPreference;
+  String? _creationGoal;
+  int _profileStep = 0;
+  bool _profileCompleted = false;
+
   int? get remainingCredits => _remainingCredits;
   String? get quotaError => _quotaError;
   String? get plan => _plan;
@@ -216,6 +227,50 @@ class SongLibrary extends ChangeNotifier {
   bool get isPro => (_plan ?? '').startsWith('pro_');
   String? get memberSince => _createdAt;
   String? get planExpiresAt => _planExpiresAt;
+
+  String? get displayNameOverride => _displayNameOverride;
+  String? get avatarUrl => _avatarUrl;
+  List<String> get favoriteGenres => _favoriteGenres;
+  String? get moodPreference => _moodPreference;
+  String? get creationGoal => _creationGoal;
+  int get profileStep => _profileStep;
+  bool get profileCompleted => _profileCompleted;
+
+  /// YENİ (Complete Your Profile akışı): bir adımı backend'e kaydeder ve
+  /// ANINDA yerel state'i de günceller (tam bir refreshQuota() beklemeden
+  /// -- akış ekranı her adımda hemen ilerleyebilsin diye). Adım 4'e
+  /// ulaşıldığında profileCompleted otomatik true olur (bkz.
+  /// updateProfile.js).
+  Future<void> updateProfileStep({
+    String? displayName,
+    String? avatarKey,
+    List<String>? favoriteGenres,
+    String? moodPreference,
+    String? creationGoal,
+    required int profileStep,
+  }) async {
+    await service.updateProfile(
+      displayName: displayName,
+      avatarKey: avatarKey,
+      favoriteGenres: favoriteGenres,
+      moodPreference: moodPreference,
+      creationGoal: creationGoal,
+      profileStep: profileStep,
+    );
+    if (displayName != null) _displayNameOverride = displayName;
+    if (favoriteGenres != null) _favoriteGenres = favoriteGenres;
+    if (moodPreference != null) _moodPreference = moodPreference;
+    if (creationGoal != null) _creationGoal = creationGoal;
+    _profileStep = profileStep;
+    if (profileStep >= 4) _profileCompleted = true;
+    notifyListeners();
+    // Avatar yüklendiyse taze bir signed URL için tam bir kota yenilemesi
+    // gerekir (avatarUrl backend'de imzalanıyor) -- diğer alanlar için
+    // gerekmez, gereksiz bir ağ isteği atmayalım.
+    if (avatarKey != null) {
+      await refreshQuota();
+    }
+  }
 
   /// Kotayı backend'den tazeler ve dinleyicileri bilgilendirir.
   /// Uygulama açılışında, her üretim bitişinde (başarı/hata fark etmez)
@@ -229,6 +284,13 @@ class SongLibrary extends ChangeNotifier {
       _bonusCredits = quota.bonusCredits;
       _createdAt = quota.createdAt;
       _planExpiresAt = quota.planExpiresAt;
+      _displayNameOverride = quota.displayName;
+      _avatarUrl = quota.avatarUrl;
+      _favoriteGenres = quota.favoriteGenres;
+      _moodPreference = quota.moodPreference;
+      _creationGoal = quota.creationGoal;
+      _profileStep = quota.profileStep;
+      _profileCompleted = quota.profileCompleted;
       _quotaError = null;
     } catch (e) {
       _quotaError = e.toString();

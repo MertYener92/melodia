@@ -133,9 +133,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
   }
 
   String _subtitleFor(String productId) {
-    if (productId.contains('weekly')) return '250 jeton, haftalık faturalandırılır';
-    if (productId.contains('yearly')) return '250 jeton/ay (yılda 3.000), yıllık faturalandırılır';
-    return '1.000 jeton, aylık faturalandırılır';
+    if (productId.contains('weekly')) return '250 kredi, haftalık faturalandırılır';
+    if (productId.contains('yearly')) return '250 kredi/ay (yılda 3.000), yıllık faturalandırılır';
+    return '1.000 kredi, aylık faturalandırılır';
   }
 
   @override
@@ -181,7 +181,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Sınırsız yaratıcılık için aylık jeton havuzuna sahip ol',
+                    'Sınırsız yaratıcılık için aylık kredi havuzuna sahip ol',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.textSecondary,

@@ -40,6 +40,8 @@ class CreditsBadge extends StatelessWidget {
             Text(
               '$total',
               style: const TextStyle(
+                fontFamily: AppFonts.rounded,
+                fontFamilyFallback: AppFonts.roundedFallback,
                 color: AppColors.textPrimary,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -58,7 +60,7 @@ class CreditsBadge extends StatelessWidget {
         onTap: () => showDialog<void>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Jeton bilgisi alınamadı'),
+            title: const Text('Kredi bilgisi alınamadı'),
             content: SelectableText(error!),
             actions: [
               TextButton(
@@ -117,6 +119,8 @@ class ProBadge extends StatelessWidget {
           Text(
             isPro ? 'Kredi Al' : 'Pro',
             style: TextStyle(
+              fontFamily: AppFonts.rounded,
+              fontFamilyFallback: AppFonts.roundedFallback,
               color: isPro ? AppColors.textPrimary : Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,

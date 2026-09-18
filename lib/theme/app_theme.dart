@@ -1,5 +1,40 @@
 import 'package:flutter/material.dart';
 
+/// Ortak ikonlar.
+class AppIcons {
+  AppIcons._();
+
+  /// Tüm geri butonlarında kullanılan ince "<" oku.
+  static const IconData back = Icons.arrow_back_ios_new_rounded;
+}
+
+/// Uygulamanın font aileleri (SF Pro).
+///
+/// iOS'ta sistem fontu zaten SF Pro'dur: 'CupertinoSystemDisplay' /
+/// 'CupertinoSystemText' Flutter tarafından sistem fontuna çözülür.
+/// Android'de SF Pro yoktur -- font dosyası eklenmedikçe varsayılan
+/// font (Roboto) kullanılır.
+class AppFonts {
+  AppFonts._();
+
+  /// Büyük başlıklar.
+  static const String display = 'CupertinoSystemDisplay';
+
+  /// Normal metinler.
+  static const String text = 'CupertinoSystemText';
+
+  /// Buton / jeton gibi yumuşak alanlar. iOS'un yuvarlak sistem fontu;
+  /// bulunamazsa 'SF Pro Rounded' (eklenmişse), o da yoksa normal metin.
+  static const String rounded = '.AppleSystemUIFontRounded';
+  static const List<String> roundedFallback = ['SF Pro Rounded', text];
+
+  /// Buton / jeton metinleri için hazır stil.
+  static const TextStyle roundedStyle = TextStyle(
+    fontFamily: rounded,
+    fontFamilyFallback: roundedFallback,
+  );
+}
+
 /// Melodia Studio'nun premium karanlık tema renkleri ve stilleri.
 class AppColors {
   AppColors._();
@@ -71,6 +106,25 @@ class AppColors {
 class AppTheme {
   AppTheme._();
 
+  /// display/headline/titleLarge -> SF Pro Display, geri kalan -> SF Pro Text.
+  static TextTheme _textTheme(TextTheme t) {
+    final colored = t.apply(
+      bodyColor: AppColors.textPrimary,
+      displayColor: AppColors.textPrimary,
+      fontFamily: AppFonts.text,
+    );
+    TextStyle? d(TextStyle? x) => x?.copyWith(fontFamily: AppFonts.display);
+    return colored.copyWith(
+      displayLarge: d(colored.displayLarge),
+      displayMedium: d(colored.displayMedium),
+      displaySmall: d(colored.displaySmall),
+      headlineLarge: d(colored.headlineLarge),
+      headlineMedium: d(colored.headlineMedium),
+      headlineSmall: d(colored.headlineSmall),
+      titleLarge: d(colored.titleLarge),
+    );
+  }
+
   static ThemeData get dark {
     final base = ThemeData.dark(useMaterial3: true);
     return base.copyWith(
@@ -80,9 +134,22 @@ class AppTheme {
         secondary: AppColors.pink,
         surface: AppColors.surface,
       ),
-      textTheme: base.textTheme.apply(
-        bodyColor: AppColors.textPrimary,
-        displayColor: AppColors.textPrimary,
+      textTheme: _textTheme(base.textTheme),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(textStyle: AppFonts.roundedStyle),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(textStyle: AppFonts.roundedStyle),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(textStyle: AppFonts.roundedStyle),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(textStyle: AppFonts.roundedStyle),
+      ),
+      // AppBar'lı ekranların otomatik geri butonu da aynı sade "<" olsun.
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (context) => const Icon(AppIcons.back, size: 20),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,

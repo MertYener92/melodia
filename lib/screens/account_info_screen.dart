@@ -1,23 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
 
 import '../services/auth_service.dart';
 import '../services/song_library.dart';
 import '../theme/app_theme.dart';
-import '../widgets/premium_back_button.dart';
+import '../widgets/screen_header.dart';
+import '../widgets/settings_section.dart';
 
-/// Hesap Bilgileri ekranı — settings_screen.dart ile AYNI header deseni
-/// (standart AppBar YOK, PremiumBackButton + gradyan en tepeden başlıyor).
-/// Salt okunur bilgiler: ID, isim, e-posta, üyelik tarihi/süresi, plan,
-/// toplam üretilen şarkı. Hesap silme zaten Ayarlar ekranında var, burada
-/// TEKRAR edilmiyor.
+/// Hesap Bilgileri ekranı — Ayarlar ekranıyla AYNI yapı: ortalanmış
+/// başlık, bölüm başlıkları ve koyu kartlar içinde satırlar. Salt okunur
+/// bilgiler. Hesap silme zaten Ayarlar'da, burada TEKRAR edilmiyor.
 class AccountInfoScreen extends StatelessWidget {
-  const AccountInfoScreen({super.key, required this.authService, required this.library});
+  const AccountInfoScreen({
+    super.key,
+    required this.authService,
+    required this.library,
+  });
 
   final AuthService authService;
   final SongLibrary library;
 
   String get _displayName {
+    // Kullanıcı bir görünen ad belirlediyse onu kullan; e-postadan
+    // türetme SADECE bu alan boşken devreye giren bir fallback.
+    final override = library.displayNameOverride;
+    if (override != null && override.trim().isNotEmpty) return override.trim();
+
     final email = authService.email;
     if (email == null || email.isEmpty) return 'Kullanıcı';
     final localPart = email.split('@').first;
@@ -40,42 +49,25 @@ class AccountInfoScreen extends StatelessWidget {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  /// "X gündür/aydır/yıldır kullanıyorsun" -- ham tarihin yanında,
-  /// kullanıcının daha kolay ilişki kurabileceği bir süre ifadesi.
-  String? _relativeSince(String? iso) {
-    if (iso == null || iso.isEmpty) return null;
-    final date = DateTime.tryParse(iso);
-    if (date == null) return null;
-    final days = DateTime.now().difference(date).inDays;
-    if (days < 1) return 'Bugün katıldın';
-    if (days < 30) return '$days gündür buradasın';
-    if (days < 365) {
-      final months = (days / 30).floor();
-      return '$months aydır buradasın';
-    }
-    final years = (days / 365).floor();
-    return '$years yıldır buradasın';
-  }
-
-  String _planLabelFor(String? plan) {
+  String _planLabelFor(String? plan, AppLocalizations l10n) {
     switch (plan) {
       case 'pro_weekly':
-        return 'Pro • Haftalık';
+        return l10n.planProWeekly;
       case 'pro_monthly':
-        return 'Pro • Aylık';
+        return l10n.planProMonthly;
       case 'pro_yearly':
-        return 'Pro • Yıllık';
+        return l10n.planProYearly;
       default:
-        return 'Ücretsiz Plan';
+        return l10n.planFree;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final userId = authService.userId ?? '—';
     final email = authService.email ?? '—';
     final memberSince = _formatDate(library.memberSince);
-    final relativeSince = _relativeSince(library.memberSince);
 
     return Scaffold(
       body: Container(
@@ -84,166 +76,70 @@ class AccountInfoScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: Row(
-                  children: [
-                    const PremiumBackButton(),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Hesap Bilgileri',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+              ScreenHeader(title: l10n.settingsAccountInfo),
+              SettingsSectionTitle(l10n.settingsSectionAccount),
+              SettingsCard(
+                children: [
+                  // Destek talebi açarken bu ID istenebiliyor --
+                  // dokununca panoya kopyalanıyor.
+                  SettingsRow(
+                    icon: Icons.badge_outlined,
+                    label: l10n.accountUserId,
+                    value: userId,
+                    monospace: true,
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: userId));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.accountIdCopied)),
+                      );
+                    },
+                    trailing: const Icon(
+                      Icons.copy_rounded,
+                      color: AppColors.textMuted,
+                      size: 16,
                     ),
-                  ],
-                ),
+                  ),
+                  SettingsRow(
+                    icon: Icons.person_outline,
+                    label: l10n.accountName,
+                    value: _displayName,
+                  ),
+                  SettingsRow(
+                    icon: Icons.email_outlined,
+                    label: l10n.accountEmail,
+                    value: email,
+                  ),
+                ],
               ),
-
-              // ---- Avatar + isim + üyelik süresi ----
-              Center(
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    shape: BoxShape.circle,
+              SettingsSectionTitle(l10n.settingsSectionMembership),
+              SettingsCard(
+                children: [
+                  SettingsRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: l10n.accountMemberSince,
+                    value: memberSince ?? l10n.accountUnknown,
                   ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 34),
-                ),
+                  SettingsRow(
+                    icon: Icons.workspace_premium_outlined,
+                    label: l10n.accountCurrentPlan,
+                    value: _planLabelFor(library.plan, l10n),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  _displayName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
+              SettingsSectionTitle(l10n.settingsSectionUsage),
+              SettingsCard(
+                children: [
+                  SettingsRow(
+                    icon: Icons.library_music_outlined,
+                    label: l10n.accountTotalSongs,
+                    value: '${library.songs.length}',
                   ),
-                ),
-              ),
-              if (relativeSince != null) ...[
-                const SizedBox(height: 4),
-                Center(
-                  child: Text(
-                    relativeSince,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 28),
-
-              // ---- Bilgi kartı ----
-              Container(
-                decoration: AppColors.glassCard(radius: 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Column(
-                    children: [
-                      _InfoRow(
-                        icon: Icons.badge_outlined,
-                        label: 'Kullanıcı ID',
-                        value: userId,
-                        monospace: true,
-                        // YENİ: destek talebi açarken bu ID istenebiliyor --
-                        // dokununca panoya kopyalanıyor.
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(text: userId));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Kullanıcı ID kopyalandı')),
-                          );
-                        },
-                        trailing: const Icon(Icons.copy_rounded, color: AppColors.textMuted, size: 16),
-                      ),
-                      const Divider(height: 1, thickness: 1, color: AppColors.border),
-                      _InfoRow(icon: Icons.person_outline, label: 'İsim', value: _displayName),
-                      const Divider(height: 1, thickness: 1, color: AppColors.border),
-                      _InfoRow(icon: Icons.email_outlined, label: 'E-posta', value: email),
-                      const Divider(height: 1, thickness: 1, color: AppColors.border),
-                      _InfoRow(
-                        icon: Icons.calendar_today_outlined,
-                        label: 'Üyelik Başlangıcı',
-                        value: memberSince ?? 'Bilinmiyor',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // ---- İkinci kart: plan + üretim özeti ----
-              // YENİ: kullanıcının "hesabım" derken merak edeceği diğer
-              // iki mantıklı bilgi -- şu anki planı ve bugüne kadar
-              // ürettiği toplam şarkı sayısı. ListenableBuilder ile
-              // sarılmıyor çünkü bu ekran zaten her açılışta taze veriyle
-              // (SongLibrary zaten profile_screen.dart'ta tazelenmiş
-              // durumda) geliyor.
-              Container(
-                decoration: AppColors.glassCard(radius: 16),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Column(
-                    children: [
-                      _InfoRow(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'Mevcut Plan',
-                        value: _planLabelFor(library.plan),
-                      ),
-                      const Divider(height: 1, thickness: 1, color: AppColors.border),
-                      _InfoRow(
-                        icon: Icons.library_music_outlined,
-                        label: 'Toplam Üretilen Şarkı',
-                        value: '${library.songs.length}',
-                      ),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.monospace = false,
-    this.onTap,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool monospace;
-  final VoidCallback? onTap;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.textSecondary),
-      title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-      subtitle: Text(
-        value,
-        style: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          fontFamily: monospace ? 'monospace' : null,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: trailing,
-      onTap: onTap,
     );
   }
 }

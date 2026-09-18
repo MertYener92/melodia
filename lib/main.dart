@@ -142,6 +142,9 @@ class _AppRootState extends State<_AppRoot> {
   late final SunoApiService _apiService = SunoApiService(
     baseUrl: apiUrl,
     idTokenProvider: () => _authService.idToken,
+    // 401'de oturumu tazele -- tryRestoreSession zaten cihazdaki refresh
+    // token ile yeni bir idToken alıyor.
+    onUnauthorized: _authService.tryRestoreSession,
   );
   late final MusicSpecService _musicSpecService = MusicSpecService(
     apiUrl: musicSpecApiUrl,
