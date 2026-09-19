@@ -7,6 +7,7 @@ import '../services/song_library.dart';
 import '../theme/app_theme.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/settings_section.dart';
+import '../widgets/app_notice.dart';
 
 /// Hesap Bilgileri ekranı — Ayarlar ekranıyla AYNI yapı: ortalanmış
 /// başlık, bölüm başlıkları ve koyu kartlar içinde satırlar. Salt okunur
@@ -89,9 +90,7 @@ class AccountInfoScreen extends StatelessWidget {
                     monospace: true,
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: userId));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.accountIdCopied)),
-                      );
+                      AppNotice.show(context, l10n.accountIdCopied, type: NoticeType.success);
                     },
                     trailing: const Icon(
                       Icons.copy_rounded,

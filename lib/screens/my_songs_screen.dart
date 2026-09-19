@@ -8,6 +8,7 @@ import '../widgets/generation_card.dart';
 import '../widgets/library_mode_filter.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/song_tile.dart';
+import '../widgets/app_notice.dart';
 
 class MySongsScreen extends StatefulWidget {
   const MySongsScreen({
@@ -179,9 +180,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.shareComingSoonMessage)),
-                  );
+                  AppNotice.show(context, l10n.shareComingSoonMessage, type: NoticeType.warning);
                 },
               ),
               ListTile(
@@ -195,9 +194,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.downloadComingSoonMessage)),
-                  );
+                  AppNotice.show(context, l10n.downloadComingSoonMessage, type: NoticeType.warning);
                 },
               ),
               ListTile(
@@ -216,8 +213,7 @@ class _MySongsScreenState extends State<MySongsScreen> {
                     await widget.library.remove(song);
                   } on SunoApiException catch (e) {
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(e.message)));
+                      AppNotice.show(context, e.message, type: NoticeType.error);
                     }
                   }
                 },

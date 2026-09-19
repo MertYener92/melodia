@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_notice.dart';
 
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({
@@ -82,9 +83,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     } else if (status.isSuccess) {
       setState(() => _purchasing = false);
       Navigator.of(context).pop(true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aboneliğin aktif! Pro\'ya hoş geldin.')),
-      );
+      AppNotice.show(context, 'Aboneliğin aktif! Pro\'ya hoş geldin.', type: NoticeType.success);
     } else if (status.isError) {
       setState(() {
         _purchasing = false;

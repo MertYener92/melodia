@@ -11,6 +11,7 @@ import '../services/subscription_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cinematic_video_hero.dart';
+import '../widgets/app_notice.dart';
 
 /// Otomatik açılan premium "PRO'ya geç" ekranı.
 ///
@@ -137,9 +138,7 @@ class _ProUpsellScreenState extends State<ProUpsellScreen> {
     } else if (status.isSuccess) {
       setState(() => _purchasing = false);
       Navigator.of(context).pop(true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.purchaseSuccessMessage)),
-      );
+      AppNotice.show(context, l10n.purchaseSuccessMessage, type: NoticeType.success);
     } else if (status.isError) {
       setState(() {
         _purchasing = false;

@@ -1329,6 +1329,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Latin'**
   String get remixStyleLatin;
+
+  /// Remix notice: remixStartedDetail
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll let you know when it\'s ready.'**
+  String get remixStartedDetail;
+
+  /// Remix notice: remixFailedDetail
+  ///
+  /// In en, this message translates to:
+  /// **'No credits were spent — you can try again.'**
+  String get remixFailedDetail;
 }
 
 class _AppLocalizationsDelegate

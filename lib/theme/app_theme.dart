@@ -102,7 +102,6 @@ class AppColors {
     ],
   );
 
-
   static BoxDecoration glassCard({double radius = 24}) {
     return BoxDecoration(
       color: surface.withValues(alpha: 0.7),
@@ -159,6 +158,23 @@ class AppTheme {
       // AppBar'lı ekranların otomatik geri butonu da aynı sade "<" olsun.
       actionIconTheme: ActionIconThemeData(
         backButtonIconBuilder: (context) => const Icon(AppIcons.back, size: 20),
+      ),
+      // Doğrudan SnackBar kullanılan yerler için yedek stil -- uygulama
+      // içindeki bildirimler normalde AppNotice (widgets/app_notice.dart).
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1B1826),
+        elevation: 0,
+        contentTextStyle: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: AppColors.pink,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,

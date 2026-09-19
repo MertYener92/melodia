@@ -12,6 +12,7 @@ import '../services/music_video_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/library_mode_filter.dart';
 import '../widgets/screen_header.dart';
+import '../widgets/app_notice.dart';
 
 /// Başka ekranlardan (örn. Favorilerim) da tam ekran klip oynatıcıyı
 /// açabilmek için dışarıya açık yardımcı fonksiyon.
@@ -101,7 +102,7 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
       await _refresh();
     } on MusicVideoException catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppNotice.show(context, e.message, type: NoticeType.error);
       }
     }
   }
@@ -486,13 +487,11 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
       );
     } on MusicVideoException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppNotice.show(context, e.message, type: NoticeType.error);
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Video paylaşılamadı.')),
-        );
+        AppNotice.show(context, 'Video paylaşılamadı.', type: NoticeType.error);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -549,7 +548,7 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
       await widget.videoService.updateProject(projectId: widget.projectId, note: result);
     } on MusicVideoException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        AppNotice.show(context, e.message, type: NoticeType.error);
       }
     }
   }
@@ -583,7 +582,7 @@ class _ClipPlayerScreenState extends State<_ClipPlayerScreen> {
         if (mounted) Navigator.of(context).pop();
       } on MusicVideoException catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+          AppNotice.show(context, e.message, type: NoticeType.error);
         }
       }
     }
