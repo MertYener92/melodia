@@ -15,6 +15,7 @@ import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_notice.dart';
 import '../widgets/karaoke_lyrics_view.dart';
 import '../widgets/player/playback_controls.dart';
 import '../widgets/player/player_progress_bar.dart';
@@ -366,19 +367,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // o an açık olan ekranda görünür.
     final messenger = ScaffoldMessenger.of(context);
     final controller = _controller;
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(l10n.remixStarted),
-          action: widget.onOpenLibrary == null
-              ? null
-              : SnackBarAction(
-                  label: l10n.remixView,
-                  onPressed: widget.onOpenLibrary!,
-                ),
-        ),
-      );
+    AppNotice.showOn(
+      messenger,
+      l10n.remixStartedDetail,
+      type: NoticeType.progress,
+      title: l10n.remixStarted,
+      actionLabel: widget.onOpenLibrary == null ? null : l10n.remixView,
+      onAction: widget.onOpenLibrary,
+    );
 
     final created = await widget.library.startRemix(
       source: source,
@@ -387,32 +383,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
       instrumental: request.instrumental,
     );
 
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        created.isEmpty
-            ? SnackBar(content: Text(l10n.remixFailed))
-            : SnackBar(
-                content: Text(l10n.remixReady),
-                action: SnackBarAction(
-                  label: l10n.remixListen,
-                  onPressed: () => controller.playSong(created.first),
-                ),
-              ),
+    if (created.isEmpty) {
+      AppNotice.showOn(
+        messenger,
+        l10n.remixFailedDetail,
+        type: NoticeType.error,
+        title: l10n.remixFailed,
       );
+    } else {
+      AppNotice.showOn(
+        messenger,
+        created.first.song.title,
+        type: NoticeType.success,
+        title: l10n.remixReady,
+        actionLabel: l10n.remixListen,
+        onAction: () => controller.playSong(created.first),
+      );
+    }
   }
 
   // TODO(playlist/comment): Uygulamada henüz çalma listesi ve yorum sistemi
   // YOK (backend'de de uç nokta yok). Butonlar tasarım gereği yerinde
   // duruyor; sahte bir işlem yapmak yerine "Yakında" gösteriliyor.
   void _showComingSoon(AppLocalizations l10n) =>
-      _showMessage(l10n.playerComingSoon);
+      _showMessage(l10n.playerComingSoon, type: NoticeType.warning);
 
-  void _showMessage(String message) {
+  void _showMessage(String message, {NoticeType type = NoticeType.error}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    AppNotice.show(context, message, type: type);
   }
 
   /// Üç nokta menüsü: şarkıya ait mevcut tüm aksiyonlar.

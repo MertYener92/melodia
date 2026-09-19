@@ -632,5 +632,13 @@
   "remixStyleLatin": "Latin",
   "@remixStyleLatin": {
     "description": "Remix sheet: remixStyleLatin"
+  },
+  "remixStartedDetail": "We'll let you know when it's ready.",
+  "@remixStartedDetail": {
+    "description": "Remix notice: remixStartedDetail"
+  },
+  "remixFailedDetail": "No credits were spent — you can try again.",
+  "@remixFailedDetail": {
+    "description": "Remix notice: remixFailedDetail"
   }
 }

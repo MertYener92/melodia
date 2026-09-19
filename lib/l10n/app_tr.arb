@@ -267,5 +267,7 @@
   "remixStyleRnb": "R&B",
   "remixStyleTrap": "Trap",
   "remixStyle80s": "80'ler Synthwave",
-  "remixStyleLatin": "Latin"
+  "remixStyleLatin": "Latin",
+  "remixStartedDetail": "Hazır olduğunda haber vereceğiz.",
+  "remixFailedDetail": "Kredin harcanmadı, tekrar deneyebilirsin."
 }

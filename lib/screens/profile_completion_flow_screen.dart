@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/chip_multi_group.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/premium_back_button.dart';
+import '../widgets/app_notice.dart';
 
 /// Madde 10/11: "Complete your profile" — 3-4 adımlık, kısa ve eğlenceli
 /// bir onboarding. Bir registration formu gibi GÖRÜNMEMELİ -- her adım
@@ -130,13 +131,12 @@ class _ProfileCompletionFlowScreenState extends State<ProfileCompletionFlowScree
     } on SunoApiException catch (e) {
       setState(() => _saving = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      AppNotice.show(context, e.message, type: NoticeType.error);
     } catch (e) {
       setState(() => _saving = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Kaydedilemedi: $e')),
-      );
+      debugPrint('Profil kaydedilemedi: $e');
+      AppNotice.show(context, 'Kaydedilemedi. Lütfen tekrar dene.', type: NoticeType.error);
     }
   }
 

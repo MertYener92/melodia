@@ -9,7 +9,7 @@ import '../theme/app_theme.dart';
 /// yerini alıyor.
 ///
 /// - Sol tarafta kare bir "artwork" alanı: gerçek artwork henüz yokken
-///   uygulamanın gerçek Melodia ikonu (assets/icon/icon.png), koyu
+///   uygulamanın Melodia logosu (assets/icon/icon_2.png, şeffaf zeminli), koyu
 ///   lacivert/mor/magenta bir glassmorphism zemin üzerinde, hafif bir
 ///   nefes alma (pulse) animasyonuyla gösterilir.
 /// - Kartın TAMAMI (arka plan + border) çok yavaş (~2.6sn) bir
@@ -275,11 +275,13 @@ class _MelodiaPulseIcon extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.all(13),
+          // icon_2.png'nin kendi içinde ~%24 şeffaf kenar boşluğu var --
+          // bu yüzden kutunun iç boşluğu küçük tutuluyor.
+          padding: const EdgeInsets.all(4),
           child: Transform.scale(
             scale: scale,
             child: Image.asset(
-              'assets/icon/icon.png',
+              'assets/icon/icon_2.png',
               fit: BoxFit.contain,
               errorBuilder: (_, _, _) => const Icon(
                 Icons.music_note_rounded,

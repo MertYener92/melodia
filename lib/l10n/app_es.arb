@@ -267,5 +267,7 @@
   "remixStyleRnb": "R&B",
   "remixStyleTrap": "Trap",
   "remixStyle80s": "Synthwave 80s",
-  "remixStyleLatin": "Latino"
+  "remixStyleLatin": "Latino",
+  "remixStartedDetail": "Te avisaremos cuando esté listo.",
+  "remixFailedDetail": "No se gastaron créditos; puedes intentarlo de nuevo."
 }

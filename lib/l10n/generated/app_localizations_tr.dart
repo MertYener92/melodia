@@ -674,4 +674,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get remixStyleLatin => 'Latin';
+
+  @override
+  String get remixStartedDetail => 'Hazır olduğunda haber vereceğiz.';
+
+  @override
+  String get remixFailedDetail => 'Kredin harcanmadı, tekrar deneyebilirsin.';
 }

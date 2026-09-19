@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/credit_purchase_service.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_notice.dart';
 
 /// Tüketilebilir kredi paketi satın alma ekranı. paywall_screen.dart
 /// (abonelik) ile AYNI desen -- tek fark: burada seçilen ürün "consumable"
@@ -82,15 +83,9 @@ class _CreditsScreenState extends State<CreditsScreen> {
     } else if (status.isSuccess) {
       setState(() => _purchasing = false);
       Navigator.of(context).pop(true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            status.bonusCredits != null
+      AppNotice.show(context, status.bonusCredits != null
                 ? 'Krediler eklendi! Toplam bakiyen: ${status.bonusCredits}'
-                : 'Krediler hesabına eklendi.',
-          ),
-        ),
-      );
+                : 'Krediler hesabına eklendi.', type: NoticeType.success);
     } else if (status.isError) {
       setState(() {
         _purchasing = false;

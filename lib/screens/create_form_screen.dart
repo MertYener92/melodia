@@ -10,6 +10,7 @@ import '../widgets/chip_group.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/mode_cost_badge.dart';
 import '../widgets/provider_selector.dart';
+import '../widgets/app_notice.dart';
 import 'my_songs_screen.dart';
 
 /// Şarkı üretim formu: prompt, genre/mood/vocal/length seçimleri ve
@@ -72,9 +73,7 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
     final l10n = AppLocalizations.of(context)!;
     final prompt = _promptController.text.trim();
     if (prompt.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.describeSongFirst)),
-      );
+      AppNotice.show(context, l10n.describeSongFirst, type: NoticeType.warning);
       return;
     }
 

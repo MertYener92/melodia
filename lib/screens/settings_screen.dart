@@ -8,6 +8,7 @@ import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/screen_header.dart';
 import '../widgets/settings_section.dart';
+import '../widgets/app_notice.dart';
 import 'account_info_screen.dart';
 import 'credits_screen.dart';
 import 'paywall_screen.dart';
@@ -164,20 +165,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } on SunoApiException catch (e) {
       if (!mounted) return;
       setState(() => _deleting = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      AppNotice.show(context, e.message, type: NoticeType.error);
     } catch (e) {
       if (!mounted) return;
       setState(() => _deleting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.genericUnexpectedError)),
-      );
+      AppNotice.show(context, l10n.genericUnexpectedError, type: NoticeType.error);
     }
   }
 
   void _comingSoon() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.settingsComingSoon)),
-    );
+    AppNotice.show(context, AppLocalizations.of(context)!.settingsComingSoon, type: NoticeType.warning);
   }
 
   Future<void> _shareApp() async {

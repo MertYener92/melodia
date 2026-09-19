@@ -685,4 +685,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get remixStyleLatin => 'Latino';
+
+  @override
+  String get remixStartedDetail => 'Te avisaremos cuando esté listo.';
+
+  @override
+  String get remixFailedDetail =>
+      'No se gastaron créditos; puedes intentarlo de nuevo.';
 }

@@ -678,4 +678,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remixStyleLatin => 'Latin';
+
+  @override
+  String get remixStartedDetail => 'We\'ll let you know when it\'s ready.';
+
+  @override
+  String get remixFailedDetail => 'No credits were spent — you can try again.';
 }
