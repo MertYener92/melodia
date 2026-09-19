@@ -109,7 +109,7 @@ class _CreateMusicVideoScreenState extends State<CreateMusicVideoScreen> {
       // Şimdi boşsa /songs/{id}/play-url ile taze bir link alıyoruz.
       final songAudioUrl = widget.song.audioUrl.isNotEmpty
           ? widget.song.audioUrl
-          : await widget.service.getSongPlayUrl(widget.song.id);
+          : await widget.service.resolvePlayUrl(widget.song);
 
       final project = await widget.videoService.createProject(
         songId: widget.song.id,

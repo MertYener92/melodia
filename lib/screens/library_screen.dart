@@ -1,176 +1,488 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
+
+import '../services/auth_service.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
+import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
-import 'downloads_screen.dart';
-import 'favorites_screen.dart';
-import 'my_songs_screen.dart';
+import '../widgets/app_notice.dart';
+import '../widgets/credit_badges.dart';
+import '../widgets/generation_card.dart';
+import '../widgets/library_list_item.dart';
 import 'video_library_screen.dart';
 
-/// "Kütüphane" sekmesi: kullanıcının tüm yaratımlarına (şarkılar +
-/// video klipler + favoriler + indirdikleri) tek bir giriş noktasından
-/// ulaştığı hub ekranı.
-///
-/// DEĞİŞTİ: Kartlar artık 2x2 dikey grid yerine YATAY kaydırmalı tek
-/// bir sırada. Her kart neredeyse tam ekran genişliğinde, bir sonraki
-/// kartın kenarı hafifçe görünerek kaydırılabilir olduğunu ima ediyor.
-class LibraryScreen extends StatelessWidget {
+enum LibraryFilter { all, music, video, remix }
+
+/// "Kütüphane" sekmesi: kullanıcının tüm şarkıları, remix'leri ve klipleri
+/// tek, yoğun bir listede -- büyük başlık, filtre çipleri, altında en yeni
+/// önce sıralanmış satırlar. Şarkıya dokununca çalmaya başlar ve büyük
+/// player açılır; klibe dokununca klip oynatıcısı açılır.
+class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
     super.key,
     required this.songLibrary,
     required this.player,
     required this.videoService,
+    required this.authService,
+    required this.service,
+    required this.onOpenSettings,
+    required this.onOpenPlayer,
+    this.isActive = false,
   });
 
   final SongLibrary songLibrary;
   final PlayerController player;
   final MusicVideoService videoService;
+  final AuthService authService;
+  final SunoApiService service;
+  final VoidCallback onOpenSettings;
+  final VoidCallback onOpenPlayer;
+
+  /// Sekme görünür olduğunda klip listesi tazelenir (yeni klip üretilmiş
+  /// olabilir).
+  final bool isActive;
+
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _Entry {
+  _Entry.song(LibrarySong this.song) : video = null, createdAt = song.createdAt;
+
+  _Entry.video(Map<String, dynamic> this.video)
+    : song = null,
+      createdAt =
+          DateTime.tryParse(video['createdAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+
+  final LibrarySong? song;
+  final Map<String, dynamic>? video;
+  final DateTime createdAt;
+}
+
+class _LibraryScreenState extends State<LibraryScreen> {
+  LibraryFilter _filter = LibraryFilter.all;
+  List<Map<String, dynamic>> _videos = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVideos();
+  }
+
+  @override
+  void didUpdateWidget(covariant LibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _loadVideos();
+  }
+
+  Future<void> _loadVideos() async {
+    try {
+      final videos = await widget.videoService.fetchProjects();
+      if (mounted) setState(() => _videos = videos);
+    } catch (_) {
+      // Klipler yüklenemezse şarkılar yine gösterilir; bir sonraki
+      // sekme geçişinde ya da aşağı çekince tekrar denenir.
+    }
+  }
+
+  Future<void> _refresh() async {
+    await Future.wait([widget.songLibrary.loadFromBackend(), _loadVideos()]);
+  }
+
+  bool _isRemix(LibrarySong s) => s.mode == 'remix';
+
+  List<_Entry> _entries() {
+    final songs = widget.songLibrary.songs;
+    final pending = songs.where((s) => s.pendingId != null).map(_Entry.song);
+    final done = songs.where((s) => s.pendingId == null);
+
+    final items = <_Entry>[
+      if (_filter != LibraryFilter.video)
+        ...done
+            .where(
+              (s) => switch (_filter) {
+                LibraryFilter.music => !_isRemix(s),
+                LibraryFilter.remix => _isRemix(s),
+                _ => true,
+              },
+            )
+            .map(_Entry.song),
+      if (_filter == LibraryFilter.all || _filter == LibraryFilter.video)
+        ..._videos.map(_Entry.video),
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // Devam eden üretimler hangi filtrede olursa olsun en üstte kalır --
+    // kullanıcı üretimini her zaman takip edebilmeli.
+    return [...pending, ...items];
+  }
+
+  String _formatDate(BuildContext context, DateTime date) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    try {
+      return DateFormat.yMMMd(locale).format(date.toLocal());
+    } catch (_) {
+      return DateFormat('dd.MM.yyyy').format(date.toLocal());
+    }
+  }
+
+  String _join(List<String> parts) =>
+      parts.where((p) => p.trim().isNotEmpty).join(' · ');
+
+  Future<void> _playSong(LibrarySong song) async {
+    if (widget.player.current?.song.id != song.song.id) {
+      // Player ekranı açılır açılmaz yükleniyor durumunu gösterir; çalma
+      // hatası AppNotice olarak player/mini player tarafından yönetilir.
+      widget.player.playSong(song);
+    }
+    widget.onOpenPlayer();
+  }
+
+  void _openVideo(Map<String, dynamic> video, AppLocalizations l10n) {
+    if (video['hasFinalVideo'] != true) {
+      AppNotice.show(context, l10n.libraryVideoNotReady, type: NoticeType.info);
+      return;
+    }
+    openClipPlayer(
+      context,
+      title: video['songTitle']?.toString() ?? '',
+      projectId: video['projectId'].toString(),
+      videoService: widget.videoService,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        child: ListenableBuilder(
-          listenable: songLibrary,
-          builder: (context, _) {
-            return ListView(
-              children: [
-                const _LibraryHero(),
-                const SizedBox(height: 20),
-                _LibraryHubCard(
-                  title: l10n.librarySongsTitle,
-                  subtitle: l10n.librarySongsSubtitle,
-                  icon: Icons.music_note_rounded,
-                  accentColor: AppColors.pink,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => MySongsScreen(library: songLibrary, player: player),
-                    ),
-                  ),
-                ),
-                _VideoLibraryHubCard(
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => VideoLibraryScreen(videoService: videoService),
-                    ),
-                  ),
-                ),
-                _LibraryHubCard(
-                  title: l10n.libraryFavoritesTitle,
-                  subtitle: l10n.libraryFavoritesSubtitle,
-                  icon: Icons.favorite_rounded,
-                  accentColor: const Color(0xFFE0457B),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => FavoritesScreen(
-                        songLibrary: songLibrary,
-                        player: player,
-                        videoService: videoService,
+      bottom: false,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([widget.songLibrary, widget.player]),
+        builder: (context, _) {
+          final entries = _entries();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.navLibrary,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: AppFonts.display,
+                          color: AppColors.textPrimary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ),
-                  ),
+                    AccountHeaderActions(
+                      library: widget.songLibrary,
+                      authService: widget.authService,
+                      service: widget.service,
+                      onOpenSettings: widget.onOpenSettings,
+                    ),
+                  ],
                 ),
-                _LibraryHubCard(
-                  title: l10n.libraryDownloadsTitle,
-                  subtitle: l10n.libraryDownloadsSubtitle,
-                  icon: Icons.download_rounded,
-                  accentColor: const Color(0xFF2FA36B),
-                  showDivider: false,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const DownloadsScreen()),
-                  ),
+              ),
+              const SizedBox(height: 14),
+              _FilterBar(
+                selected: _filter,
+                labels: {
+                  LibraryFilter.all: l10n.libraryFilterAll,
+                  LibraryFilter.music: l10n.libraryFilterMusic,
+                  LibraryFilter.video: l10n.libraryFilterVideo,
+                  LibraryFilter.remix: l10n.libraryFilterRemix,
+                },
+                onChanged: (f) => setState(() => _filter = f),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: RefreshIndicator(
+                  color: AppColors.pink,
+                  backgroundColor: AppColors.surfaceElevated,
+                  onRefresh: _refresh,
+                  child: entries.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            const SizedBox(height: 120),
+                            Center(
+                              child: Text(
+                                _filter == LibraryFilter.all
+                                    ? l10n.libraryEmptyAll
+                                    : l10n.libraryEmptyFiltered,
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(top: 4, bottom: 24),
+                          itemCount: entries.length,
+                          itemBuilder: (context, i) =>
+                              _buildEntry(context, l10n, entries[i]),
+                        ),
                 ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
-}
 
-/// Kütüphane sekmesinin üst kısmındaki "kapak" bölümü: kullanıcının
-/// hazırladığı plak (vinil) görseli arka plan, üzerinde başlık, ilham
-/// verici bir alıntı ve küçük bir etiket satırı. Görsel dosyası
-/// assets/images/library_hero.png konumuna eklenmelidir (assets/images/
-/// klasörü pubspec.yaml'da zaten tanımlı, ayrı bir kayıt gerekmiyor).
-class _LibraryHero extends StatelessWidget {
-  const _LibraryHero();
+  Widget _buildEntry(
+    BuildContext context,
+    AppLocalizations l10n,
+    _Entry entry,
+  ) {
+    final song = entry.song;
+    if (song != null) {
+      if (song.pendingId != null) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+          child: GenerationCard(
+            key: ValueKey(song.pendingId),
+            librarySong: song,
+            onDismiss: song.isFailedGeneration
+                ? () => widget.songLibrary.removePending(song)
+                : null,
+          ),
+        );
+      }
+      final remix = _isRemix(song);
+      return LibraryListItem(
+        key: ValueKey('song-${song.song.id}'),
+        title: song.song.title,
+        imageUrl: song.song.imageUrl,
+        kind: remix ? LibraryItemKind.remix : LibraryItemKind.music,
+        kindLabel: remix ? l10n.libraryFilterRemix : l10n.libraryFilterMusic,
+        metadata: _join([_formatDate(context, song.createdAt), song.genre]),
+        isPlaying:
+            widget.player.current?.song.id == song.song.id &&
+            widget.player.isPlaying,
+        onTap: () => _playSong(song),
+        onMore: () => _showSongActions(context, song),
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
+    final video = entry.video!;
+    final status = video['status']?.toString() ?? '';
+    final ready = video['hasFinalVideo'] == true;
+    final failed = status.endsWith('_failed');
+    final songId = video['songId']?.toString();
+    final sourceSong = songId == null
+        ? null
+        : widget.songLibrary.songs
+              .where((s) => s.song.id == songId)
+              .firstOrNull;
+
+    return LibraryListItem(
+      key: ValueKey('video-${video['projectId']}'),
+      title: video['songTitle']?.toString() ?? '',
+      imageUrl: sourceSong?.song.imageUrl ?? '',
+      kind: LibraryItemKind.video,
+      kindLabel: l10n.libraryFilterVideo,
+      metadata: _join([
+        _formatDate(context, entry.createdAt),
+        if (failed)
+          l10n.libraryVideoFailed
+        else if (!ready)
+          l10n.libraryVideoInProgress
+        else
+          sourceSong?.genre ?? '',
+      ]),
+      isDimmed: !ready,
+      onTap: () => _openVideo(video, l10n),
+      onMore: () => _showVideoActions(context, video, l10n),
+    );
+  }
+
+  void _showSongActions(BuildContext context, LibrarySong song) {
     final l10n = AppLocalizations.of(context)!;
-    // DÜZELTME: plak görselinin arkasındaki koyu gradyan katmanı
-    // ("siyah konteyner" geri bildirimi) TAMAMEN kaldırıldı -- artık
-    // sadece görsel görünüyor. Okunabilirlik için (bir arka plan kutusu
-    // yerine) metinlere ince bir gölge eklendi. Alıntı metni kaldırıldı,
-    // "YARAT · KEŞFET · SAKLA" etiketi artık görselin en altında, ortalı.
-    const textShadow = [
-      Shadow(color: Color(0xAA000000), blurRadius: 10, offset: Offset(0, 1)),
-    ];
-    return Container(
-      height: 270,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        color: AppColors.surfaceElevated,
-        image: const DecorationImage(
-          image: AssetImage('assets/images/library_hero.png'),
-          fit: BoxFit.cover,
+    _showSheet(context, [
+      _SheetAction(
+        icon: song.isFavorite ? Icons.favorite : Icons.favorite_border,
+        iconColor: AppColors.pink,
+        label: song.isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+        onTap: () => widget.songLibrary.toggleFavorite(song),
+      ),
+      _SheetAction(
+        icon: Icons.edit_outlined,
+        label: l10n.actionRename,
+        onTap: () => _showRenameDialog(context, song),
+      ),
+      _SheetAction(
+        icon: Icons.share_outlined,
+        label: l10n.actionShare,
+        onTap: () => AppNotice.show(
+          context,
+          l10n.shareComingSoonMessage,
+          type: NoticeType.warning,
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.libraryHeroTitle,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      shadows: textShadow,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.libraryHeroSubtitle,
-                    style: TextStyle(
-                      color: AppColors.textPrimary.withValues(alpha: 0.9),
-                      fontSize: 14,
-                      shadows: textShadow,
-                    ),
-                  ),
-                ],
-              ),
+      _SheetAction(
+        icon: Icons.download_outlined,
+        label: l10n.actionDownload,
+        onTap: () => AppNotice.show(
+          context,
+          l10n.downloadComingSoonMessage,
+          type: NoticeType.warning,
+        ),
+      ),
+      _SheetAction(
+        icon: Icons.delete_outline,
+        label: l10n.actionDelete,
+        destructive: true,
+        onTap: () async {
+          try {
+            await widget.songLibrary.remove(song);
+          } on SunoApiException catch (e) {
+            if (context.mounted) {
+              AppNotice.show(context, e.message, type: NoticeType.error);
+            }
+          }
+        },
+      ),
+    ]);
+  }
+
+  void _showVideoActions(
+    BuildContext context,
+    Map<String, dynamic> video,
+    AppLocalizations l10n,
+  ) {
+    _showSheet(context, [
+      _SheetAction(
+        icon: Icons.delete_outline,
+        label: l10n.actionDelete,
+        destructive: true,
+        onTap: () => _confirmDeleteVideo(context, video, l10n),
+      ),
+    ]);
+  }
+
+  Future<void> _confirmDeleteVideo(
+    BuildContext context,
+    Map<String, dynamic> video,
+    AppLocalizations l10n,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: Text(
+          l10n.libraryDeleteVideoTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        content: Text(
+          l10n.libraryDeleteVideoMessage(video['songTitle']?.toString() ?? ''),
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              l10n.actionDelete,
+              style: const TextStyle(color: AppColors.pink),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 18,
-              child: Center(
-                child: Text(
-                  l10n.libraryTagline,
-                  textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await widget.videoService.deleteProject(video['projectId'].toString());
+      await _loadVideos();
+    } on MusicVideoException catch (e) {
+      if (context.mounted) {
+        AppNotice.show(context, e.message, type: NoticeType.error);
+      }
+    }
+  }
+
+  void _showRenameDialog(BuildContext context, LibrarySong song) {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: song.song.title);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: Text(
+          l10n.renameSongTitle,
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.textPrimary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.actionCancel),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.songLibrary.rename(song, controller.text.trim());
+              Navigator.pop(context);
+            },
+            child: Text(l10n.actionSave),
+          ),
+        ],
+      ),
+    ).whenComplete(controller.dispose);
+  }
+
+  void _showSheet(BuildContext context, List<_SheetAction> actions) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            for (final a in actions)
+              ListTile(
+                leading: Icon(
+                  a.icon,
+                  color: a.destructive
+                      ? Colors.red
+                      : (a.iconColor ?? AppColors.textSecondary),
+                ),
+                title: Text(
+                  a.label,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2.2,
-                    shadows: textShadow,
+                    color: a.destructive ? Colors.red : AppColors.textPrimary,
                   ),
                 ),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  a.onTap();
+                },
               ),
-            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -178,109 +490,104 @@ class _LibraryHero extends StatelessWidget {
   }
 }
 
-/// Videolarım satırı için ince bir sarmalayıcı (l10n metinlerini
-/// _LibraryHubCard'a bağlıyor). DÜZELTME: Sadeleştirilmiş tasarımda video
-/// sayısı artık gösterilmediği için önceki asenkron (fetchProjects
-/// + StatefulWidget) yapıya gerek kalmadı, düz bir StatelessWidget'a
-/// indirgendi.
-class _VideoLibraryHubCard extends StatelessWidget {
-  const _VideoLibraryHubCard({required this.onTap});
+class _SheetAction {
+  const _SheetAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.iconColor,
+    this.destructive = false,
+  });
 
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
+  final Color? iconColor;
+  final bool destructive;
+}
+
+/// Tümü / Müzik / Video / Remix filtre çipleri. Seçili çip Melodia
+/// gradyanıyla dolu, diğerleri ince çerçeveli.
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.selected,
+    required this.labels,
+    required this.onChanged,
+  });
+
+  final LibraryFilter selected;
+  final Map<LibraryFilter, String> labels;
+  final ValueChanged<LibraryFilter> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    // NOT: Sadeleştirilmiş tasarımda artık video sayısını göstermiyoruz
-    // (referans görseldeki gibi sade bir satır) -- bu yüzden projeleri
-    // ayrıca çekmeye de gerek kalmadı.
-    return _LibraryHubCard(
-      title: l10n.libraryVideosTitle,
-      subtitle: l10n.libraryVideosSubtitle,
-      icon: Icons.play_arrow_rounded,
-      accentColor: const Color(0xFF3B82F6),
-      onTap: onTap,
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: [
+          for (final f in LibraryFilter.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _FilterChip(
+                label: labels[f] ?? '',
+                selected: f == selected,
+                onTap: () => onChanged(f),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-/// Kütüphane hub'ındaki her satır (Şarkılarım/Videolarım/Favorilerim/
-/// İndirdiklerim). DEĞİŞTİ: Önceki görsel/gradient kart tasarımı yerine
-/// referans tasarımdaki gibi sade bir liste satırı -- renkli yuvarlak
-/// köşeli ikon kare + başlık + alt yazı + sağda ok, aralarında ince bir
-/// ayraç çizgisi.
-class _LibraryHubCard extends StatelessWidget {
-  const _LibraryHubCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.accentColor,
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
     required this.onTap,
-    this.showDivider = true,
   });
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color accentColor;
+  final String label;
+  final bool selected;
   final VoidCallback onTap;
-
-  /// Son satırdan sonra ayraç çizgisi gösterilmesin diye.
-  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: accentColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(icon, color: Colors.white, size: 22),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-              ],
-            ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: selected ? AppColors.primaryGradient : null,
+          color: selected ? null : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected
+                ? Colors.transparent
+                : Colors.white.withValues(alpha: 0.12),
           ),
-          if (showDivider) const Divider(height: 1, color: AppColors.border),
-        ],
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.pink.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontSize: 14,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

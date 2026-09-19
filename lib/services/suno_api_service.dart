@@ -3,6 +3,10 @@ import 'package:http/http.dart' as http;
 import '../models/aligned_word.dart';
 import '../models/song.dart';
 
+/// Şarkı açıklaması / söz alanlarının en fazla karakter sayısı (tüm modlar).
+/// 200 karakteri aşan açıklamalarda sözleri backend yazar (bkz. lyrics.js).
+const int kSongPromptMaxLength = 3000;
+
 /// Kendi AWS backend'imize (Lambda + API Gateway) bağlanan servis.
 ///
 /// ÖNEMLİ: Bu servis artık Suno API'ye doğrudan bağlanmıyor.
@@ -94,8 +98,12 @@ class SunoApiService {
   // ---------------------------------------------------------------------
 
   Future<String> _requestLyrics(String prompt) async {
-    final trimmedPrompt =
-        prompt.length > 200 ? prompt.substring(0, 200) : prompt;
+    // DEĞİŞTİ: açıklama artık 200 karakterde KESİLMİYOR -- Suno'nun söz ucu
+    // en fazla 200 karakter kabul ettiği için daha uzun açıklamalarda
+    // backend sözleri kendisi yazıyor (bkz. melodia-backend lyrics.js).
+    final trimmedPrompt = prompt.length > kSongPromptMaxLength
+        ? prompt.substring(0, kSongPromptMaxLength)
+        : prompt;
 
     final response = await _post('/lyrics', {'prompt': trimmedPrompt});
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -567,6 +575,37 @@ class SunoApiService {
     return body['playUrl'] as String;
   }
 
+  /// YENİ: Bir şarkının oynatılabilir linki -- oynatma, indirme ve paylaşma
+  /// bunu kullanır.
+  ///
+  /// Yeni üretilen bir şarkı, sunucu ses dosyasını kendi deposuna
+  /// kopyalayana kadar (birkaç saniye) kütüphane kaydında yoktur ve
+  /// /play-url 404 döner -- kullanıcı bu sırada "Şarkı bulunamadı" görüyordu.
+  /// Artık 404'te şarkının üretimden gelen doğrudan adresi (varsa)
+  /// kullanılıyor; yoksa kayıt tamamlanana kadar kısa aralıklarla tekrar
+  /// deneniyor.
+  Future<String> resolvePlayUrl(
+    Song song, {
+    Duration maxWait = const Duration(seconds: 12),
+  }) async {
+    final deadline = DateTime.now().add(maxWait);
+    var delay = const Duration(milliseconds: 800);
+    while (true) {
+      final response = await _get('/songs/${song.id}/play-url', {});
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) return body['playUrl'] as String;
+      if (response.statusCode == 404) {
+        if (song.audioUrl.isNotEmpty) return song.audioUrl;
+        if (DateTime.now().add(delay).isBefore(deadline)) {
+          await Future.delayed(delay);
+          delay *= 1.5;
+          continue;
+        }
+      }
+      throw SunoApiException(body['error']?.toString() ?? 'Şarkı linki alınamadı.');
+    }
+  }
+
   /// YENİ: Kullanıcının kütüphanesinden bir şarkıyı kalıcı olarak siler
   /// (DynamoDB kaydı + varsa S3'teki ses dosyası).
   Future<void> deleteSong(String songId) async {
@@ -685,9 +724,18 @@ class SunoApiService {
       }
     }
 
+    // DÜZELTME: Lyria'da açıklama hiç gönderilmiyordu (sözleri Lyria kendisi
+    // yazıyor ama neyi anlatacağını bilmiyordu, sadece şarkı adı açıklamanın
+    // ilk kelimeleriydi). Açıklama artık Lyria'nın tarif metnine ekleniyor.
+    var effectiveStyle = style.isEmpty ? 'Pop' : style;
+    final description = descriptionPrompt.trim();
+    if (provider == 'lyria' && description.isNotEmpty) {
+      effectiveStyle = '$effectiveStyle. Song description: $description';
+    }
+
     final jobId = await _requestMusic(
       lyricsOrEmpty: lyrics,
-      style: style.isEmpty ? 'Pop' : style,
+      style: effectiveStyle,
       title: title,
       instrumental: instrumental,
       vocalGender: vocalGender,

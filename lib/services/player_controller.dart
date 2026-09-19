@@ -107,7 +107,7 @@ class PlayerController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = await service.getSongPlayUrl(librarySong.song.id);
+      final url = await service.resolvePlayUrl(librarySong.song);
       await _player.play(UrlSource(url));
     } on SunoApiException catch (e) {
       _error = e.message;
@@ -192,9 +192,12 @@ class PlayerController extends ChangeNotifier {
   }
 
   Future<void> close() async {
-    await _player.stop();
+    // Önce şarkıyı temizle ki mini player (kaydırarak kapatılan Dismissible)
+    // hemen ağaçtan çıksın; ses durdurma asenkron ve bu sırada gelen
+    // pozisyon güncellemeleri kapanmış kartı yeniden çizmesin.
     _current = null;
     notifyListeners();
+    await _player.stop();
   }
 
   @override

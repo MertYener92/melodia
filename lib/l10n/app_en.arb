@@ -640,5 +640,21 @@
   "remixFailedDetail": "No credits were spent — you can try again.",
   "@remixFailedDetail": {
     "description": "Remix notice: remixFailedDetail"
+  },
+  "libraryFilterAll": "All",
+  "libraryFilterMusic": "Music",
+  "libraryFilterVideo": "Video",
+  "libraryFilterRemix": "Remix",
+  "libraryEmptyAll": "You haven't created anything yet",
+  "libraryEmptyFiltered": "Nothing here for this filter",
+  "libraryVideoInProgress": "Clip in progress",
+  "libraryVideoFailed": "Clip failed",
+  "libraryVideoNotReady": "Your clip isn't ready yet. You can play it here once it's done.",
+  "libraryDeleteVideoTitle": "Delete clip",
+  "libraryDeleteVideoMessage": "\"{title}\" will be permanently deleted. This can't be undone.",
+  "@libraryDeleteVideoMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
   }
 }

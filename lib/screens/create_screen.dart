@@ -11,8 +11,6 @@ import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
 import '../widgets/gradient_button.dart';
 import 'ai_music_screen.dart';
-import 'credits_screen.dart';
-import 'pro_upsell_screen.dart';
 
 /// "AI Müzik" sekmesinin ilk açılış ekranı: assets/videos/create_hero.mp4'ü
 /// tam ekran arka plan olarak oynatan premium bir video-hero ekranı.
@@ -31,6 +29,7 @@ class CreateScreen extends StatefulWidget {
     required this.player,
     required this.isActive,
     required this.authService,
+    required this.onOpenSettings,
   });
 
   final SunoApiService service;
@@ -39,6 +38,9 @@ class CreateScreen extends StatefulWidget {
   final PlayerController player;
   final bool isActive;
   final AuthService authService;
+
+  /// Pro kullanıcıdaki Ayarlar ikonu (bkz. AccountHeaderActions).
+  final VoidCallback onOpenSettings;
 
   @override
   State<CreateScreen> createState() => _CreateScreenState();
@@ -121,6 +123,7 @@ class _CreateScreenState extends State<CreateScreen> {
           library: widget.library,
           player: widget.player,
           authService: widget.authService,
+          onOpenSettings: widget.onOpenSettings,
         ),
       ),
     );
@@ -207,45 +210,11 @@ class _CreateScreenState extends State<CreateScreen> {
             alignment: Alignment.topRight,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListenableBuilder(
-                    listenable: widget.library,
-                    builder: (context, _) => CreditsBadge(
-                      remaining: widget.library.remainingCredits,
-                      bonusCredits: widget.library.bonusCredits,
-                      error: widget.library.quotaError,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ListenableBuilder(
-                    listenable: widget.library,
-                    builder: (context, _) => ProBadge(
-                      isPro: widget.library.isPro,
-                      onTap: () => Navigator.of(context)
-                          .push(
-                            MaterialPageRoute(
-                              fullscreenDialog: true,
-                              builder: (_) => widget.library.isPro
-                                  ? CreditsScreen(
-                                      authService: widget.authService,
-                                      apiService: widget.service,
-                                    )
-                                  : ProUpsellScreen(
-                                      authService: widget.authService,
-                                      apiService: widget.service,
-                                    ),
-                            ),
-                          )
-                          // Satın alma bu ekranın dışında (ProUpsellScreen)
-                          // gerçekleşiyor, SongLibrary'nin üretim-bitişi
-                          // tazelemesinden geçmiyor -- burada hâlâ ekran
-                          // kapanınca elle tazeliyoruz.
-                          .then((_) => widget.library.refreshQuota()),
-                    ),
-                  ),
-                ],
+              child: AccountHeaderActions(
+                library: widget.library,
+                authService: widget.authService,
+                service: widget.service,
+                onOpenSettings: widget.onOpenSettings,
               ),
             ),
           ),

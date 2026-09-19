@@ -5,8 +5,6 @@ import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/credit_badges.dart';
-import 'credits_screen.dart';
-import 'pro_upsell_screen.dart';
 
 /// GEÇİCİ: "My Songs" sekmesinin yerini alan yeni "AI Video" sekmesi.
 /// İçerik henüz tasarlanmadı — asıl klip oluşturma akışı ayrı ekranlarda
@@ -23,6 +21,7 @@ class AiVideoScreen extends StatelessWidget {
     required this.authService,
     required this.apiService,
     required this.library,
+    required this.onOpenSettings,
   });
 
   // NOT: service şu an bu ekranda kullanılmıyor (jeton rozeti kaldırıldı),
@@ -39,6 +38,9 @@ class AiVideoScreen extends StatelessWidget {
   // durumu ORTAK (video bu havuzu kullanmasa da kullanıcı hâlâ Pro
   // abonesi olabilir).
   final SongLibrary library;
+
+  /// Pro kullanıcıdaki Ayarlar ikonu (bkz. AccountHeaderActions).
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -84,19 +86,11 @@ class AiVideoScreen extends StatelessWidget {
             alignment: Alignment.topRight,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: ListenableBuilder(
-                listenable: library,
-                builder: (context, _) => ProBadge(
-                  isPro: library.isPro,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      fullscreenDialog: true,
-                      builder: (_) => library.isPro
-                          ? CreditsScreen(authService: authService, apiService: apiService)
-                          : ProUpsellScreen(authService: authService, apiService: apiService),
-                    ),
-                  ),
-                ),
+              child: AccountHeaderActions(
+                library: library,
+                authService: authService,
+                service: apiService,
+                onOpenSettings: onOpenSettings,
               ),
             ),
           ),

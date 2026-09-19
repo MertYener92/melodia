@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../screens/credits_screen.dart';
+import '../screens/pro_upsell_screen.dart';
+import '../services/auth_service.dart';
+import '../services/song_library.dart';
+import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 
 /// Kalan jetonu (şarkı ya da video — bağlama göre farklı bir servisten
@@ -86,42 +92,34 @@ class CreditsBadge extends StatelessWidget {
   }
 }
 
-/// Sağ üst köşede jeton rozetinin yanında görünen rozet. Pro OLMAYAN
-/// kullanıcıya sabit "Pro" rozetini (Pro'ya geçiş ekranını açar), Pro
-/// OLAN kullanıcıya ise "Kredi Al" rozetini (kredi paketi satın alma
-/// ekranını açar) gösterir -- ikisi hiçbir zaman aynı anda görünmez,
-/// çünkü Pro kullanıcıya tekrar "Pro'ya geç" demenin anlamı yok.
+/// Pro OLMAYAN kullanıcıya gösterilen "Pro" butonu (Pro'ya geçiş ekranını
+/// açar). DEĞİŞTİ: Pro kullanıcıya gösterilen "Kredi Al" varyantı kaldırıldı
+/// -- Pro kullanıcı artık kredi rozetine dokunarak ek kredi alıyor (bkz.
+/// AccountHeaderActions).
 class ProBadge extends StatelessWidget {
-  const ProBadge({super.key, this.onTap, this.isPro = false});
+  const ProBadge({super.key, this.onTap});
 
   final VoidCallback? onTap;
-  final bool isPro;
 
   @override
   Widget build(BuildContext context) {
     final badge = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        gradient: isPro ? null : AppColors.primaryGradient,
-        color: isPro ? AppColors.surfaceElevated : null,
+        gradient: AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(999),
-        border: isPro ? Border.all(color: const Color(0xFFF4B740), width: 1) : null,
       ),
-      child: Row(
+      child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isPro ? Icons.add_circle_rounded : Icons.star_rounded,
-            color: isPro ? const Color(0xFFF4B740) : Colors.white,
-            size: 14,
-          ),
-          const SizedBox(width: 4),
+          Icon(Icons.star_rounded, color: Colors.white, size: 14),
+          SizedBox(width: 4),
           Text(
-            isPro ? 'Kredi Al' : 'Pro',
+            'Pro',
             style: TextStyle(
               fontFamily: AppFonts.rounded,
               fontFamilyFallback: AppFonts.roundedFallback,
-              color: isPro ? AppColors.textPrimary : Colors.white,
+              color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -131,5 +129,94 @@ class ProBadge extends StatelessWidget {
     );
     if (onTap == null) return badge;
     return GestureDetector(onTap: onTap, child: badge);
+  }
+}
+
+/// Ekranların sağ üst köşesindeki hesap aksiyonları (AI Müzik, Kütüphane):
+///  - Pro OLMAYAN kullanıcı: sadece "Pro" butonu (Pro ekranını açar).
+///  - Pro kullanıcı: kalan kredi rozeti (dokununca ek kredi paketleri) ve
+///    yanında profildeki ile aynı Ayarlar ikonu.
+/// Satın alma ekranı kapanınca kredi bilgisi tazelenir.
+class AccountHeaderActions extends StatelessWidget {
+  const AccountHeaderActions({
+    super.key,
+    required this.library,
+    required this.authService,
+    required this.service,
+    required this.onOpenSettings,
+  });
+
+  final SongLibrary library;
+  final AuthService authService;
+  final SunoApiService service;
+  final VoidCallback onOpenSettings;
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(fullscreenDialog: true, builder: (_) => screen))
+        .then((_) => library.refreshQuota());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: library,
+      builder: (context, _) {
+        if (!library.isPro) {
+          return ProBadge(
+            onTap: () => _open(
+              context,
+              ProUpsellScreen(authService: authService, apiService: service),
+            ),
+          );
+        }
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () => _open(
+                context,
+                CreditsScreen(authService: authService, apiService: service),
+              ),
+              child: CreditsBadge(
+                remaining: library.remainingCredits,
+                bonusCredits: library.bonusCredits,
+                error: library.quotaError,
+              ),
+            ),
+            const SizedBox(width: 8),
+            SettingsIconButton(onTap: onOpenSettings),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Profil ekranındaki ile aynı görünümde yuvarlak Ayarlar butonu.
+class SettingsIconButton extends StatelessWidget {
+  const SettingsIconButton({super.key, required this.onTap, this.size = 34});
+
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Ayarlar',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.14),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.settings_outlined, color: Colors.white, size: size * 0.54),
+        ),
+      ),
+    );
   }
 }
