@@ -1,261 +1,97 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:melodia/l10n/generated/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+
 import '../models/aligned_word.dart';
+import '../models/song.dart';
 import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
+import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/karaoke_lyrics_view.dart';
+import '../widgets/player/playback_controls.dart';
+import '../widgets/player/player_progress_bar.dart';
+import '../widgets/player/player_shared.dart';
+import '../widgets/player/remix_sheet.dart';
 import 'select_video_package_screen.dart';
 
-class PlayerScreen extends StatelessWidget {
+/// Tam ekran "Now Playing" ekranı. Mini player ile aynı controller'ı
+/// dinler; kapak görseli mini player'dan Hero ile büyüyerek gelir.
+///
+/// Dikey hiyerarşi: başlık çubuğu -> büyük kapak -> başlık/alt başlık +
+/// favori -> aksiyon pill'leri -> ilerleme çubuğu -> oynatma kontrolleri.
+class PlayerScreen extends StatefulWidget {
   const PlayerScreen({
     super.key,
     required this.controller,
+    required this.library,
     required this.service,
     required this.musicVideoService,
+    this.onOpenLibrary,
+    this.onBuyCredits,
   });
 
   final PlayerController controller;
+
+  /// Remix başlayınca "Görüntüle" -> player'ı kapatıp Kütüphane sekmesine.
+  final VoidCallback? onOpenLibrary;
+
+  /// Remix için jeton yetmiyorsa "Kredi al" -> jeton paketi / Pro ekranı.
+  final VoidCallback? onBuyCredits;
+
+  /// Favori durumunu değiştirmek (ve güncel halini dinlemek) için.
+  final SongLibrary library;
   final SunoApiService service;
   final MusicVideoService musicVideoService;
 
-  String _formatDuration(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(1, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
+  @override
+  State<PlayerScreen> createState() => _PlayerScreenState();
+}
+
+class _PlayerScreenState extends State<PlayerScreen> {
+  static const double _hPad = 24;
+
+  /// İndirme/paylaşma sırasında ses dosyası indiriliyor mu.
+  bool _busy = false;
+
+  PlayerController get _controller => widget.controller;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: ListenableBuilder(
-        listenable: controller,
+        listenable: Listenable.merge([_controller, widget.library]),
         builder: (context, _) {
-          final song = controller.current?.song;
-          if (song == null) {
-            return const Center(
-              child: Text(
-                'No song playing',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-            );
-          }
-
-          final progress = controller.duration.inMilliseconds == 0
-              ? 0.0
-              : controller.position.inMilliseconds /
-                  controller.duration.inMilliseconds;
+          final librarySong = _controller.current;
+          if (librarySong == null) return _buildEmpty(l10n);
 
           return Stack(
             children: [
-              // DÜZELTME: video oynatıcıdaki (video_library_screen.dart
-              // _ClipPlayerScreen) ile BİREBİR aynı bulanık arka plan
-              // deseni -- şarkı kapağı 1.5x büyütülüp 45 sigma bulanıklık
-              // + %78 siyah katman ile karartılıyor. Önceden burada sade
-              // bir backgroundGlow gradyanı vardı, iki oynatıcı arasında
-              // görsel tutarsızlık yaratıyordu.
-              if (song.imageUrl.isNotEmpty)
-                Positioned.fill(
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
-                    child: Transform.scale(
-                      scale: 1.5,
-                      child: Image.network(
-                        song.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const DecoratedBox(
-                          decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
-                  ),
-                ),
-              Positioned.fill(
-                child: Container(color: Colors.black.withValues(alpha: 0.78)),
-              ),
+              _BlurredBackdrop(imageUrl: librarySong.song.imageUrl),
               SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: Colors.white,
-                            size: 30,
-                          ),
-                        ),
-                        const Spacer(),
-                        const Text(
-                          'Now Playing',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => _openLyricsSheet(context, song),
-                          icon: const Icon(
-                            Icons.lyrics_outlined,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: song.imageUrl.isNotEmpty
-                          ? Image.network(
-                              song.imageUrl,
-                              width: 280,
-                              height: 280,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => _placeholderArt(),
-                            )
-                          : _placeholderArt(),
-                    ),
-                    const SizedBox(height: 36),
-                    Text(
-                      song.title,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      controller.error ?? 'AI Generated',
-                      style: TextStyle(
-                        color: controller.error != null ? AppColors.pink : AppColors.textMuted,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const Spacer(),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 3,
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 6,
-                        ),
-                        activeTrackColor: AppColors.pink,
-                        inactiveTrackColor: AppColors.border,
-                        thumbColor: Colors.white,
-                      ),
-                      child: Slider(
-                        value: progress.clamp(0, 1),
-                        onChanged: (value) {
-                          final target = Duration(
-                            milliseconds:
-                                (controller.duration.inMilliseconds * value)
-                                    .round(),
-                          );
-                          controller.seek(target);
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatDuration(controller.position),
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                          Text(
-                            _formatDuration(controller.duration),
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(
-                            Icons.skip_previous_rounded,
-                            color: Colors.white,
-                            size: 34,
-                          ),
-                        ),
-                        Container(
-                          width: 68,
-                          height: 68,
-                          decoration: const BoxDecoration(
-                            gradient: AppColors.primaryGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          child: controller.isLoading
-                              ? const Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : IconButton(
-                                  onPressed: controller.togglePlayPause,
-                                  icon: Icon(
-                                    controller.isPlaying
-                                        ? Icons.pause_rounded
-                                        : Icons.play_arrow_rounded,
-                                    color: Colors.white,
-                                    size: 34,
-                                  ),
-                                ),
-                        ),
-                        IconButton(
-                          onPressed: () {},
-                          icon: const Icon(
-                            Icons.skip_next_rounded,
-                            color: Colors.white,
-                            size: 34,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    _PlayerActionsRow(
-                      song: song,
-                      isFavorite: controller.current!.isFavorite,
-                      genre: controller.current!.genre,
-                      mood: controller.current!.mood,
-                      musicVideoService: musicVideoService,
-                      sunoApiService: service,
-                    ),
-                  ],
+                child: GestureDetector(
+                  // Aşağı kaydırınca küçült (mini player'a dön).
+                  behavior: HitTestBehavior.translucent,
+                  onVerticalDragEnd: (details) {
+                    if ((details.primaryVelocity ?? 0) > 400) {
+                      Navigator.of(context).maybePop();
+                    }
+                  },
+                  child: LayoutBuilder(
+                    builder: (context, constraints) =>
+                        _buildContent(context, constraints, librarySong, l10n),
+                  ),
                 ),
               ),
-            ),
             ],
           );
         },
@@ -263,77 +99,160 @@ class PlayerScreen extends StatelessWidget {
     );
   }
 
-  void _openLyricsSheet(BuildContext context, dynamic song) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _LyricsSheet(
-        song: song,
-        controller: controller,
-        service: service,
+  Widget _buildEmpty(AppLocalizations l10n) {
+    return SafeArea(
+      child: Column(
+        children: [
+          _Header(
+            onMinimize: () => Navigator.of(context).maybePop(),
+            onMore: null,
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                l10n.playerNoSong,
+                style: const TextStyle(color: AppColors.textMuted),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _placeholderArt() {
-    return Container(
-      width: 280,
-      height: 280,
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Icon(Icons.music_note, color: Colors.white, size: 64),
+  Widget _buildContent(
+    BuildContext context,
+    BoxConstraints constraints,
+    LibrarySong librarySong,
+    AppLocalizations l10n,
+  ) {
+    final song = librarySong.song;
+    final error = _controller.error;
+
+    // Kapak: genişliğe göre responsive, ama geri kalan her şeye (başlık,
+    // aksiyonlar, ilerleme, kontroller ≈ 400px) yer kalacak şekilde
+    // yüksekliğe göre de sınırlı -- küçük ekranlarda ezilmez, büyük
+    // ekranlarda da devasa olmaz.
+    final maxByWidth = constraints.maxWidth - _hPad * 2;
+    final maxByHeight = constraints.maxHeight - 400;
+    final artSize = math.min(maxByWidth, maxByHeight).clamp(150.0, 400.0);
+
+    return Column(
+      children: [
+        _Header(
+          onMinimize: () => Navigator.of(context).maybePop(),
+          onMore: () => _openMoreSheet(librarySong, l10n),
+        ),
+        const Spacer(),
+        SongArtwork(
+          imageUrl: song.imageUrl,
+          size: artSize,
+          radius: 16,
+          heroTag: kPlayerArtworkHeroTag,
+        ),
+        const Spacer(),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _hPad),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      song.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: AppFonts.display,
+                        color: AppColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      error ?? playerSubtitle(librarySong, l10n),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: error != null
+                            ? AppColors.pink
+                            : AppColors.textSecondary,
+                        fontSize: 14,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () => widget.library.toggleFavorite(librarySong),
+                tooltip: librarySong.isFavorite
+                    ? l10n.playerRemoveFavorite
+                    : l10n.playerAddFavorite,
+                iconSize: 24,
+                color: librarySong.isFavorite
+                    ? AppColors.pink
+                    : AppColors.textSecondary,
+                icon: Icon(
+                  librarySong.isFavorite
+                      ? PlayerIcons.favorite
+                      : PlayerIcons.favoriteOutline,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _ActionRow(
+          horizontalPadding: _hPad,
+          shareBusy: _busy,
+          onRemix: () => _openRemixSheet(librarySong),
+          onShare: () => _onShareTap(song),
+          onPlaylist: () => _showComingSoon(l10n),
+          onComment: () => _showComingSoon(l10n),
+        ),
+        const SizedBox(height: 22),
+        Padding(
+          // Slider kendi içinde ~14px yatay boşluk bıraktığı için biraz az.
+          padding: const EdgeInsets.symmetric(horizontal: _hPad - 12),
+          child: PlayerProgressBar(
+            position: _controller.position,
+            duration: _controller.duration,
+            onSeek: _controller.seek,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: _hPad - 8),
+          child: PlaybackControls(controller: _controller),
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
-}
 
-/// Favori / İndir / Paylaş / Listeye ekle butonlarını içeren satır.
-/// İndir ve Paylaş, ses dosyasını indirip cihazın native paylaşım/kaydetme
-/// menüsünü açar (share_plus) — ekstra depolama izni istemeden çalışan,
-/// iOS ve Android'de standart olan yöntem.
-class _PlayerActionsRow extends StatefulWidget {
-  const _PlayerActionsRow({
-    required this.song,
-    required this.isFavorite,
-    required this.genre,
-    required this.mood,
-    required this.musicVideoService,
-    required this.sunoApiService,
-  });
+  // --------------------------------------------------------------------
+  // Aksiyonlar -- indirme/paylaşma mantığı önceki _PlayerActionsRow ile
+  // AYNI (taze CloudFront signed URL -> geçici dosya -> native share).
+  // --------------------------------------------------------------------
 
-  final dynamic song; // Song
-  final bool isFavorite;
-  final String genre;
-  final String mood;
-  final MusicVideoService musicVideoService;
-  final SunoApiService sunoApiService;
-
-  @override
-  State<_PlayerActionsRow> createState() => _PlayerActionsRowState();
-}
-
-class _PlayerActionsRowState extends State<_PlayerActionsRow> {
-  bool _busy = false;
-
-  String get _safeFileName {
-    final raw = widget.song.title as String;
-    final cleaned = raw.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
+  String _safeFileName(Song song) {
+    final cleaned = song.title.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
     return (cleaned.isEmpty ? 'melodia-song' : cleaned).replaceAll(' ', '_');
   }
 
   /// Ses dosyasını indirip geçici bir klasöre kaydeder, yerel dosya
   /// yolunu döner. İndirme ve paylaşma aynı temel işlemi kullanır.
-  ///
-  /// DEĞİŞTİ: Artık widget.song.audioUrl (backend'in kalıcı olarak
-  /// saklamadığı, eskiden boş kalan bir alan) yerine, taze bir
-  /// CloudFront signed URL isteniyor.
-  Future<File?> _downloadAudioFile() async {
+  Future<File?> _downloadAudioFile(Song song) async {
     setState(() => _busy = true);
     try {
-      final songId = widget.song.id as String;
-      final audioUrl = await widget.sunoApiService.getSongPlayUrl(songId);
+      final audioUrl = await widget.service.getSongPlayUrl(song.id);
 
       final response = await http
           .get(Uri.parse(audioUrl))
@@ -345,7 +264,7 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
       }
 
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/$_safeFileName.mp3');
+      final file = File('${dir.path}/${_safeFileName(song)}.mp3');
       await file.writeAsBytes(response.bodyBytes);
       return file;
     } on SunoApiException catch (e) {
@@ -359,9 +278,9 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
     }
   }
 
-  Future<void> _onDownloadTap() async {
+  Future<void> _onDownloadTap(Song song) async {
     if (_busy) return;
-    final file = await _downloadAudioFile();
+    final file = await _downloadAudioFile(song);
     if (file == null || !mounted) return;
 
     // Flutter'da uygulamalar arası "indirilenler" klasörüne doğrudan
@@ -369,100 +288,509 @@ class _PlayerActionsRowState extends State<_PlayerActionsRow> {
     // sayfasını açmak. Kullanıcı buradan "Dosyalara Kaydet" / "Save to
     // Files" ile cihazına kalıcı olarak kaydedebilir.
     await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path)],
-        subject: widget.song.title as String,
-      ),
+      ShareParams(files: [XFile(file.path)], subject: song.title),
     );
   }
 
-  Future<void> _onShareTap() async {
+  Future<void> _onShareTap(Song song) async {
     if (_busy) return;
-    final file = await _downloadAudioFile();
+    final file = await _downloadAudioFile(song);
     if (file == null || !mounted) return;
 
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path)],
-        text: '${widget.song.title} — Melodia ile AI ile üretildi 🎵',
+        text: '${song.title} — Melodia ile AI ile üretildi 🎵',
       ),
     );
   }
 
-  void _showMessage(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+  void _openCreateVideo(LibrarySong librarySong) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SelectVideoPackageScreen(
+          videoService: widget.musicVideoService,
+          service: widget.service,
+          song: librarySong.song,
+          genre: librarySong.genre,
+          mood: librarySong.mood,
+        ),
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _ActionIcon(
-          icon: widget.isFavorite ? Icons.favorite : Icons.favorite_border,
-          color: widget.isFavorite ? AppColors.pink : AppColors.textSecondary,
-          onTap: () {},
-        ),
-        _busy
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.pink,
+  void _openLyricsSheet(Song song) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _LyricsSheet(
+        song: song,
+        controller: _controller,
+        service: widget.service,
+      ),
+    );
+  }
+
+  /// Remix paneli: tarz seçilir, gönderilince panel kapanır ve üretim
+  /// arka planda (normal üretimle aynı kütüphane kartlarıyla) başlar.
+  void _openRemixSheet(LibrarySong source) {
+    final remaining = widget.library.remainingCredits;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => RemixSheet(
+        source: source,
+        availableCredits: remaining == null
+            ? null
+            : remaining + widget.library.bonusCredits,
+        onBuyCredits: widget.onBuyCredits == null
+            ? null
+            : () {
+                Navigator.of(sheetContext).pop();
+                widget.onBuyCredits!();
+              },
+        onSubmit: (request) {
+          Navigator.of(sheetContext).pop();
+          _startRemix(source, request);
+        },
+      ),
+    );
+  }
+
+  Future<void> _startRemix(LibrarySong source, RemixRequest request) async {
+    final l10n = AppLocalizations.of(context)!;
+    // Kök ScaffoldMessenger: kullanıcı player'ı kapatsa bile sonuç mesajı
+    // o an açık olan ekranda görünür.
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = _controller;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.remixStarted),
+          action: widget.onOpenLibrary == null
+              ? null
+              : SnackBarAction(
+                  label: l10n.remixView,
+                  onPressed: widget.onOpenLibrary!,
                 ),
-              )
-            : _ActionIcon(
-                icon: Icons.download_outlined,
-                color: AppColors.textSecondary,
-                onTap: _onDownloadTap,
-              ),
-        _ActionIcon(
-          icon: Icons.share_outlined,
-          color: AppColors.textSecondary,
-          onTap: _busy ? () {} : _onShareTap,
         ),
-        _ActionIcon(
-          icon: Icons.movie_creation_rounded,
-          color: AppColors.textSecondary,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => SelectVideoPackageScreen(
-                  videoService: widget.musicVideoService,
-                  service: widget.sunoApiService,
-                  song: widget.song,
-                  genre: widget.genre,
-                  mood: widget.mood,
+      );
+
+    final created = await widget.library.startRemix(
+      source: source,
+      style: request.style,
+      styleLabel: request.styleLabel,
+      instrumental: request.instrumental,
+    );
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        created.isEmpty
+            ? SnackBar(content: Text(l10n.remixFailed))
+            : SnackBar(
+                content: Text(l10n.remixReady),
+                action: SnackBarAction(
+                  label: l10n.remixListen,
+                  onPressed: () => controller.playSong(created.first),
                 ),
               ),
-            );
-          },
-        ),
-      ],
+      );
+  }
+
+  // TODO(playlist/comment): Uygulamada henüz çalma listesi ve yorum sistemi
+  // YOK (backend'de de uç nokta yok). Butonlar tasarım gereği yerinde
+  // duruyor; sahte bir işlem yapmak yerine "Yakında" gösteriliyor.
+  void _showComingSoon(AppLocalizations l10n) =>
+      _showMessage(l10n.playerComingSoon);
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// Üç nokta menüsü: şarkıya ait mevcut tüm aksiyonlar.
+  void _openMoreSheet(LibrarySong librarySong, AppLocalizations l10n) {
+    final song = librarySong.song;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      // Varsayılan 9/16 yükseklik sınırı son satırı kesiyordu; içerik
+      // kadar yükseklik alsın.
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) {
+        void run(VoidCallback action) {
+          Navigator.of(sheetContext).pop();
+          action();
+        }
+
+        return _MoreSheet(
+          librarySong: librarySong,
+          subtitle: playerSubtitle(librarySong, l10n),
+          items: [
+            _MoreItem(
+              icon: librarySong.isFavorite
+                  ? PlayerIcons.favorite
+                  : PlayerIcons.favoriteOutline,
+              label: librarySong.isFavorite
+                  ? l10n.playerRemoveFavorite
+                  : l10n.playerAddFavorite,
+              highlighted: librarySong.isFavorite,
+              onTap: () =>
+                  run(() => widget.library.toggleFavorite(librarySong)),
+            ),
+            _MoreItem(
+              icon: PlayerIcons.download,
+              label: l10n.playerDownload,
+              onTap: () => run(() => _onDownloadTap(song)),
+            ),
+            _MoreItem(
+              icon: PlayerIcons.share,
+              label: l10n.playerShare,
+              onTap: () => run(() => _onShareTap(song)),
+            ),
+            _MoreItem(
+              icon: PlayerIcons.lyrics,
+              label: l10n.playerLyrics,
+              onTap: () => run(() => _openLyricsSheet(song)),
+            ),
+            _MoreItem(
+              icon: PlayerIcons.video,
+              label: l10n.playerCreateVideo,
+              onTap: () => run(() => _openCreateVideo(librarySong)),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-class _ActionIcon extends StatelessWidget {
-  const _ActionIcon({
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+/// Kapaktan üretilen bulanık, karartılmış arka plan (video oynatıcıyla
+/// aynı desen). Kapak yoksa Melodia'nın koyu mor gradyanı.
+class _BlurredBackdrop extends StatelessWidget {
+  const _BlurredBackdrop({required this.imageUrl});
 
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
+  final String imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(icon, color: color, size: 24),
+    const fallback = DecoratedBox(
+      decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
+    );
+    return Positioned.fill(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (imageUrl.isEmpty)
+            fallback
+          else
+            ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+              child: Transform.scale(
+                scale: 1.5,
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  gaplessPlayback: true,
+                  errorBuilder: (_, _, _) => fallback,
+                ),
+              ),
+            ),
+          // Üstte biraz daha açık, altta kontrollerin okunması için daha koyu.
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.62),
+                  Colors.black.withValues(alpha: 0.82),
+                  AppColors.background.withValues(alpha: 0.96),
+                ],
+                stops: const [0.0, 0.55, 1.0],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.onMinimize, required this.onMore});
+
+  final VoidCallback onMinimize;
+  final VoidCallback? onMore;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      height: 48,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: onMinimize,
+              tooltip: l10n.playerMinimize,
+              iconSize: 30,
+              color: Colors.white,
+              icon: const Icon(PlayerIcons.minimize),
+            ),
+            const Spacer(),
+            if (onMore != null)
+              IconButton(
+                onPressed: onMore,
+                tooltip: l10n.playerMoreActions,
+                iconSize: 26,
+                color: Colors.white,
+                icon: const Icon(PlayerIcons.more),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Remix · Paylaş · Çalma listesi · Yorum. Küçük ekranlarda yatay kayar.
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.horizontalPadding,
+    required this.shareBusy,
+    required this.onRemix,
+    required this.onShare,
+    required this.onPlaylist,
+    required this.onComment,
+  });
+
+  final double horizontalPadding;
+  final bool shareBusy;
+  final VoidCallback onRemix;
+  final VoidCallback onShare;
+  final VoidCallback onPlaylist;
+  final VoidCallback onComment;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        children: [
+          _ActionPill(
+            icon: PlayerIcons.remix,
+            label: l10n.playerRemix,
+            onTap: onRemix,
+          ),
+          const SizedBox(width: 8),
+          _ActionPill(
+            icon: PlayerIcons.share,
+            label: l10n.playerShare,
+            busy: shareBusy,
+            onTap: onShare,
+          ),
+          const SizedBox(width: 8),
+          _ActionPill(
+            icon: PlayerIcons.playlist,
+            label: l10n.playerPlaylist,
+            onTap: onPlaylist,
+          ),
+          const SizedBox(width: 8),
+          _ActionPill(
+            icon: PlayerIcons.comment,
+            label: l10n.playerComment,
+            onTap: onComment,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kompakt, koyu yüzeyli, ince çerçeveli aksiyon butonu.
+class _ActionPill extends StatelessWidget {
+  const _ActionPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.busy = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.07),
+      shape: StadiumBorder(
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.09)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: busy ? null : onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (busy)
+                const SizedBox.square(
+                  dimension: 15,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.8,
+                    color: AppColors.textPrimary,
+                  ),
+                )
+              else
+                Icon(icon, size: 17, color: AppColors.textPrimary),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreItem {
+  const _MoreItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.highlighted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool highlighted;
+}
+
+class _MoreSheet extends StatelessWidget {
+  const _MoreSheet({
+    required this.librarySong,
+    required this.subtitle,
+    required this.items,
+  });
+
+  final LibrarySong librarySong;
+  final String subtitle;
+  final List<_MoreItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final song = librarySong.song;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Row(
+                  children: [
+                    SongArtwork(imageUrl: song.imageUrl, size: 44, radius: 8),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+              const SizedBox(height: 6),
+              for (final item in items)
+                ListTile(
+                  onTap: item.onTap,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  minLeadingWidth: 24,
+                  leading: Icon(
+                    item.icon,
+                    size: 22,
+                    color: item.highlighted
+                        ? AppColors.pink
+                        : AppColors.textPrimary,
+                  ),
+                  title: Text(
+                    item.label,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -476,7 +804,7 @@ class _LyricsSheet extends StatefulWidget {
     required this.service,
   });
 
-  final dynamic song; // Song
+  final Song song;
   final PlayerController controller;
   final SunoApiService service;
 
@@ -495,12 +823,12 @@ class _LyricsSheetState extends State<_LyricsSheet> {
   /// mevcut değil" mesajı gösteriyordu. Artık Lyria şarkıları için
   /// GEREKSİZ AĞ İSTEĞİ ATILMIYOR, kullanıcıya net bir sebep gösteriliyor.
   bool get _isUnsupportedProvider =>
-      (widget.song.provider as String?)?.toLowerCase() == 'lyria';
+      widget.song.provider.toLowerCase() == 'lyria';
 
   Future<List<AlignedWord>> _load() {
     if (_isUnsupportedProvider) return Future.value(const []);
-    final taskId = widget.song.taskId as String;
-    final audioId = widget.song.id as String;
+    final taskId = widget.song.taskId;
+    final audioId = widget.song.id;
     if (taskId.isEmpty) return Future.value(const []);
     return widget.service.fetchTimestampedLyrics(
       taskId: taskId,
@@ -510,6 +838,7 @@ class _LyricsSheetState extends State<_LyricsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.5,
@@ -532,9 +861,9 @@ class _LyricsSheetState extends State<_LyricsSheet> {
                 ),
               ),
               const SizedBox(height: 14),
-              const Text(
-                'Sözler',
-                style: TextStyle(
+              Text(
+                l10n.playerLyrics,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

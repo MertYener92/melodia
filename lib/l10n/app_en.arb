@@ -472,5 +472,165 @@
   "planProYearly": "Pro • Yearly",
   "@planProYearly": {
     "description": "Account info: planProYearly"
+  },
+  "playerMinimize": "Minimize",
+  "@playerMinimize": {
+    "description": "Music player: playerMinimize"
+  },
+  "playerMoreActions": "More",
+  "@playerMoreActions": {
+    "description": "Music player: playerMoreActions"
+  },
+  "playerAiGenerated": "AI Generated",
+  "@playerAiGenerated": {
+    "description": "Music player: playerAiGenerated"
+  },
+  "playerRemix": "Remix",
+  "@playerRemix": {
+    "description": "Music player: playerRemix"
+  },
+  "playerShare": "Share",
+  "@playerShare": {
+    "description": "Music player: playerShare"
+  },
+  "playerPlaylist": "Playlist",
+  "@playerPlaylist": {
+    "description": "Music player: playerPlaylist"
+  },
+  "playerComment": "Comment",
+  "@playerComment": {
+    "description": "Music player: playerComment"
+  },
+  "playerComingSoon": "Coming soon",
+  "@playerComingSoon": {
+    "description": "Music player: playerComingSoon"
+  },
+  "playerAddFavorite": "Add to favorites",
+  "@playerAddFavorite": {
+    "description": "Music player: playerAddFavorite"
+  },
+  "playerRemoveFavorite": "Remove from favorites",
+  "@playerRemoveFavorite": {
+    "description": "Music player: playerRemoveFavorite"
+  },
+  "playerDownload": "Download",
+  "@playerDownload": {
+    "description": "Music player: playerDownload"
+  },
+  "playerLyrics": "Lyrics",
+  "@playerLyrics": {
+    "description": "Music player: playerLyrics"
+  },
+  "playerCreateVideo": "Create music video",
+  "@playerCreateVideo": {
+    "description": "Music player: playerCreateVideo"
+  },
+  "playerShuffle": "Shuffle",
+  "@playerShuffle": {
+    "description": "Music player: playerShuffle"
+  },
+  "playerRepeat": "Repeat",
+  "@playerRepeat": {
+    "description": "Music player: playerRepeat"
+  },
+  "playerPrevious": "Previous",
+  "@playerPrevious": {
+    "description": "Music player: playerPrevious"
+  },
+  "playerNext": "Next",
+  "@playerNext": {
+    "description": "Music player: playerNext"
+  },
+  "playerPlay": "Play",
+  "@playerPlay": {
+    "description": "Music player: playerPlay"
+  },
+  "playerPause": "Pause",
+  "@playerPause": {
+    "description": "Music player: playerPause"
+  },
+  "playerNoSong": "No song playing",
+  "@playerNoSong": {
+    "description": "Music player: playerNoSong"
+  },
+  "remixHint": "Describe the new style…",
+  "@remixHint": {
+    "description": "Remix sheet: remixHint"
+  },
+  "remixCreate": "Create remix",
+  "@remixCreate": {
+    "description": "Remix sheet: remixCreate"
+  },
+  "remixInstrumental": "Instrumental",
+  "@remixInstrumental": {
+    "description": "Remix sheet: remixInstrumental"
+  },
+  "remixStarted": "Remix is being prepared",
+  "@remixStarted": {
+    "description": "Remix sheet: remixStarted"
+  },
+  "remixReady": "Your remix is ready",
+  "@remixReady": {
+    "description": "Remix sheet: remixReady"
+  },
+  "remixFailed": "Remix could not be created",
+  "@remixFailed": {
+    "description": "Remix sheet: remixFailed"
+  },
+  "remixView": "View",
+  "@remixView": {
+    "description": "Remix sheet: remixView"
+  },
+  "remixListen": "Listen",
+  "@remixListen": {
+    "description": "Remix sheet: remixListen"
+  },
+  "remixBuyCredits": "Get credits",
+  "@remixBuyCredits": {
+    "description": "Remix sheet: remixBuyCredits"
+  },
+  "remixCreditsNeeded": "Not enough credits for a remix.",
+  "@remixCreditsNeeded": {
+    "description": "Remix sheet: remixCreditsNeeded"
+  },
+  "remixStyleAcoustic": "Acoustic",
+  "@remixStyleAcoustic": {
+    "description": "Remix sheet: remixStyleAcoustic"
+  },
+  "remixStyleRock": "Rock",
+  "@remixStyleRock": {
+    "description": "Remix sheet: remixStyleRock"
+  },
+  "remixStyleLofi": "Lo-fi",
+  "@remixStyleLofi": {
+    "description": "Remix sheet: remixStyleLofi"
+  },
+  "remixStyleEdm": "EDM",
+  "@remixStyleEdm": {
+    "description": "Remix sheet: remixStyleEdm"
+  },
+  "remixStyleJazz": "Jazz",
+  "@remixStyleJazz": {
+    "description": "Remix sheet: remixStyleJazz"
+  },
+  "remixStyleOrchestral": "Orchestral",
+  "@remixStyleOrchestral": {
+    "description": "Remix sheet: remixStyleOrchestral"
+  },
+  "remixStyleRnb": "R&B",
+  "@remixStyleRnb": {
+    "description": "Remix sheet: remixStyleRnb"
+  },
+  "remixStyleTrap": "Trap",
+  "@remixStyleTrap": {
+    "description": "Remix sheet: remixStyleTrap"
+  },
+  "remixStyle80s": "80s Synthwave",
+  "@remixStyle80s": {
+    "description": "Remix sheet: remixStyle80s"
+  },
+  "remixStyleLatin": "Latin",
+  "@remixStyleLatin": {
+    "description": "Remix sheet: remixStyleLatin"
   }
 }

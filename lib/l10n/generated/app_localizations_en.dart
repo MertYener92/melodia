@@ -558,4 +558,124 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planProYearly => 'Pro • Yearly';
+
+  @override
+  String get playerMinimize => 'Minimize';
+
+  @override
+  String get playerMoreActions => 'More';
+
+  @override
+  String get playerAiGenerated => 'AI Generated';
+
+  @override
+  String get playerRemix => 'Remix';
+
+  @override
+  String get playerShare => 'Share';
+
+  @override
+  String get playerPlaylist => 'Playlist';
+
+  @override
+  String get playerComment => 'Comment';
+
+  @override
+  String get playerComingSoon => 'Coming soon';
+
+  @override
+  String get playerAddFavorite => 'Add to favorites';
+
+  @override
+  String get playerRemoveFavorite => 'Remove from favorites';
+
+  @override
+  String get playerDownload => 'Download';
+
+  @override
+  String get playerLyrics => 'Lyrics';
+
+  @override
+  String get playerCreateVideo => 'Create music video';
+
+  @override
+  String get playerShuffle => 'Shuffle';
+
+  @override
+  String get playerRepeat => 'Repeat';
+
+  @override
+  String get playerPrevious => 'Previous';
+
+  @override
+  String get playerNext => 'Next';
+
+  @override
+  String get playerPlay => 'Play';
+
+  @override
+  String get playerPause => 'Pause';
+
+  @override
+  String get playerNoSong => 'No song playing';
+
+  @override
+  String get remixHint => 'Describe the new style…';
+
+  @override
+  String get remixCreate => 'Create remix';
+
+  @override
+  String get remixInstrumental => 'Instrumental';
+
+  @override
+  String get remixStarted => 'Remix is being prepared';
+
+  @override
+  String get remixReady => 'Your remix is ready';
+
+  @override
+  String get remixFailed => 'Remix could not be created';
+
+  @override
+  String get remixView => 'View';
+
+  @override
+  String get remixListen => 'Listen';
+
+  @override
+  String get remixBuyCredits => 'Get credits';
+
+  @override
+  String get remixCreditsNeeded => 'Not enough credits for a remix.';
+
+  @override
+  String get remixStyleAcoustic => 'Acoustic';
+
+  @override
+  String get remixStyleRock => 'Rock';
+
+  @override
+  String get remixStyleLofi => 'Lo-fi';
+
+  @override
+  String get remixStyleEdm => 'EDM';
+
+  @override
+  String get remixStyleJazz => 'Jazz';
+
+  @override
+  String get remixStyleOrchestral => 'Orchestral';
+
+  @override
+  String get remixStyleRnb => 'R&B';
+
+  @override
+  String get remixStyleTrap => 'Trap';
+
+  @override
+  String get remixStyle80s => '80s Synthwave';
+
+  @override
+  String get remixStyleLatin => 'Latin';
 }

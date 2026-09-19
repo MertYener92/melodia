@@ -460,6 +460,59 @@ class SongLibrary extends ChangeNotifier {
     );
   }
 
+  /// YENİ (Remix): [source] şarkısını [style] tarzında yeniden üretir
+  /// (Suno upload-cover). Normal üretimle AYNI akışı kullanır: kütüphanede
+  /// 2 "üretiliyor" kartı belirir, uygulama kapanırsa açılışta kaldığı
+  /// yerden devam edilir, başarısızlıkta jeton backend'de iade edilir.
+  ///
+  /// [styleLabel] kartlarda/şarkıda görünen kısa etiket (ör. "Akustik"),
+  /// [style] Suno'ya giden asıl tarif. Tamamlanınca eklenen şarkıları döner.
+  Future<List<LibrarySong>> startRemix({
+    required LibrarySong source,
+    required String style,
+    required String styleLabel,
+    bool instrumental = false,
+  }) async {
+    const mode = 'remix';
+    const displayMood = 'Remix';
+    final baseId = 'remix_${DateTime.now().microsecondsSinceEpoch}_${_songs.length}';
+    const expectedCount = 2; // remix her zaman Suno -- 2 klip döner
+    final pendingIds = _addPendingPlaceholders(
+      baseId,
+      expectedCount,
+      styleLabel,
+      displayMood,
+      mode: mode,
+    );
+
+    // startGeneration ile aynı: requestId ağ isteğinden ÖNCE diske yazılır,
+    // backend bunu jobId olarak kullanır -- tekrar istek yeni jeton düşmez.
+    final requestId = baseId;
+    await _writePendingGeneration({
+      'requestId': requestId,
+      'provider': 'suno',
+      'baseId': baseId,
+      'expectedCount': expectedCount,
+      'displayGenre': styleLabel,
+      'displayMood': displayMood,
+      'mode': mode,
+    });
+
+    return _finishGeneration(
+      pendingIds: pendingIds,
+      displayGenre: styleLabel,
+      displayMood: displayMood,
+      mode: mode,
+      run: () => service.remixAndWait(
+        sourceSongId: source.song.id,
+        style: style,
+        instrumental: instrumental,
+        requestId: requestId,
+        onTick: (status, attempt) => _updateAllPhases(pendingIds, _phaseFor(status)),
+      ),
+    );
+  }
+
   /// YENİ (ÇİFT JETON DÜŞME HATASININ DÜZELTMESİ): HomeShell tarafından
   /// uygulama açılışında BİR KEZ çağrılır. Diskte yarım kalmış (daha önce
   /// ÖDENMİŞ, backend'de hâlâ devam ediyor ya da zaten bitmiş olabilecek)
@@ -537,7 +590,9 @@ class SongLibrary extends ChangeNotifier {
   /// paylaşılan ortak sonuç-işleme mantığı -- tek fark, üretimin NASIL
   /// başlatıldığı ([run] closure'ı: ya YENİ bir /generate isteği, ya da
   /// var olan bir job'un sadece pollanması).
-  Future<void> _finishGeneration({
+  ///
+  /// Başarılı olursa kütüphaneye eklenen şarkıları, aksi halde boş liste döner.
+  Future<List<LibrarySong>> _finishGeneration({
     required List<String> pendingIds,
     required String displayGenre,
     required String displayMood,
@@ -568,10 +623,11 @@ class SongLibrary extends ChangeNotifier {
           _failPending(id, 'Şarkı üretilemedi (boş sonuç).');
         }
         await _clearPendingGeneration();
-        return;
+        return const [];
       }
 
       final createdAt = DateTime.now();
+      final created = <LibrarySong>[];
 
       // DUPLICATE KORUMASI: Her klip kendi benzersiz clipId'siyle (song.id)
       // tanımlanır. Aynı clipId zaten kütüphanede varsa (ör. bu Future
@@ -599,6 +655,7 @@ class SongLibrary extends ChangeNotifier {
             createdAt: createdAt,
             mode: mode,
           );
+          created.add(_songs[index]);
         } else {
           // Bu slot için karşılığı olan (dolu/benzersiz) bir klip GELMEDİ
           // -- ör. Suno bu sefer sadece 1 klip döndürdü, ya da ikinci klip
@@ -611,15 +668,15 @@ class SongLibrary extends ChangeNotifier {
       // normalde olmaz) kalanlar listenin en üstüne yeni kart olarak
       // eklenir.
       for (var i = pendingIds.length; i < uniqueSongs.length; i++) {
-        _songs.add(
-          LibrarySong(
-            song: uniqueSongs[i],
-            genre: displayGenre,
-            mood: displayMood,
-            createdAt: createdAt,
-            mode: mode,
-          ),
+        final extra = LibrarySong(
+          song: uniqueSongs[i],
+          genre: displayGenre,
+          mood: displayMood,
+          createdAt: createdAt,
+          mode: mode,
         );
+        _songs.add(extra);
+        created.add(extra);
       }
       notifyListeners();
 
@@ -643,16 +700,19 @@ class SongLibrary extends ChangeNotifier {
       // Üretim (başarıyla) bitti -- diskteki "devam ediyor" kaydını
       // temizle, aksi halde bir sonraki açılışta boş yere resume denenir.
       await _clearPendingGeneration();
+      return created;
     } on SunoApiException catch (e) {
       for (final id in pendingIds) {
         _failPending(id, e.message);
       }
       await _clearPendingGeneration();
+      return const [];
     } catch (e) {
       for (final id in pendingIds) {
         _failPending(id, 'Beklenmeyen bir hata oluştu: $e');
       }
       await _clearPendingGeneration();
+      return const [];
     } finally {
       // DÜZELTME (kredi rozeti bayatlığı): üretim ister başarıyla ister
       // hatayla bitsin, ekranlardaki rozetin (ve varsa Pro/kota bağlı

@@ -1089,6 +1089,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pro • Yearly'**
   String get planProYearly;
+
+  /// Music player: playerMinimize
+  ///
+  /// In en, this message translates to:
+  /// **'Minimize'**
+  String get playerMinimize;
+
+  /// Music player: playerMoreActions
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get playerMoreActions;
+
+  /// Music player: playerAiGenerated
+  ///
+  /// In en, this message translates to:
+  /// **'AI Generated'**
+  String get playerAiGenerated;
+
+  /// Music player: playerRemix
+  ///
+  /// In en, this message translates to:
+  /// **'Remix'**
+  String get playerRemix;
+
+  /// Music player: playerShare
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get playerShare;
+
+  /// Music player: playerPlaylist
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get playerPlaylist;
+
+  /// Music player: playerComment
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get playerComment;
+
+  /// Music player: playerComingSoon
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get playerComingSoon;
+
+  /// Music player: playerAddFavorite
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get playerAddFavorite;
+
+  /// Music player: playerRemoveFavorite
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get playerRemoveFavorite;
+
+  /// Music player: playerDownload
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get playerDownload;
+
+  /// Music player: playerLyrics
+  ///
+  /// In en, this message translates to:
+  /// **'Lyrics'**
+  String get playerLyrics;
+
+  /// Music player: playerCreateVideo
+  ///
+  /// In en, this message translates to:
+  /// **'Create music video'**
+  String get playerCreateVideo;
+
+  /// Music player: playerShuffle
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get playerShuffle;
+
+  /// Music player: playerRepeat
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get playerRepeat;
+
+  /// Music player: playerPrevious
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get playerPrevious;
+
+  /// Music player: playerNext
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get playerNext;
+
+  /// Music player: playerPlay
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get playerPlay;
+
+  /// Music player: playerPause
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get playerPause;
+
+  /// Music player: playerNoSong
+  ///
+  /// In en, this message translates to:
+  /// **'No song playing'**
+  String get playerNoSong;
+
+  /// Remix sheet: remixHint
+  ///
+  /// In en, this message translates to:
+  /// **'Describe the new style…'**
+  String get remixHint;
+
+  /// Remix sheet: remixCreate
+  ///
+  /// In en, this message translates to:
+  /// **'Create remix'**
+  String get remixCreate;
+
+  /// Remix sheet: remixInstrumental
+  ///
+  /// In en, this message translates to:
+  /// **'Instrumental'**
+  String get remixInstrumental;
+
+  /// Remix sheet: remixStarted
+  ///
+  /// In en, this message translates to:
+  /// **'Remix is being prepared'**
+  String get remixStarted;
+
+  /// Remix sheet: remixReady
+  ///
+  /// In en, this message translates to:
+  /// **'Your remix is ready'**
+  String get remixReady;
+
+  /// Remix sheet: remixFailed
+  ///
+  /// In en, this message translates to:
+  /// **'Remix could not be created'**
+  String get remixFailed;
+
+  /// Remix sheet: remixView
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get remixView;
+
+  /// Remix sheet: remixListen
+  ///
+  /// In en, this message translates to:
+  /// **'Listen'**
+  String get remixListen;
+
+  /// Remix sheet: remixBuyCredits
+  ///
+  /// In en, this message translates to:
+  /// **'Get credits'**
+  String get remixBuyCredits;
+
+  /// Remix sheet: remixCreditsNeeded
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough credits for a remix.'**
+  String get remixCreditsNeeded;
+
+  /// Remix sheet: remixStyleAcoustic
+  ///
+  /// In en, this message translates to:
+  /// **'Acoustic'**
+  String get remixStyleAcoustic;
+
+  /// Remix sheet: remixStyleRock
+  ///
+  /// In en, this message translates to:
+  /// **'Rock'**
+  String get remixStyleRock;
+
+  /// Remix sheet: remixStyleLofi
+  ///
+  /// In en, this message translates to:
+  /// **'Lo-fi'**
+  String get remixStyleLofi;
+
+  /// Remix sheet: remixStyleEdm
+  ///
+  /// In en, this message translates to:
+  /// **'EDM'**
+  String get remixStyleEdm;
+
+  /// Remix sheet: remixStyleJazz
+  ///
+  /// In en, this message translates to:
+  /// **'Jazz'**
+  String get remixStyleJazz;
+
+  /// Remix sheet: remixStyleOrchestral
+  ///
+  /// In en, this message translates to:
+  /// **'Orchestral'**
+  String get remixStyleOrchestral;
+
+  /// Remix sheet: remixStyleRnb
+  ///
+  /// In en, this message translates to:
+  /// **'R&B'**
+  String get remixStyleRnb;
+
+  /// Remix sheet: remixStyleTrap
+  ///
+  /// In en, this message translates to:
+  /// **'Trap'**
+  String get remixStyleTrap;
+
+  /// Remix sheet: remixStyle80s
+  ///
+  /// In en, this message translates to:
+  /// **'80s Synthwave'**
+  String get remixStyle80s;
+
+  /// Remix sheet: remixStyleLatin
+  ///
+  /// In en, this message translates to:
+  /// **'Latin'**
+  String get remixStyleLatin;
 }
 
 class _AppLocalizationsDelegate
