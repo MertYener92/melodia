@@ -1,9 +1,20 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:melodia/l10n/generated/app_localizations.dart';
+
 import '../services/player_controller.dart';
 import '../theme/app_theme.dart';
+import 'player/player_shared.dart';
 
-/// Bottom navigation'ın hemen üstünde görünen, dokununca full-screen
-/// player'ı açan mini oynatıcı çubuğu.
+/// Bottom navigation'ın hemen üstünde, listenin üzerinde duran kompakt
+/// oynatıcı. Tam ekran player'ın "küçültülmüş hali": aynı kapak (Hero),
+/// aynı başlık/alt başlık ve aynı ikon ailesi.
+///
+/// Etkileşimler:
+///  - Dokun / yukarı kaydır -> tam ekran player.
+///  - Aşağı kaydır -> çalmayı durdurup mini player'ı kapat (eski "X"
+///    butonunun yerini alan ikincil kapatma davranışı).
 class MiniPlayerBar extends StatelessWidget {
   const MiniPlayerBar({
     super.key,
@@ -14,135 +25,167 @@ class MiniPlayerBar extends StatelessWidget {
   final PlayerController controller;
   final VoidCallback onTap;
 
+  static const double _height = 60;
+  static const double _radius = 14;
+
   @override
   Widget build(BuildContext context) {
     final librarySong = controller.current;
-    final song = librarySong?.song;
-    if (song == null) return const SizedBox.shrink();
+    if (librarySong == null) return const SizedBox.shrink();
+    final song = librarySong.song;
+    final l10n = AppLocalizations.of(context)!;
 
-    final progress = controller.duration.inMilliseconds == 0
+    final totalMs = controller.duration.inMilliseconds;
+    final progress = totalMs == 0
         ? 0.0
-        : controller.position.inMilliseconds /
-            controller.duration.inMilliseconds;
+        : (controller.position.inMilliseconds / totalMs).clamp(0.0, 1.0);
 
-    // DEĞİŞTİ: "Genre | Mood" alt yazısı eklendi -- referans
-    // tasarımdaki gibi ("Pop | Enerjik" formatı).
-    final subtitleParts = [
-      if (librarySong!.genre.isNotEmpty) librarySong.genre,
-      if (librarySong.mood.isNotEmpty) librarySong.mood,
-    ];
-    final subtitle = subtitleParts.isEmpty ? '—' : subtitleParts.join(' | ');
+    final error = controller.error;
+    final repeatActive = controller.repeatMode != PlayerRepeatMode.off;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceElevated.withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+      child: GestureDetector(
+        onTap: onTap,
+        onVerticalDragEnd: (details) {
+          final v = details.primaryVelocity ?? 0;
+          if (v < -250) onTap();
+          if (v > 250) controller.close();
+        },
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(_radius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
               ),
-              child: LinearProgressIndicator(
-                value: progress.clamp(0, 1),
-                minHeight: 2,
-                backgroundColor: AppColors.border,
-                valueColor: const AlwaysStoppedAnimation(AppColors.purple),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    // DEĞİŞTİ: görsel büyütüldü (40 -> 52).
-                    borderRadius: BorderRadius.circular(12),
-                    child: song.imageUrl.isNotEmpty
-                        ? Image.network(
-                            song.imageUrl,
-                            width: 52,
-                            height: 52,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              width: 52,
-                              height: 52,
-                              decoration: const BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            width: 52,
-                            height: 52,
-                            decoration: const BoxDecoration(
-                              gradient: AppColors.primaryGradient,
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(_radius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                height: _height,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B1826).withValues(alpha: 0.86),
+                  borderRadius: BorderRadius.circular(_radius),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 7, 4, 7),
+                      child: Row(
+                        children: [
+                          SongArtwork(
+                            imageUrl: song.imageUrl,
+                            size: 46,
+                            radius: 8,
+                            heroTag: kPlayerArtworkHeroTag,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  song.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  error ?? playerSubtitle(librarySong, l10n),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: error != null
+                                        ? AppColors.pink
+                                        : AppColors.textSecondary,
+                                    fontSize: 12.5,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          song.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
+                          IconButton(
+                            onPressed: controller.cycleRepeatMode,
+                            tooltip: l10n.playerRepeat,
+                            iconSize: 22,
+                            color: repeatActive
+                                ? AppColors.pink
+                                : AppColors.textSecondary,
+                            icon: Icon(
+                              controller.repeatMode == PlayerRepeatMode.one
+                                  ? PlayerIcons.repeatOne
+                                  : PlayerIcons.repeat,
+                            ),
+                          ),
+                          SizedBox(
+                            width: 44,
+                            height: 44,
+                            child: controller.isLoading
+                                ? const Center(
+                                    child: SizedBox.square(
+                                      dimension: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  )
+                                : IconButton(
+                                    onPressed: controller.togglePlayPause,
+                                    tooltip: controller.isPlaying
+                                        ? l10n.playerPause
+                                        : l10n.playerPlay,
+                                    iconSize: 30,
+                                    color: Colors.white,
+                                    icon: Icon(
+                                      controller.isPlaying
+                                          ? PlayerIcons.pause
+                                          : PlayerIcons.play,
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Çok ince, dikkat dağıtmayan ilerleme çizgisi.
+                    Positioned(
+                      left: 12,
+                      right: 12,
+                      bottom: 0,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(1),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 2,
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          valueColor: AlwaysStoppedAnimation(
+                            AppColors.pink.withValues(alpha: 0.9),
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: controller.togglePlayPause,
-                    icon: Icon(
-                      controller.isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  // YENİ: kapatma butonu -- referans tasarımdaki "X".
-                  IconButton(
-                    onPressed: controller.close,
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.textMuted,
-                      size: 24,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

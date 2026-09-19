@@ -51,6 +51,15 @@ class AppColors {
   static const Color purple = Color(0xFF8B5CF6);
   static const Color pink = Color(0xFFEC4899);
   static const Color purpleDeep = Color(0xFF6D28D9);
+  static const Color blue = Color(0xFF3B82F6);
+
+  /// Player'daki ana oynat butonu için pembe -> mor -> mavi geçiş. Sadece
+  /// en önemli aksiyonda kullanılır, genel yüzeylerde değil.
+  static const LinearGradient playGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [pink, purple, blue],
+  );
 
   /// YENİ: Kütüphane filtre çiplerinin (Tümü/Hızlı/Standart/Gelişmiş)
   /// SEÇİLİ durumundaki gradyanlı altın çerçevesi için iki tonlu geçiş

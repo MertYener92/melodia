@@ -217,6 +217,40 @@ class SunoApiService {
       'mode': ?mode,
     });
 
+    return _jobIdFromGenerateResponse(response);
+  }
+
+  /// YENİ (Remix): mevcut bir şarkıyı Suno "upload-cover" ile yeni bir
+  /// tarzda yeniden üretir. Kaynak ses dosyasını backend kendisi bulur
+  /// (sadece songId gönderiliyor); maliyet backend'de sabit (remix = 10).
+  /// Sonuç normal üretimle aynı şekilde (aynı /status akışıyla) döner.
+  Future<List<Song>> remixAndWait({
+    required String sourceSongId,
+    required String style,
+    required bool instrumental,
+    required String requestId,
+    Duration pollInterval = const Duration(seconds: 5),
+    Duration timeout = const Duration(minutes: 8),
+    void Function(TaskStatus status, int attempt)? onTick,
+  }) async {
+    final response = await _post('/generate', {
+      'remixOf': sourceSongId,
+      'style': style,
+      'instrumental': instrumental,
+      'requestId': requestId,
+      'mode': 'remix',
+    });
+    final jobId = _jobIdFromGenerateResponse(response);
+    return _pollUntilDone(
+      jobId,
+      provider: 'suno',
+      pollInterval: pollInterval,
+      timeout: timeout,
+      onTick: onTick,
+    );
+  }
+
+  String _jobIdFromGenerateResponse(http.Response response) {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
 
     if (response.statusCode == 429) {

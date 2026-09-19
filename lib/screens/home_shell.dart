@@ -16,6 +16,7 @@ import '../theme/app_theme.dart';
 import '../widgets/mini_player_bar.dart';
 import '../widgets/premium_bottom_nav.dart';
 import 'create_screen.dart';
+import 'credits_screen.dart';
 import 'ai_video_screen.dart';
 import 'library_screen.dart';
 import 'player_screen.dart';
@@ -65,7 +66,11 @@ class _HomeShellState extends State<HomeShell> {
     // yarım kalmış (daha önce ödenmiş) bir üretim varsa YENİ bir istek
     // atmadan onu geri bulur -- bkz. song_library.dart.
     _library.resumePendingGenerationIfAny();
-    _player = PlayerController(service: widget.service);
+    // Sonraki/önceki sırası = kütüphanedeki şarkı listesi.
+    _player = PlayerController(
+      service: widget.service,
+      queueSource: () => _library.songs,
+    );
     _scheduleProUpsell();
     // YENİ (Pro ekranı yükleme kayması düzeltmesi): PRO ekranı en erken
     // 9sn sonra otomatik açılabiliyor -- bu süreyi, Apple'dan ürün
@@ -150,14 +155,59 @@ class _HomeShellState extends State<HomeShell> {
 
   void _goToTab(int index) => setState(() => _index = index);
 
-  void _openPlayer() {
+  /// Remix başlayınca "Görüntüle": açık player'ı (ve varsa üstündeki
+  /// sayfaları) kapatıp Kütüphane sekmesine geçer.
+  void _openLibraryFromPlayer() {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _goToTab(2);
+  }
+
+  /// Jeton yetmediğinde: Pro kullanıcıya jeton paketleri, diğerlerine Pro
+  /// ekranı (Create ekranındaki rozetle aynı kural).
+  void _openCreditsOrPro() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => PlayerScreen(
+        fullscreenDialog: true,
+        builder: (_) => _library.isPro
+            ? CreditsScreen(authService: widget.authService, apiService: widget.service)
+            : ProUpsellScreen(authService: widget.authService, apiService: widget.service),
+      ),
+    );
+  }
+
+  /// Mini player -> tam ekran. Sayfa hafifçe yukarı kayıp belirirken kapak
+  /// görseli (Hero) mini player'daki yerinden büyüyerek gelir.
+  void _openPlayer() {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+        pageBuilder: (_, _, _) => PlayerScreen(
           controller: _player,
+          library: _library,
           service: widget.service,
           musicVideoService: widget.musicVideoService,
+          onOpenLibrary: _openLibraryFromPlayer,
+          onBuyCredits: _openCreditsOrPro,
         ),
+        transitionsBuilder: (_, animation, _, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.fastOutSlowIn,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.08),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -202,28 +252,32 @@ class _HomeShellState extends State<HomeShell> {
         decoration: const BoxDecoration(gradient: AppColors.backgroundGlow),
         child: IndexedStack(index: _index, children: screens),
       ),
-      bottomNavigationBar: Container(
-        // DÜZELTME: extendBody:true olduğu için body (video/arka plan)
-        // bottomNavigationBar'ın ARKASINA kadar uzanıyor. Önceden SafeArea
-        // en dışta olduğu için, alt sistem boşluğu (home indicator alanı)
-        // bu container'ın renklendirmesinin DIŞINDA kalıyor, o dar şeritte
-        // arkadaki video/görsel görünüyordu. Rengi artık en dışa, SafeArea'nın
-        // DIŞINA sarıp o boşluğu da kaplıyoruz.
-        color: AppColors.background,
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListenableBuilder(
-                  listenable: _player,
-                  builder: (context, _) => MiniPlayerBar(
-                    controller: _player,
-                    onTap: _openPlayer,
-                  ),
-                ),
-                PremiumBottomNav(
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // DEĞİŞTİ: mini player artık opak alt çubuğun DIŞINDA -- extendBody
+          // sayesinde listenin üzerinde, yarı saydam/bulanık yüzeyiyle
+          // içerikle bütünleşik görünüyor. Scaffold alt boşluğu (mini player
+          // + nav yüksekliği) body'ye padding olarak verdiği için liste
+          // içeriği yine de altında kaybolmuyor.
+          ListenableBuilder(
+            listenable: _player,
+            builder: (context, _) => MiniPlayerBar(
+              controller: _player,
+              onTap: _openPlayer,
+            ),
+          ),
+          Container(
+            // DÜZELTME: extendBody:true olduğu için body (video/arka plan)
+            // bottomNavigationBar'ın ARKASINA kadar uzanıyor. Rengi
+            // SafeArea'nın DIŞINA sarıyoruz ki alt sistem boşluğu (home
+            // indicator alanı) da kaplansın.
+            color: AppColors.background,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: PremiumBottomNav(
                   currentIndex: _index,
                   onTap: _goToTab,
                   items: [
@@ -236,10 +290,10 @@ class _HomeShellState extends State<HomeShell> {
                     NavItemData(icon: Icons.person_rounded, label: l10n.navProfile),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
