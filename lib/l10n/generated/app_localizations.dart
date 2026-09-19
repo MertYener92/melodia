@@ -1341,6 +1341,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No credits were spent — you can try again.'**
   String get remixFailedDetail;
+
+  /// No description provided for @libraryFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get libraryFilterAll;
+
+  /// No description provided for @libraryFilterMusic.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get libraryFilterMusic;
+
+  /// No description provided for @libraryFilterVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get libraryFilterVideo;
+
+  /// No description provided for @libraryFilterRemix.
+  ///
+  /// In en, this message translates to:
+  /// **'Remix'**
+  String get libraryFilterRemix;
+
+  /// No description provided for @libraryEmptyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t created anything yet'**
+  String get libraryEmptyAll;
+
+  /// No description provided for @libraryEmptyFiltered.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here for this filter'**
+  String get libraryEmptyFiltered;
+
+  /// No description provided for @libraryVideoInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Clip in progress'**
+  String get libraryVideoInProgress;
+
+  /// No description provided for @libraryVideoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Clip failed'**
+  String get libraryVideoFailed;
+
+  /// No description provided for @libraryVideoNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Your clip isn\'t ready yet. You can play it here once it\'s done.'**
+  String get libraryVideoNotReady;
+
+  /// No description provided for @libraryDeleteVideoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete clip'**
+  String get libraryDeleteVideoTitle;
+
+  /// No description provided for @libraryDeleteVideoMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" will be permanently deleted. This can\'t be undone.'**
+  String libraryDeleteVideoMessage(String title);
 }
 
 class _AppLocalizationsDelegate

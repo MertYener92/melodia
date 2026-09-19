@@ -9,7 +9,7 @@
   "createSubtitle": "Fikirlerinizi saniyeler içinde yapay zeka ile özgün şarkılara dönüştürün.",
   "createButton": "Şarkı Oluştur",
   "profileTitle": "Profilin",
-  "profileSongs": "Şarkı",
+  "profileSongs": "Şarkılarım",
   "profileFavorites": "Favori",
   "profileSettings": "Ayarlar",
   "profileUpgradePlan": "Planı Yükselt",
@@ -269,5 +269,16 @@
   "remixStyle80s": "80'ler Synthwave",
   "remixStyleLatin": "Latin",
   "remixStartedDetail": "Hazır olduğunda haber vereceğiz.",
-  "remixFailedDetail": "Kredin harcanmadı, tekrar deneyebilirsin."
+  "remixFailedDetail": "Kredin harcanmadı, tekrar deneyebilirsin.",
+  "libraryFilterAll": "Tümü",
+  "libraryFilterMusic": "Müzik",
+  "libraryFilterVideo": "Video",
+  "libraryFilterRemix": "Remix",
+  "libraryEmptyAll": "Henüz bir şey oluşturmadın",
+  "libraryEmptyFiltered": "Bu filtrede içerik yok",
+  "libraryVideoInProgress": "Klip hazırlanıyor",
+  "libraryVideoFailed": "Klip üretilemedi",
+  "libraryVideoNotReady": "Klibin henüz hazır değil, hazır olunca burada oynatabilirsin.",
+  "libraryDeleteVideoTitle": "Klibi sil",
+  "libraryDeleteVideoMessage": "\"{title}\" kalıcı olarak silinecek. Bu işlem geri alınamaz."
 }

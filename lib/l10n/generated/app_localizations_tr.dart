@@ -38,7 +38,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileTitle => 'Profilin';
 
   @override
-  String get profileSongs => 'Şarkı';
+  String get profileSongs => 'Şarkılarım';
 
   @override
   String get profileFavorites => 'Favori';
@@ -680,4 +680,40 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get remixFailedDetail => 'Kredin harcanmadı, tekrar deneyebilirsin.';
+
+  @override
+  String get libraryFilterAll => 'Tümü';
+
+  @override
+  String get libraryFilterMusic => 'Müzik';
+
+  @override
+  String get libraryFilterVideo => 'Video';
+
+  @override
+  String get libraryFilterRemix => 'Remix';
+
+  @override
+  String get libraryEmptyAll => 'Henüz bir şey oluşturmadın';
+
+  @override
+  String get libraryEmptyFiltered => 'Bu filtrede içerik yok';
+
+  @override
+  String get libraryVideoInProgress => 'Klip hazırlanıyor';
+
+  @override
+  String get libraryVideoFailed => 'Klip üretilemedi';
+
+  @override
+  String get libraryVideoNotReady =>
+      'Klibin henüz hazır değil, hazır olunca burada oynatabilirsin.';
+
+  @override
+  String get libraryDeleteVideoTitle => 'Klibi sil';
+
+  @override
+  String libraryDeleteVideoMessage(String title) {
+    return '\"$title\" kalıcı olarak silinecek. Bu işlem geri alınamaz.';
+  }
 }

@@ -269,5 +269,16 @@
   "remixStyle80s": "Synthwave 80s",
   "remixStyleLatin": "Latino",
   "remixStartedDetail": "Te avisaremos cuando esté listo.",
-  "remixFailedDetail": "No se gastaron créditos; puedes intentarlo de nuevo."
+  "remixFailedDetail": "No se gastaron créditos; puedes intentarlo de nuevo.",
+  "libraryFilterAll": "Todo",
+  "libraryFilterMusic": "Música",
+  "libraryFilterVideo": "Video",
+  "libraryFilterRemix": "Remix",
+  "libraryEmptyAll": "Todavía no has creado nada",
+  "libraryEmptyFiltered": "No hay contenido en este filtro",
+  "libraryVideoInProgress": "Clip en preparación",
+  "libraryVideoFailed": "No se pudo crear el clip",
+  "libraryVideoNotReady": "Tu clip aún no está listo. Podrás reproducirlo aquí cuando termine.",
+  "libraryDeleteVideoTitle": "Eliminar clip",
+  "libraryDeleteVideoMessage": "\"{title}\" se eliminará de forma permanente. No se puede deshacer."
 }

@@ -38,19 +38,6 @@ class SongTile extends StatelessWidget {
     return '$m:$s';
   }
 
-  /// Başlığın altında gösterilecek gri "şarkı detayı" metni -- önce
-  /// şarkının üretim prompt'u (song.prompt) denenir, o boşsa (ör. eski
-  /// bir kayıt) genre/mood'un birleşimine düşülür. İkisi de boşsa
-  /// hiçbir alt satır gösterilmez.
-  String _detailText(LibrarySong librarySong) {
-    final prompt = librarySong.song.prompt.trim();
-    if (prompt.isNotEmpty) return prompt;
-    final parts = [librarySong.genre, librarySong.mood]
-        .where((p) => p.trim().isNotEmpty)
-        .toList();
-    return parts.join(', ');
-  }
-
   /// YENİ: "17 Eyl 2025 • Pop" gibi ayrı bir alt satır -- prompt/detay
   /// metninden BAĞIMSIZ, referans görseldeki gibi.
   String _dateGenreText(LibrarySong librarySong) {
@@ -71,7 +58,6 @@ class SongTile extends StatelessWidget {
     // Motor etiketi: "suno" -> "SUNO", "lyria" -> "LYRIA". Bilinmeyen/boş
     // bir değer gelirse (eski kayıtlar) sessizce gösterilmez.
     final providerTag = song.provider.trim().toUpperCase();
-    final detailText = _detailText(librarySong);
     final dateGenreText = _dateGenreText(librarySong);
 
     return Container(
@@ -164,19 +150,6 @@ class SongTile extends StatelessWidget {
                           ],
                         ],
                       ),
-                      if (detailText.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          detailText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.textSecondary.withValues(alpha: 0.85),
-                            fontSize: 12.5,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
                       const SizedBox(height: 3),
                       Text(
                         dateGenreText,

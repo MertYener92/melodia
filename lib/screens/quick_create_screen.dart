@@ -7,6 +7,7 @@ import '../services/music_spec_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
+import '../services/app_navigation.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
 import '../widgets/mode_cost_badge.dart';
@@ -121,6 +122,9 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
       // sadece üretim formu route'ları temizlenir. Kullanıcı zaten
       // Şarkılarım'daysa (bu akışta mümkün değil, ama savunma amaçlı)
       // ikinci bir push oluşmaz çünkü zaten route yığını temizleniyor.
+      // DEĞİŞTİ: üretim kartı artık Kütüphane SEKMESİNDE gösteriliyor (alt
+      // sekmeler + mini player görünür); HomeShell yoksa eski sayfaya düş.
+      if (AppNavigation.showLibrary(context)) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
           builder: (_) => MySongsScreen(
@@ -197,8 +201,9 @@ class _QuickCreateScreenState extends State<QuickCreateScreen> {
                   ),
                   child: TextField(
                     controller: _controller,
-                    maxLines: 4,
-                    maxLength: 300,
+                    minLines: 4,
+                    maxLines: 10,
+                    maxLength: kSongPromptMaxLength,
                     enabled: !_loading,
                     style: const TextStyle(color: AppColors.textPrimary),
                     onChanged: (_) => setState(() {}),

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -77,7 +76,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
           return Stack(
             children: [
-              _BlurredBackdrop(imageUrl: librarySong.song.imageUrl),
+              const _GraniteBackdrop(),
               SafeArea(
                 child: GestureDetector(
                   // Aşağı kaydırınca küçült (mini player'a dön).
@@ -253,7 +252,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<File?> _downloadAudioFile(Song song) async {
     setState(() => _busy = true);
     try {
-      final audioUrl = await widget.service.getSongPlayUrl(song.id);
+      final audioUrl = await widget.service.resolvePlayUrl(song);
 
       final response = await http
           .get(Uri.parse(audioUrl))
@@ -471,49 +470,31 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 }
 
-/// Kapaktan üretilen bulanık, karartılmış arka plan (video oynatıcıyla
-/// aynı desen). Kapak yoksa Melodia'nın koyu mor gradyanı.
-class _BlurredBackdrop extends StatelessWidget {
-  const _BlurredBackdrop({required this.imageUrl});
-
-  final String imageUrl;
+/// DEĞİŞTİ: Tam ekran player'ın arka planı artık kapaktan üretilen bulanık
+/// görsel değil, uygulamanın kütüphane ekranlarıyla AYNI granit gradyanı
+/// (AppColors.libraryGranite) + üstte hafif bir mor ışıma -- player
+/// uygulamanın geri kalanıyla aynı renk dünyasında duruyor.
+class _GraniteBackdrop extends StatelessWidget {
+  const _GraniteBackdrop();
 
   @override
   Widget build(BuildContext context) {
-    const fallback = DecoratedBox(
-      decoration: BoxDecoration(gradient: AppColors.backgroundGlow),
-    );
     return Positioned.fill(
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (imageUrl.isEmpty)
-            fallback
-          else
-            ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Transform.scale(
-                scale: 1.5,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  gaplessPlayback: true,
-                  errorBuilder: (_, _, _) => fallback,
-                ),
-              ),
-            ),
-          // Üstte biraz daha açık, altta kontrollerin okunması için daha koyu.
+          const DecoratedBox(
+            decoration: BoxDecoration(gradient: AppColors.libraryGranite),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.75),
+                radius: 1.1,
                 colors: [
-                  Colors.black.withValues(alpha: 0.62),
-                  Colors.black.withValues(alpha: 0.82),
-                  AppColors.background.withValues(alpha: 0.96),
+                  AppColors.purple.withValues(alpha: 0.16),
+                  AppColors.purple.withValues(alpha: 0),
                 ],
-                stops: const [0.0, 0.55, 1.0],
               ),
             ),
           ),

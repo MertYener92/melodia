@@ -5,6 +5,7 @@ import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
+import '../services/app_navigation.dart';
 import '../theme/app_theme.dart';
 import '../widgets/chip_group.dart';
 import '../widgets/gradient_button.dart';
@@ -105,6 +106,9 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
     );
 
     if (!mounted) return;
+    // DEĞİŞTİ: üretim kartı artık Kütüphane SEKMESİNDE gösteriliyor (alt
+    // sekmeler + mini player görünür); HomeShell yoksa eski sayfaya düş.
+    if (AppNavigation.showLibrary(context)) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => MySongsScreen(
@@ -213,8 +217,9 @@ class _CreateFormScreenState extends State<CreateFormScreen> {
           const SizedBox(height: 10),
           TextField(
             controller: _promptController,
-            maxLines: 4,
-            maxLength: 300,
+            minLines: 4,
+            maxLines: 10,
+            maxLength: kSongPromptMaxLength,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: l10n.describeSongHint,

@@ -684,4 +684,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remixFailedDetail => 'No credits were spent — you can try again.';
+
+  @override
+  String get libraryFilterAll => 'All';
+
+  @override
+  String get libraryFilterMusic => 'Music';
+
+  @override
+  String get libraryFilterVideo => 'Video';
+
+  @override
+  String get libraryFilterRemix => 'Remix';
+
+  @override
+  String get libraryEmptyAll => 'You haven\'t created anything yet';
+
+  @override
+  String get libraryEmptyFiltered => 'Nothing here for this filter';
+
+  @override
+  String get libraryVideoInProgress => 'Clip in progress';
+
+  @override
+  String get libraryVideoFailed => 'Clip failed';
+
+  @override
+  String get libraryVideoNotReady =>
+      'Your clip isn\'t ready yet. You can play it here once it\'s done.';
+
+  @override
+  String get libraryDeleteVideoTitle => 'Delete clip';
+
+  @override
+  String libraryDeleteVideoMessage(String title) {
+    return '\"$title\" will be permanently deleted. This can\'t be undone.';
+  }
 }

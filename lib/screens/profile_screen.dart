@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../services/locale_controller.dart';
+import '../services/music_video_service.dart';
 import '../services/player_controller.dart';
 import '../services/song_library.dart';
 import '../services/suno_api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_notice.dart';
 import '../widgets/empty_songs_state.dart';
+import '../widgets/library_list_item.dart';
+import '../widgets/paged_list_section.dart';
 import '../widgets/profile_completion_card.dart';
 import '../widgets/song_list_item.dart';
 import 'profile_completion_flow_screen.dart';
 import 'settings_screen.dart';
+import 'video_library_screen.dart';
 
 /// Profil ekranı: en üstte mor-pembe tonlarından siyaha akan bir başlık
 /// alanı (sağ üstte Ayarlar ikonu, avatar + isim + ID, "Edit Profile"
@@ -27,7 +32,9 @@ class ProfileScreen extends StatefulWidget {
     required this.localeController,
     required this.onLoggedOut,
     required this.player,
+    required this.videoService,
     required this.onNavigateToCreate,
+    this.isActive = false,
   });
 
   final SongLibrary library;
@@ -35,6 +42,10 @@ class ProfileScreen extends StatefulWidget {
   final AuthService authService;
   final LocaleController localeController;
   final PlayerController player;
+  final MusicVideoService videoService;
+
+  /// Sekme görünür olunca klip listesi tazelenir.
+  final bool isActive;
 
   /// Songs bölümü boşken buton HomeShell'e "0. sekmeye (CreateScreen)
   /// geç" der (bkz. home_shell.dart _goToTab).
@@ -49,10 +60,46 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  List<Map<String, dynamic>> _videos = const [];
+
   @override
   void initState() {
     super.initState();
     widget.library.refreshQuota();
+    _loadVideos();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) _loadVideos();
+  }
+
+  Future<void> _loadVideos() async {
+    try {
+      final videos = await widget.videoService.fetchProjects();
+      if (mounted) setState(() => _videos = videos);
+    } catch (_) {
+      // Klipler yüklenemezse bölüm gizli kalır; sonraki sekme geçişinde
+      // tekrar denenir.
+    }
+  }
+
+  void _openVideo(Map<String, dynamic> video) {
+    if (video['hasFinalVideo'] != true) {
+      AppNotice.show(
+        context,
+        AppLocalizations.of(context)!.libraryVideoNotReady,
+        type: NoticeType.info,
+      );
+      return;
+    }
+    openClipPlayer(
+      context,
+      title: video['songTitle']?.toString() ?? '',
+      projectId: video['projectId'].toString(),
+      videoService: widget.videoService,
+    );
   }
 
   String get _displayName {
@@ -87,7 +134,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             builder: (_) => ProfileCompletionFlowScreen(
               library: widget.library,
               service: widget.service,
-              initialStep: widget.library.profileStep,
+              // 4 adımın hepsi tamamlandıysa düzenleme baştan başlar;
+              // yarıda kalındıysa kalınan adımdan devam edilir.
+              initialStep:
+                  (widget.library.profileCompleted || widget.library.profileStep >= 4)
+                      ? 0
+                      : widget.library.profileStep,
             ),
           ),
         )
@@ -125,6 +177,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: AppColors.background,
           child: ListView(
           padding: EdgeInsets.zero,
+          // Yukarı çekince (bounce) başlığın üstünde siyah boşluk açılmasın.
+          physics: const ClampingScrollPhysics(),
           children: [
             Container(
               padding: EdgeInsets.fromLTRB(
@@ -293,31 +347,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 28),
                   ],
-                  Text(
-                    l10n.profileSongs,
-                    style: const TextStyle(
-                      fontFamily: AppFonts.display,
-                      color: AppColors.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   // Devam eden/başarısız üretimler (pendingId != null)
-                  // burada gösterilmez, onlar Şarkılarım sekmesinde.
-                  if (completedSongs.isEmpty)
-                    EmptySongsState(onCreatePressed: widget.onNavigateToCreate)
-                  else
-                    for (var i = 0; i < completedSongs.length; i++) ...[
-                      if (i > 0) const Divider(height: 1, color: AppColors.border),
-                      SongListItem(
+                  // burada gösterilmez, onlar Kütüphane sekmesinde.
+                  if (completedSongs.isEmpty) ...[
+                    Text(
+                      l10n.librarySongsTitle,
+                      style: const TextStyle(
+                        fontFamily: AppFonts.display,
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    EmptySongsState(onCreatePressed: widget.onNavigateToCreate),
+                  ] else
+                    // En fazla 4 satır; fazlası sağa kaydırılarak görülür.
+                    PagedListSection(
+                      title: l10n.librarySongsTitle,
+                      itemCount: completedSongs.length,
+                      itemBuilder: (context, i) => SongListItem(
                         librarySong: completedSongs[i],
                         isPlaying: widget.player.current?.song.id ==
                                 completedSongs[i].song.id &&
                             widget.player.isPlaying,
                         onTap: () => widget.player.playSong(completedSongs[i]),
                       ),
-                    ],
+                    ),
+                  if (_videos.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    PagedListSection(
+                      title: l10n.libraryVideosTitle,
+                      itemCount: _videos.length,
+                      rowHeight: 70,
+                      itemBuilder: (context, i) {
+                        final video = _videos[i];
+                        final songId = video['songId']?.toString();
+                        final source = widget.library.songs
+                            .where((s) => s.song.id == songId)
+                            .firstOrNull;
+                        final ready = video['hasFinalVideo'] == true;
+                        final failed =
+                            (video['status']?.toString() ?? '').endsWith('_failed');
+                        return LibraryListItem(
+                          padding: const EdgeInsets.symmetric(vertical: 7),
+                          title: video['songTitle']?.toString() ?? '',
+                          imageUrl: source?.song.imageUrl ?? '',
+                          kind: LibraryItemKind.video,
+                          kindLabel: l10n.libraryFilterVideo,
+                          metadata: failed
+                              ? l10n.libraryVideoFailed
+                              : ready
+                                  ? (source?.genre ?? '')
+                                  : l10n.libraryVideoInProgress,
+                          isDimmed: !ready,
+                          onTap: () => _openVideo(video),
+                        );
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:melodia/l10n/generated/app_localizations.dart';
+import '../services/app_navigation.dart';
 import '../services/auth_service.dart';
 import '../services/locale_controller.dart';
 import '../services/music_spec_service.dart';
@@ -22,6 +23,7 @@ import 'library_screen.dart';
 import 'player_screen.dart';
 import 'pro_upsell_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 /// Bottom navigation bar ile AI Müzik / My Songs / Kütüphane / Profile
 /// sekmelerini bir arada tutan ana kabuk widget'ı.
@@ -54,7 +56,6 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   late final SongLibrary _library;
   late final PlayerController _player;
-  bool _imagesPrecached = false;
   Timer? _proUpsellTimer;
 
   @override
@@ -71,6 +72,9 @@ class _HomeShellState extends State<HomeShell> {
       service: widget.service,
       queueSource: () => _library.songs,
     );
+    // Üretim formları (HomeShell'in üstüne push edilen sayfalar) bitince
+    // Kütüphane sekmesine dönebilsin / player'ı açabilsin.
+    AppNavigation.attach(goToTab: _goToTab, openPlayer: _openPlayer);
     _scheduleProUpsell();
     // YENİ (Pro ekranı yükleme kayması düzeltmesi): PRO ekranı en erken
     // 9sn sonra otomatik açılabiliyor -- bu süreyi, Apple'dan ürün
@@ -122,31 +126,8 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // DÜZELTME ("premium hissi" sorunu): Kütüphane sekmesindeki arka
-    // plan görselleri (AssetImage) daha önce SADECE o sekmeye ilk kez
-    // gidildiğinde decode ediliyordu -- bu da görsellerin ~1 saniye
-    // gecikmeyle "pat" diye belirmesine (pop-in) sebep oluyordu. Burada
-    // uygulama İLK AÇILDIĞI ANDA (hangi sekmede olursa olsun), bu dört
-    // görseli arka planda önceden decode ediyoruz. Kullanıcı Kütüphane'ye
-    // geçtiğinde görseller zaten Flutter'ın global image cache'inde
-    // hazır bulunuyor, anında ve pürüzsüz görünüyor.
-    if (!_imagesPrecached) {
-      _imagesPrecached = true;
-      for (final path in const [
-        'assets/images/library_songs.png',
-        'assets/images/library_videos.png',
-        'assets/images/library_favorites.png',
-        'assets/images/library_downloads.png',
-      ]) {
-        precacheImage(AssetImage(path), context);
-      }
-    }
-  }
-
-  @override
   void dispose() {
+    AppNavigation.detach();
     _proUpsellTimer?.cancel();
     _player.dispose();
     _library.dispose();
@@ -154,6 +135,21 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _goToTab(int index) => setState(() => _index = index);
+
+  /// Sekmelerin üst kısmındaki ayarlar ikonu -- Profil'deki ile aynı ekran.
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(
+          service: widget.service,
+          authService: widget.authService,
+          localeController: widget.localeController,
+          library: _library,
+          onAccountDeleted: widget.onLoggedOut,
+        ),
+      ),
+    );
+  }
 
   /// Remix başlayınca "Görüntüle": açık player'ı (ve varsa üstündeki
   /// sayfaları) kapatıp Kütüphane sekmesine geçer.
@@ -223,17 +219,24 @@ class _HomeShellState extends State<HomeShell> {
         player: _player,
         isActive: _index == 0,
         authService: widget.authService,
+        onOpenSettings: _openSettings,
       ),
       AiVideoScreen(
         service: widget.musicVideoService,
         authService: widget.authService,
         apiService: widget.service,
         library: _library,
+        onOpenSettings: _openSettings,
       ),
       LibraryScreen(
         songLibrary: _library,
         player: _player,
         videoService: widget.musicVideoService,
+        authService: widget.authService,
+        service: widget.service,
+        onOpenSettings: _openSettings,
+        onOpenPlayer: _openPlayer,
+        isActive: _index == AppNavigation.libraryTab,
       ),
       ProfileScreen(
         library: _library,
@@ -242,6 +245,8 @@ class _HomeShellState extends State<HomeShell> {
         localeController: widget.localeController,
         onLoggedOut: widget.onLoggedOut,
         player: _player,
+        videoService: widget.musicVideoService,
+        isActive: _index == 3,
         onNavigateToCreate: () => _goToTab(0),
       ),
     ];
